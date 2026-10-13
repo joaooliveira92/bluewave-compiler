@@ -14,6 +14,8 @@ export interface ParseOutput {
   objectDocs: Map<string, unknown>;
   /** The source file each `objectDocs` entry came from. */
   objectSourcePaths: Map<string, string>;
+  /** The content root; artifact-facing source paths are written relative to it. */
+  contentDir: string;
 }
 
 /**
@@ -117,7 +119,14 @@ export class ParseStage implements CompilerStage<CompilerInput, ParseOutput> {
     }
 
     if (collector.hasErrors) return undefined;
-    return { manifest, collectionDocs, sourcePaths, objectDocs, objectSourcePaths };
+    return {
+      manifest,
+      collectionDocs,
+      sourcePaths,
+      objectDocs,
+      objectSourcePaths,
+      contentDir: input.contentDir,
+    };
   }
 
   private collect(

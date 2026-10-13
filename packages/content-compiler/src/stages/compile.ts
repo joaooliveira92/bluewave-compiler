@@ -155,7 +155,8 @@ function buildShipBuildingCatalogue(input: NormalizeOutput): ShipBuildingCatalog
     input.gunMounts.length > 0 ||
     input.ammunition.length > 0 ||
     input.navalProfiles.length > 0 ||
-    input.referenceDesigns.length > 0;
+    input.referenceDesigns.length > 0 ||
+    input.partModel !== undefined;
   if (!hasCatalogue) return undefined;
 
   return {
@@ -171,6 +172,8 @@ function buildShipBuildingCatalogue(input: NormalizeOutput): ShipBuildingCatalog
       ammunition: input.ammunition,
     },
     referenceDesigns: input.referenceDesigns,
+    // Present only with part-model content, so a pack without it keeps its body hash.
+    ...(input.partModel !== undefined ? { partModel: input.partModel } : {}),
   };
 }
 

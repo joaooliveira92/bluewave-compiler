@@ -5,6 +5,7 @@ import type { DiagnosticCollector } from "@bluewave/diagnostics";
 import type { CompilerInput, CompilerOutput, CompilerStage } from "./index.js";
 
 import { CompileStage } from "./stages/compile.js";
+import { FlattenStage } from "./stages/flatten.js";
 import { NormalizeStage } from "./stages/normalize.js";
 import { ParseStage } from "./stages/parse.js";
 import { ValidateStage } from "./stages/validate.js";
@@ -13,7 +14,13 @@ export class Compiler {
   private stages: CompilerStage<unknown, unknown>[];
 
   constructor() {
-    this.stages = [new ParseStage(), new ValidateStage(), new NormalizeStage(), new CompileStage()];
+    this.stages = [
+      new ParseStage(),
+      new ValidateStage(),
+      new FlattenStage(),
+      new NormalizeStage(),
+      new CompileStage(),
+    ];
   }
 
   compile(

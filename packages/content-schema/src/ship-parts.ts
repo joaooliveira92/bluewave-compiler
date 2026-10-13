@@ -390,33 +390,56 @@ function revisionSchema<S extends Schema.Top>(specDelta: S) {
   });
 }
 
-/**
- * One family member of the part union. The envelope is shared; `family`, the allowed
- * `provides` values, `spec` and the revision delta (every spec field optional) vary.
- */
-function partMember<const F extends PartFamily, const SpecFields extends Schema.Struct.Fields>(
-  family: F,
-  specFields: SpecFields,
-) {
-  const spec = Schema.Struct(specFields);
-  const delta = Schema.Struct(optionalFields(specFields));
-  return Schema.Struct({
+/** The spec fields a standalone part must write: every field not marked optional. */
+function requiredKeys(fields: Schema.Struct.Fields): readonly string[] {
+  return Object.keys(fields).filter((key) => fields[key]?.ast.context?.isOptional !== true);
+}
+
+/** The envelope fields shared by the authored and the flattened part of one family. */
+function envelopeFields<const F extends PartFamily>(family: F) {
+  return {
     id: stableId,
     family: Schema.Literal(family),
     provides: Schema.Literals(FAMILY_INTERFACES[family]),
     name: Schema.NonEmptyString,
     nation: Schema.optional(stableId),
-    extends: Schema.optional(stableId),
     lifecycle: PartLifecycleSchema,
     parameters: Schema.optional(Schema.Record(parameterName, ParameterRangeSchema)),
-    spec,
-    quantities: Schema.optional(Schema.Array(QuantityComponentSchema)),
     slots: Schema.optional(Schema.Array(SlotSchema)),
-    revisions: Schema.optional(Schema.Array(revisionSchema(delta))),
     legacyExceptions: Schema.optional(Schema.Array(LegacyExceptionSchema)),
     visual: Schema.optional(PartVisualSchema),
     provenance: ProvenanceSchema,
-  });
+  };
+}
+
+/**
+ * One family member of the part union. The envelope is shared; `family`, the allowed
+ * `provides` values, `spec` and the revision delta (every spec field optional) vary.
+ *
+ * A **variant** (`extends` present) writes `spec` as a delta over its prototype, so
+ * every spec field is optional at decode. A standalone part must write every required
+ * spec field; a missing one is reported at `spec.<field>`. The flatten stage decodes
+ * the merged result through `FlattenedPartSchema`, which requires the full spec.
+ */
+function partMember<const F extends PartFamily, const SpecFields extends Schema.Struct.Fields>(
+  family: F,
+  specFields: SpecFields,
+) {
+  const delta = Schema.Struct(optionalFields(specFields));
+  const required = requiredKeys(specFields);
+  return Schema.Struct({
+    ...envelopeFields(family),
+    extends: Schema.optional(stableId),
+    spec: delta,
+    quantities: Schema.optional(Schema.Array(QuantityComponentSchema)),
+    revisions: Schema.optional(Schema.Array(revisionSchema(delta))),
+  }).check(
+    Schema.makeFilter((part) => {
+      if (part.extends !== undefined) return undefined;
+      const missing = required.filter((key) => !Object.hasOwn(part.spec, key));
+      return missing.map((key) => ({ path: ["spec", key], issue: "Missing key" }));
+    }),
+  );
 }
 
 /**
@@ -439,6 +462,115 @@ export const PartSchema = Schema.Union([
   // `family` gate would need SchemaTransformation, which this runtime-free package may not import.
   message: `expected a part record whose family is one of ${PART_FAMILIES.join(", ")}`,
 });
+
+// ---------------------------------------------------------------------------
+// Flattened parts and the part index (SPM-R10, SPM-R11, SPM-R14)
+// ---------------------------------------------------------------------------
+
+/**
+ * Where a flattened part's values came from (ADR-0147, I-12): the file that declares
+ * it and, for a variant, the prototype it inherits from with the spec fields and
+ * quantity components it took unchanged from the prototype's **base** spec (the
+ * prototype's revisions are never inherited; ADR-0154 §14).
+ */
+export const PartOriginSchema = Schema.Struct({
+  sourceFile: Schema.NonEmptyString,
+  prototype: Schema.optional(
+    Schema.Struct({
+      id: stableId,
+      sourceFile: Schema.NonEmptyString,
+      inheritedSpec: Schema.Array(Schema.NonEmptyString),
+      inheritedQuantities: Schema.Array(stableId),
+    }),
+  ),
+});
+
+/**
+ * One family member of the flattened union: no `extends` (I-3), the full spec, the
+ * quantity components after inheritance, and the revisions sorted by `from`.
+ */
+function flattenedMember<const F extends PartFamily, const SpecFields extends Schema.Struct.Fields>(
+  family: F,
+  specFields: SpecFields,
+) {
+  return Schema.Struct({
+    ...envelopeFields(family),
+    spec: Schema.Struct(specFields),
+    quantities: Schema.Array(QuantityComponentSchema),
+    revisions: Schema.Array(revisionSchema(Schema.Struct(optionalFields(specFields)))),
+    origin: PartOriginSchema,
+  });
+}
+
+/** A part after the flatten stage: what the content artifact carries. */
+export const FlattenedPartSchema = Schema.Union([
+  flattenedMember("gun", GunSpecFields),
+  flattenedMember("gun_mount", GunMountSpecFields),
+  flattenedMember("ammunition", AmmunitionSpecFields),
+  flattenedMember("torpedo_launcher", TorpedoLauncherSpecFields),
+  flattenedMember("torpedo", TorpedoSpecFields),
+  flattenedMember("propulsion_plant", PropulsionPlantSpecFields),
+  flattenedMember("armour_material", ArmourMaterialSpecFields),
+  flattenedMember("sensor", SensorSpecFields),
+  flattenedMember("fitting", FittingSpecFields),
+]);
+
+/** One part's place in the lineage graph; every list is id-ordered by codepoint. */
+export const PartLineageSchema = Schema.Struct({
+  prototype: Schema.optional(stableId),
+  variants: Schema.Array(stableId),
+  supersedes: Schema.Array(stableId),
+  supersededBy: Schema.Array(stableId),
+});
+
+/**
+ * The compiled part index (SPM-R11). Parts by id, part ids by interface and by family,
+ * and the lineage graph. It is part of the content artifact, so the body hash and the
+ * content lock cover it (ADR-0122/0123/0145). All id lists are codepoint-ordered
+ * (ADR-0146); only non-empty interface and family groups are present.
+ */
+export const PartIndexSchema = Schema.Struct({
+  byId: Schema.Record(stableId, FlattenedPartSchema),
+  byInterface: Schema.Record(stableId, Schema.Array(stableId)),
+  byFamily: Schema.Record(stableId, Schema.Array(stableId)),
+  lineage: Schema.Record(stableId, PartLineageSchema),
+});
+
+/** The part-model section of the content artifact: the index plus slot sources. */
+export const CompiledPartModelSchema = Schema.Struct({
+  partIndex: PartIndexSchema,
+  slotTemplates: Schema.Array(SlotTemplateSchema),
+  platforms: Schema.Array(PlatformSchema),
+});
+
+export type FlattenedPart = typeof FlattenedPartSchema.Type;
+export type PartIndex = typeof PartIndexSchema.Type;
+export type CompiledPartModel = typeof CompiledPartModelSchema.Type;
+
+/** A part's values at one month: the spec with every revision up to it applied. */
+export interface ResolvedPartRevision {
+  /** The `from` of the last revision applied, or `"base"` when none is (I-1). */
+  readonly revision: string;
+  readonly spec: Readonly<Record<string, unknown>>;
+}
+
+/**
+ * Resolves a flattened part's spec at `month` (`YYYY-MM`). Revisions are cumulative
+ * deltas: each one whose `from` is not after `month` applies in the flattened order
+ * (ascending `from`, then declaration order; I-2), and the last one applied names the
+ * effective revision. Availability and `requires` are not checked here; they are fit
+ * findings (SPM-R12).
+ */
+export function resolvePartRevision(part: FlattenedPart, month: string): ResolvedPartRevision {
+  let spec: Record<string, unknown> = { ...part.spec };
+  let revision = "base";
+  for (const entry of part.revisions) {
+    if (entry.from > month) break;
+    spec = { ...spec, ...entry.spec };
+    revision = entry.from;
+  }
+  return { revision, spec };
+}
 
 // ---------------------------------------------------------------------------
 // Loadouts

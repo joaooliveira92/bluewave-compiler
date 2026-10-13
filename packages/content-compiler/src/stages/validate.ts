@@ -58,6 +58,8 @@ export interface ValidateOutput {
   parts?: unknown[];
   slotTemplates?: unknown[];
   platforms?: unknown[];
+  /** The source file of each part, slot template and platform, for the flatten stage. */
+  partModelSources?: PartModelSources;
   fleets?: unknown[];
   economies?: unknown[];
   constructions?: unknown[];
@@ -65,6 +67,15 @@ export interface ValidateOutput {
   research?: unknown[];
   designs?: unknown[];
   presentation?: unknown;
+}
+
+/** The source file of each part-model record, by id, for the flatten stage. */
+export interface PartModelSources {
+  /** The content root: the artifact records source files relative to it. */
+  readonly contentDir: string;
+  readonly parts: ReadonlyMap<string, string>;
+  readonly slotTemplates: ReadonlyMap<string, string>;
+  readonly platforms: ReadonlyMap<string, string>;
 }
 
 const COLLECTION_KEYS = [
@@ -261,6 +272,12 @@ export class ValidateStage implements CompilerStage<ParseOutput, ValidateOutput>
       ports: validated["ports"] ?? [],
       technologies: validated["technologies"] ?? [],
       ...catalogue,
+      partModelSources: {
+        contentDir: input.contentDir,
+        parts: sourceById(input, "parts", "id"),
+        slotTemplates: sourceById(input, "slotTemplates", "id"),
+        platforms: sourceById(input, "platforms", "id"),
+      },
       ...campaign,
       ...(presentation !== undefined ? { presentation } : {}),
     };

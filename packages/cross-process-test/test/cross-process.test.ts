@@ -91,6 +91,25 @@ describe("Compiler canonical order is locale-independent (CAH-DET-1)", () => {
   });
 });
 
+describe("Part index cross-process determinism (ship-part-model ticket 02)", () => {
+  const partIndexChildScript = resolve(thisDir, "..", "dist", "run-part-index-child.js");
+
+  function runPartIndexChild(locale: string): string {
+    const stdout = execFileSync(process.execPath, [partIndexChildScript], {
+      encoding: "utf8",
+      timeout: 30000,
+      env: { ...process.env, LC_ALL: locale, LANG: locale, NODE_OPTIONS: "" },
+    });
+    const lines = stdout.trim().split("\n");
+    return (JSON.parse(lines[lines.length - 1]!) as { partIndexBundleHash: string })
+      .partIndexBundleHash;
+  }
+
+  it("two processes under different host locales build a byte-identical part index", () => {
+    expect(runPartIndexChild("en_US.UTF-8")).toBe(runPartIndexChild("tr_TR.UTF-8"));
+  });
+});
+
 describe("Air-combat cross-process determinism", () => {
   const airCombatChildScript = resolve(thisDir, "..", "dist", "run-air-combat-child.js");
 

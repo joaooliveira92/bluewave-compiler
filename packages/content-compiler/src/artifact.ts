@@ -202,6 +202,7 @@ function toMutableBundle(decoded: CompiledContentBundle): ContentBundle {
         ammunition: [...catalogue.armament.ammunition],
       },
       referenceDesigns: [...catalogue.referenceDesigns],
+      ...(catalogue.partModel !== undefined ? { partModel: catalogue.partModel } : {}),
     };
   }
   if (decoded.campaign !== undefined) {

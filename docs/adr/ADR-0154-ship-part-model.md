@@ -94,6 +94,38 @@ The 1880 content has 91 reference designs with 823 placements (230 gun placement
     and `shipBuilding.platforms`. They are decoded strictly and duplicate-id checked, but
     they do not enter the bundle until the flatten stage and part index (P1). The
     compiled artifact and its hash are unchanged.
+14. **Flatten stage and part index (2026-10-13, ticket 02).** A pure `flatten` compiler
+    stage runs between validation and normalization.
+    - **Prototypes.** A variant writes `spec` as a delta: every spec field is optional
+      when `extends` is present, and a standalone part must write every required
+      field. Following proposal §3.7 ("`spec` and `quantities` values only"), the
+      variant inherits `spec`, `quantities`, `slots`, `parameters` and `visual`. It may
+      override a quantity's `value`, but not its `kind` or `basis`. It may not add a
+      component, and it may not redefine `slots`, `parameters` or `visual`. Its
+      identity, lifecycle, revisions, legacy exceptions and provenance are its own.
+      **Revisions are never inherited**, because a re-rating is a dated fact about one
+      part. A variant that shared one re-declares it with its own provenance. The
+      variant's base spec is the prototype's base spec plus the variant's delta.
+    - **Revisions** are cumulative deltas, sorted by `from` and then by declaration
+      order. At a month, every revision up to that month applies, and the last one
+      applied is the effective revision (`"base"` when none applies).
+      `resolvePartRevision` checks neither availability nor `requires`; those are fit
+      findings.
+    - **Failures.** Each one is an error that names the file and the field path:
+      `PART_EXTENDS_DEPTH`, `PART_EXTENDS_FAMILY`, `PART_EXTENDS_CYCLE`,
+      `PART_VARIANT_INTERFACE`, `PART_VARIANT_KIND`, `PART_VARIANT_BASIS`,
+      `PART_VARIANT_QUANTITY`, `PART_VARIANT_FIELD`, `PART_REVISION_DUPLICATE` and
+      `PART_SUPERSEDES_CYCLE`. An unknown slot template, hull form, `extends`,
+      `supersedes`, `forPart` or technology is a `REF` error.
+    - **The index** is carried as `shipBuilding.partModel`: parts by id, part ids by
+      interface and by family, a lineage graph, slot templates and platforms, all in
+      codepoint order. It is present only when the pack declares part-model content,
+      so a pack without it keeps its body hash and lock.
+    - **Provenance.** Each flattened part records its `origin`: its source file and,
+      for a variant, the prototype together with the spec fields and quantities it
+      inherited. Paths are relative to the content root with `/` separators, so the
+      hash does not depend on the checkout path. Part provenance is in the confidence
+      report and the placeholder gate (ADR-0147).
 
 ## Consequences
 

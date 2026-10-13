@@ -1,5 +1,6 @@
 //packages/content-compiler/src/confidence.ts
 import { CONFIDENCE_LEVELS } from "@bluewave/content-schema";
+import { compareCodePoints } from "@bluewave/deterministic";
 
 import type { ContentBundle } from "./index.js";
 
@@ -101,6 +102,28 @@ export const BUNDLE_COLLECTIONS: readonly BundleCollectionSpec[] = [
     name: "shipBuilding.armament.ammunition",
     idField: "id",
     of: (b) => b.shipBuilding?.armament.ammunition,
+  },
+  {
+    name: "shipBuilding.partModel.parts",
+    idField: "id",
+    of: (b) => {
+      const byId = b.shipBuilding?.partModel?.partIndex.byId;
+      return byId === undefined
+        ? undefined
+        : Object.keys(byId)
+            .sort(compareCodePoints)
+            .map((id) => byId[id]);
+    },
+  },
+  {
+    name: "shipBuilding.partModel.slotTemplates",
+    idField: "id",
+    of: (b) => b.shipBuilding?.partModel?.slotTemplates,
+  },
+  {
+    name: "shipBuilding.partModel.platforms",
+    idField: "id",
+    of: (b) => b.shipBuilding?.partModel?.platforms,
   },
   { name: "campaign.fleets", idField: "id", of: (b) => b.campaign?.fleets },
   { name: "campaign.economies", idField: "nationId", of: (b) => b.campaign?.economies },

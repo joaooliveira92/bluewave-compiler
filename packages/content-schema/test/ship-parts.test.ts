@@ -5,6 +5,7 @@ import {
   APPLICATION_BASES,
   type ContentSchema,
   DEFAULT_MOUNT_COUNT,
+  FlattenedPartSchema,
   LoadoutEntrySchema,
   LoadoutSchema,
   PART_INTERFACES,
@@ -12,6 +13,7 @@ import {
   PlatformSchema,
   SlotTemplateSchema,
   decodeStrict,
+  resolvePartRevision,
   validateAgainstSchema,
 } from "../src/index.js";
 import { decodeIssue, decodeOk } from "./decode-helpers.js";
@@ -510,5 +512,68 @@ describe("strict failure diagnostics identify the source file and field path", (
     expect(errors[0]?.message).toContain("Part.(root):");
     expect(errors[0]?.message).toContain("family is one of");
     expect(errors[0]?.message).toContain("gun_mount");
+  });
+});
+
+describe("a variant writes its spec as a delta over its prototype", () => {
+  const FILE = "ship-building/parts/torpedoes.yaml";
+
+  it("a standalone part missing a required spec field fails at that field", () => {
+    const { result, errors } = diagnose(
+      PartSchema,
+      { ...PARTS.torpedo, spec: { diameterUm: 356_000, massKg: 300, warheadKg: 12 } },
+      FILE,
+    );
+    expect(result).toBeUndefined();
+    expect(errors.map((error) => error.message).join("\n")).toContain(
+      "Part.spec.speedSettingsMilliKnots:",
+    );
+    expect(errors.every((error) => error.sourceLocation?.path === FILE)).toBe(true);
+  });
+
+  it("a variant may omit every spec field it inherits", () => {
+    expectAccepted(PartSchema, {
+      ...PARTS.torpedo,
+      id: "whitehead_14in_de",
+      extends: "whitehead_14in",
+      spec: { warheadKg: 20 },
+    });
+  });
+
+  it("a variant's spec delta still rejects an unknown field", () => {
+    expectRejected(PartSchema, {
+      ...PARTS.torpedo,
+      id: "whitehead_14in_de",
+      extends: "whitehead_14in",
+      spec: { warheadLb: 44 },
+    });
+  });
+});
+
+describe("resolvePartRevision applies dated deltas cumulatively", () => {
+  const flattened = {
+    ...PARTS.torpedo,
+    spec: { diameterUm: 356_000, massKg: 300, warheadKg: 12, speedSettingsMilliKnots: [24_000] },
+    quantities: [],
+    revisions: [
+      { from: "1884-01", spec: { warheadKg: 26 }, provenance },
+      { from: "1888-06", spec: { speedSettingsMilliKnots: [27_000] }, provenance },
+    ],
+    origin: { sourceFile: "ship-building/parts/torpedoes.yaml" },
+  };
+
+  it("decodes as a flattened part", () => {
+    expectAccepted(FlattenedPartSchema, flattened);
+  });
+
+  it.each([
+    ["1883-12", "base", 12, [24_000]],
+    ["1884-01", "1884-01", 26, [24_000]],
+    ["1890-01", "1888-06", 26, [27_000]],
+  ])("at %s the effective revision is %s", (month, revision, warheadKg, speeds) => {
+    const decoded = decodeStrict(FlattenedPartSchema, flattened);
+    const resolved = resolvePartRevision(decoded, month);
+    expect(resolved.revision).toBe(revision);
+    expect(resolved.spec).toMatchObject({ warheadKg, speedSettingsMilliKnots: speeds });
   });
 });

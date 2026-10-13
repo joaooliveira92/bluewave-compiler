@@ -3,7 +3,7 @@
 **Type:** implementation
 **Status:** open
 **Blocked by:** 02
-**Frontier:** no
+**Frontier:** yes
 **Requirements:** SPM-R3, SPM-R6, SPM-R13, SPM-R14, SPM-R16, SPM-R19, SPM-R20 (gun rows, in memory only) · Stories 1, 25, 26, 33, 36
 
 ## What to build

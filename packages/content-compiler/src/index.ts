@@ -1,6 +1,6 @@
 //packages/content-compiler/src/index.ts
 
-import type { ContentPack, PresentationContent } from "@bluewave/content-schema";
+import type { CompiledPartModel, ContentPack, PresentationContent } from "@bluewave/content-schema";
 import type { DiagnosticCollector } from "@bluewave/diagnostics";
 
 export interface CompilerInput {
@@ -40,9 +40,9 @@ export interface CompilerInput {
   referenceDesignFiles?: string[];
   /**
    * The ship part model (ship-part-model SPM-R1–R3): part records, shared slot
-   * templates and platforms. Validated strictly; not yet carried into the bundle
-   * (the flatten stage and part index add them), so their absence or presence leaves
-   * the artifact byte-identical.
+   * templates and platforms. Validated strictly, then flattened and indexed into
+   * `shipBuilding.partModel` (SPM-R10, SPM-R11). A pack with none of them has no
+   * `partModel`, so its artifact is byte-identical to one built before the part model.
    */
   partFiles?: string[];
   slotTemplateFiles?: string[];
@@ -90,6 +90,8 @@ export interface ShipBuildingCatalogue {
     ammunition: unknown[];
   };
   referenceDesigns: unknown[];
+  /** The flattened part index, slot templates and platforms; absent with no part model. */
+  partModel?: CompiledPartModel;
 }
 
 /**
@@ -154,6 +156,7 @@ export {
   contentPackFromArtifact,
   type ContentPackArtifact,
 } from "./stages/compile.js";
+export { FlattenStage } from "./stages/flatten.js";
 export { NormalizeStage } from "./stages/normalize.js";
 export { ParseStage } from "./stages/parse.js";
 export { ValidateStage } from "./stages/validate.js";

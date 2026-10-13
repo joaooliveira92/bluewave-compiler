@@ -1,20 +1,17 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
 import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { describe, expect, it } from "vite-plus/test";
 
-import { buildFullSurfaceInput, Compiler, type CompilerInput } from "../src/index.js";
+import { buildFullSurfaceInput } from "../src/index.js";
+import { PROVENANCE, baseInput, compile, createFixture } from "./partModelFixture.js";
 
 /**
  * The ship part model at the content compile seam (ship-part-model ticket 01). Part,
  * slot-template and platform files are declared in the pack manifest, decoded strictly,
- * and duplicate-id checked; they do not reach the bundle until the flatten stage lands,
- * so a pack with or without them compiles to the same artifact.
+ * and duplicate-id checked. The flatten stage (ticket 02, `partIndex.test.ts`) carries
+ * them into the bundle; a pack without them compiles to the same artifact as before.
  */
-
-const PROVENANCE = `{ sourceStatus: VERIFIED, confidence: HIGH, kind: historical_fact, sources: [{ title: "test" }] }`;
 
 const GUN_PARTS = `parts:
   - id: bl_12in_25
@@ -135,52 +132,6 @@ const ONE_PER_FAMILY = JSON.stringify({
   ],
 });
 
-interface Fixture {
-  readonly path: string;
-  write(rel: string, content: string): string;
-  cleanup(): void;
-}
-
-function createFixture(): Fixture {
-  const dir = mkdtempSync(resolve(tmpdir(), "bw-parts-"));
-  return {
-    path: dir,
-    write(rel, content) {
-      const full = resolve(dir, rel);
-      mkdirSync(resolve(full, ".."), { recursive: true });
-      writeFileSync(full, content, "utf8");
-      return full;
-    },
-    cleanup: () => rmSync(dir, { recursive: true, force: true }),
-  };
-}
-
-function baseInput(fixture: Fixture, extra: Partial<CompilerInput> = {}): CompilerInput {
-  fixture.write(
-    "pack.json",
-    JSON.stringify({ name: "test-pack", version: "0.1.0", type: "fixture", files: {} }),
-  );
-  return {
-    manifestPath: "pack.json",
-    contentDir: fixture.path,
-    rulesetFiles: [],
-    countryFiles: [],
-    areaFiles: [],
-    routeFiles: [],
-    possessionFiles: [],
-    portFiles: [],
-    technologyFiles: [],
-    shipBalanceFiles: [fixture.write("ship-building/balance.yaml", "ship:\n  dummy: 1\n")],
-    ...extra,
-  };
-}
-
-function compile(input: CompilerInput) {
-  const collector = new DiagnosticCollector();
-  const output = new Compiler().compile(input, new AbortController().signal, collector);
-  return { output, collector };
-}
-
 describe("ship part collections at the content compile seam", () => {
   it("valid parts, slot templates and platforms compile without diagnostics", () => {
     const fixture = createFixture();
@@ -214,7 +165,7 @@ describe("ship part collections at the content compile seam", () => {
     }
   });
 
-  it("adding part-model files leaves the compiled artifact byte-identical", () => {
+  it("a pack without part-model files carries no part model, as before ticket 02", () => {
     const withParts = createFixture();
     const withoutParts = createFixture();
     try {
@@ -226,11 +177,11 @@ describe("ship part collections at the content compile seam", () => {
         }),
       );
       const b = compile(baseInput(withoutParts));
-      expect(a.output).toBeDefined();
-      expect(b.output).toBeDefined();
+      expect(a.output?.bundle.shipBuilding?.partModel).toBeDefined();
+      expect(b.output?.bundle.shipBuilding).toBeDefined();
+      expect(b.output?.bundle.shipBuilding).not.toHaveProperty("partModel");
+      // The content-pack subset hash never covered the ship-building catalogue.
       expect(a.output!.rawHash).toBe(b.output!.rawHash);
-      expect(a.output!.envelopeHash).toBe(b.output!.envelopeHash);
-      expect(JSON.stringify(a.output!.bundle)).toBe(JSON.stringify(b.output!.bundle));
     } finally {
       withParts.cleanup();
       withoutParts.cleanup();

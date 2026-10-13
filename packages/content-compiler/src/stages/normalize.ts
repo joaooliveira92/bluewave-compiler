@@ -1,9 +1,10 @@
 //packages/content-compiler/src/stages/normalize.ts
+import type { CompiledPartModel } from "@bluewave/content-schema";
 import { compareCodePoints } from "@bluewave/deterministic";
 import type { DiagnosticCollector } from "@bluewave/diagnostics";
 
 import type { CompilerStage } from "../index.js";
-import type { ValidateOutput } from "./validate.js";
+import type { FlattenOutput } from "./flatten.js";
 
 export interface NormalizeOutput {
   manifest: unknown;
@@ -24,6 +25,8 @@ export interface NormalizeOutput {
   ammunition: Record<string, unknown>[];
   navalProfiles: Record<string, unknown>[];
   referenceDesigns: Record<string, unknown>[];
+  /** The flattened part model; already codepoint-ordered by the flatten stage. */
+  partModel?: CompiledPartModel;
   fleets: Record<string, unknown>[];
   economies: Record<string, unknown>[];
   constructions: Record<string, unknown>[];
@@ -50,11 +53,11 @@ function sortById<T extends Record<string, unknown>>(items: T[]): T[] {
   return sortByField(items, "id");
 }
 
-export class NormalizeStage implements CompilerStage<ValidateOutput, NormalizeOutput> {
+export class NormalizeStage implements CompilerStage<FlattenOutput, NormalizeOutput> {
   readonly name = "normalize";
 
   run(
-    input: ValidateOutput,
+    input: FlattenOutput,
     _signal: AbortSignal,
     _collector: DiagnosticCollector,
   ): NormalizeOutput {
@@ -83,6 +86,7 @@ export class NormalizeStage implements CompilerStage<ValidateOutput, NormalizeOu
       // historical) because that order is meaningful at runtime (ADR-0109) — the
       // first starter stays the historical default.
       referenceDesigns: [...((input.referenceDesigns ?? []) as Record<string, unknown>[])],
+      ...(input.partModel !== undefined ? { partModel: input.partModel } : {}),
       // Campaign-file collections sort canonically: entity collections by id,
       // per-nation collections by nationId, diplomacy by its pair id (stable for
       // records without one).

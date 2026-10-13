@@ -28,6 +28,7 @@ import {
   ShipComponentSchema,
   ShipHullFormSchema,
 } from "./ship-component.js";
+import { CompiledPartModelSchema } from "./ship-parts.js";
 import { TechnologyPrerequisiteChainSchema } from "./technology.js";
 
 /**
@@ -50,6 +51,8 @@ const ShipBuildingCatalogueSchema = Schema.Struct({
     ammunition: Schema.Array(AmmunitionPatternSchema),
   }),
   referenceDesigns: Schema.Array(ReferenceDesignSchema),
+  /** Present only when the pack declares part-model content (ship-part-model ticket 02). */
+  partModel: Schema.optional(CompiledPartModelSchema),
 });
 
 const CampaignCollectionsSchema = Schema.Struct({
