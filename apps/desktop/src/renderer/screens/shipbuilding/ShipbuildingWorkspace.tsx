@@ -1,6 +1,8 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { flushSync } from "react-dom";
 import type { BatteryRole, ComponentCategory } from "@bluewave/ship-design";
 import { Alert } from "../../components/ui/alert.js";
+import { Button } from "../../components/ui/button.js";
 import {
   AlternativesPanel,
   ArmourPanel,
@@ -26,6 +28,7 @@ import {
   SubmitPanel,
   TopsidePanel,
   handleUndoShortcut,
+  linkedEntities,
   mountNameMap,
   planModel,
   plural,
@@ -37,8 +40,17 @@ import {
   useRestoredDraftToast,
   useDesignSession,
   technologyMonths,
+  type EntityContext,
   type PlanTool,
 } from "../../components/design-workspace/index.js";
+import {
+  DEFAULT_VIEW,
+  overlaysOf,
+  toggleOverlay,
+  type ShipOverlay,
+  type ShipView,
+} from "../../components/design-workspace/panels/hull-plan/ship-view.js";
+import { sameEntity, type ShipEntity } from "../../components/design-workspace/selection/store.js";
 import { useCampaignMonthId } from "../../shell/CampaignShellContext.js";
 import {
   CommandBar,
@@ -47,6 +59,7 @@ import {
   Inspector,
   NotAvailable,
   ShipStage,
+  ViewToolbar,
   WorkspaceDialog,
 } from "./components/index.js";
 import {
@@ -58,6 +71,7 @@ import {
 } from "./design-sections.js";
 import { engineeringStatus } from "./engineering-status.js";
 import { sectionStatuses } from "./section-status.js";
+import { focusEntityControl, placeForEntity } from "./selection.js";
 
 /** How long "Saved" shows after an explicit save. */
 const SAVED_FLASH_MS = 2000;
@@ -101,8 +115,19 @@ export function ShipbuildingWorkspace({ sessionId }: { readonly sessionId?: stri
     restore: actions.restore,
   });
   const [findingsView, setFindingsView] = useFindingsView();
-  const [showArcs, setShowArcs] = useState(true);
+  const [shipView, setShipView] = useState<ShipView>(DEFAULT_VIEW);
+  const [overlays, setOverlays] = useState<ReadonlySet<ShipOverlay>>(() =>
+    overlaysOf(DEFAULT_VIEW),
+  );
   const [planTool, setPlanTool] = useState<PlanTool>(IDLE_TOOL);
+  const [selectedEntity, setSelectedEntity] = useState<ShipEntity | null>(null);
+  const inspectorBodyRef = useRef<HTMLDivElement>(null);
+  const changeView = (next: ShipView) => {
+    setShipView(next);
+    setOverlays(overlaysOf(next));
+  };
+  const flipOverlay = (overlay: ShipOverlay) =>
+    setOverlays((current) => toggleOverlay(current, overlay));
   const model = useMemo(
     () => planModel(draft, content, view, state.month, findings),
     [draft, content, view, state.month, findings],
@@ -157,6 +182,34 @@ export function ShipbuildingWorkspace({ sessionId }: { readonly sessionId?: stri
   }, [draft, content]);
   const statuses = useMemo(() => sectionStatuses(findings, fittings), [findings, fittings]);
 
+  const entityCtx: EntityContext = {
+    draft,
+    view,
+    content,
+    zones: model.zones,
+    batteries,
+    findings,
+  };
+  // Drawing → inspector: pinning a ship element opens the section/tab that edits it and focuses its control.
+  // Only a change of the pinned entity navigates: linked/finding churn from focus must not steal focus back.
+  const lastPinned = useRef<ShipEntity | null>(null);
+  useEffect(() => {
+    const unsubscribe = selection.subscribe(() => {
+      const pinned = selection.get().selected;
+      if (sameEntity(pinned, lastPinned.current)) return;
+      lastPinned.current = pinned;
+      setSelectedEntity(pinned);
+      if (pinned === null) return;
+      const at = placeForEntity(pinned, { draft, content });
+      if (at === null) return;
+      // The new place must render before its control exists to focus, so flush that one update synchronously.
+      flushSync(() => setPlace(at));
+      focusEntityControl(inspectorBodyRef.current ?? document, pinned);
+    });
+    return unsubscribe;
+  }, [selection, draft, content]);
+  const selectedInstanceId = selectedEntity?.kind === "fitting" ? selectedEntity.instanceId : null;
+
   const section = SECTIONS[place.section];
   const tab = section.tabs.find((t) => t.id === place.tab) ?? section.tabs[0]!;
   const body = tabBody(place);
@@ -178,6 +231,8 @@ export function ShipbuildingWorkspace({ sessionId }: { readonly sessionId?: stri
         month={state.month}
         view={view}
         edit={actions.edit}
+        onSelect={(instanceId) => selection.select({ kind: "fitting", instanceId })}
+        selectedInstanceId={selectedInstanceId}
       />
     );
   }
@@ -243,7 +298,14 @@ export function ShipbuildingWorkspace({ sessionId }: { readonly sessionId?: stri
         return (
           <>
             {cards.length > 0 && (
-              <BatteryPanel cards={cards} draft={draft} content={content} edit={actions.edit} />
+              <BatteryPanel
+                cards={cards}
+                draft={draft}
+                content={content}
+                edit={actions.edit}
+                onSelect={selection.select}
+                selectedInstanceId={selectedInstanceId}
+              />
             )}
             {fittingsOnly(at)}
           </>
@@ -286,6 +348,17 @@ export function ShipbuildingWorkspace({ sessionId }: { readonly sessionId?: stri
         data-testid="shipbuilding-workspace"
         className="grid h-full min-h-0 grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden rounded-lg border bg-background"
         onKeyDown={(e) => handleUndoShortcut(e, { ...state, ...actions })}
+        onKeyDownCapture={(e) => {
+          // Escape clears a pinned ship element from the drawing or the inspector, one step per press.
+          if (e.key !== "Escape") return;
+          const s = selection.get();
+          if (s.selected === null || s.preview !== null || s.markerPreview) return;
+          if (!(e.target instanceof Element) || !e.target.closest("[data-selection-scope]")) return;
+          e.preventDefault();
+          e.stopPropagation();
+          if (s.finding !== null) selection.clearFinding();
+          else selection.clear();
+        }}
       >
         <CommandBar
           shipClassName={shipClassName}
@@ -332,14 +405,22 @@ export function ShipbuildingWorkspace({ sessionId }: { readonly sessionId?: stri
           />
           <ShipStage
             toolbar={
-              <PlanModeButtons
-                tool={planTool}
-                onTool={setPlanTool}
-                draft={draft}
-                available={model.available}
-                defOf={model.defOf}
-                onAutoPlace={editing.onAutoPlace}
-              />
+              <>
+                <ViewToolbar
+                  view={shipView}
+                  onView={changeView}
+                  overlays={overlays}
+                  onToggleOverlay={flipOverlay}
+                />
+                <PlanModeButtons
+                  tool={planTool}
+                  onTool={setPlanTool}
+                  draft={draft}
+                  available={model.available}
+                  defOf={model.defOf}
+                  onAutoPlace={editing.onAutoPlace}
+                />
+              </>
             }
           >
             <ShipViewBoundary resetKey={draft}>
@@ -352,8 +433,8 @@ export function ShipbuildingWorkspace({ sessionId }: { readonly sessionId?: stri
                 findings={findings}
                 model={model}
                 editing={editing}
-                showArcs={showArcs}
-                onShowArcs={setShowArcs}
+                shipView={shipView}
+                overlays={overlays}
                 findingsView={findingsView}
                 onFindingsView={setFindingsView}
               />
@@ -366,8 +447,34 @@ export function ShipbuildingWorkspace({ sessionId }: { readonly sessionId?: stri
             tab={tab.id}
             onTab={(t) => openSection(place.section, t)}
           >
-            {state.editError !== null && <Alert variant="destructive">{state.editError}</Alert>}
-            {body}
+            <div
+              ref={inspectorBodyRef}
+              data-selection-scope=""
+              className="space-y-3"
+              // Inspector → drawing: focus in a form group about ship elements lights them on the drawing.
+              onFocus={(e) => selection.setLinked(linkedEntities(e.target, entityCtx))}
+              onBlur={(e) => {
+                if (!(e.relatedTarget instanceof Node && e.currentTarget.contains(e.relatedTarget)))
+                  selection.setLinked([]);
+              }}
+            >
+              {selectedEntity !== null && (
+                <div
+                  data-testid="selection-banner"
+                  className="flex items-center justify-between gap-2 rounded-md border border-primary/40 bg-card px-2 py-1.5 text-xs"
+                >
+                  <span>
+                    <span className="text-muted-foreground">Selected on ship: </span>
+                    {model.entityName(selectedEntity)}
+                  </span>
+                  <Button type="button" variant="ghost" size="sm" onClick={() => selection.clear()}>
+                    Clear
+                  </Button>
+                </div>
+              )}
+              {state.editError !== null && <Alert variant="destructive">{state.editError}</Alert>}
+              {body}
+            </div>
           </Inspector>
         </div>
         <EngineeringStatusBar readouts={readouts} />

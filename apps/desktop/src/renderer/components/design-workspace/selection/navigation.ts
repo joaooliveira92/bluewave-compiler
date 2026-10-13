@@ -163,6 +163,11 @@ export function shipLinkValue(entities: readonly ShipEntity[]): string {
   return JSON.stringify(entities);
 }
 
+/** Attributes for a form group about ship entities: the one wire format, parsed by `parseShipLink`. */
+export function shipLinkAttrs(entities: readonly ShipEntity[]): Record<string, string> {
+  return { [SHIP_LINK_ATTR]: shipLinkValue(entities) };
+}
+
 const isEntity = (v: unknown): v is ShipEntity => {
   if (typeof v !== "object" || v === null) return false;
   const e = v as Record<string, unknown>;
@@ -174,20 +179,24 @@ const isEntity = (v: unknown): v is ShipEntity => {
   );
 };
 
+/** Parses a `data-ship-link` value into entities; a malformed or absent value names nothing. */
+export function parseShipLink(value: string | null): ShipEntity[] {
+  if (value === null) return [];
+  try {
+    const parsed: unknown = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed.filter(isEntity) : [];
+  } catch {
+    return [];
+  }
+}
+
 /**
  * The entities the focused form element is about: its nearest `SHIP_LINK_ATTR` group, else the panel it sits
  * in when that panel describes ship elements (the machinery settings light the machinery rooms).
  */
 export function linkedEntities(el: Element | null, ctx: EntityContext): ShipEntity[] {
   const group = el?.closest(`[${SHIP_LINK_ATTR}]`);
-  if (group) {
-    try {
-      const parsed: unknown = JSON.parse(group.getAttribute(SHIP_LINK_ATTR) ?? "[]");
-      return Array.isArray(parsed) ? parsed.filter(isEntity) : [];
-    } catch {
-      return [];
-    }
-  }
+  if (group) return parseShipLink(group.getAttribute(SHIP_LINK_ATTR));
   const region = el?.closest('[role="region"]')?.getAttribute("aria-label");
   if (region === PANEL.machinery)
     return machineryRooms(ctx.draft).map((_, index) => ({ kind: "machinery-room", index }));

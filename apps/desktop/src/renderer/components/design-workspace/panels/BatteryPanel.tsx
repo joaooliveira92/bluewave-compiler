@@ -1,13 +1,15 @@
 import type { DesignDraft } from "@bluewave/ship-design";
 import { Badge } from "../../ui/badge.js";
+import { Button } from "../../ui/button.js";
 import { ConfirmAction } from "../ConfirmAction.js";
 import type { BatteryCard } from "../batteryView.js";
 import { clearBatteryEdit, setRoundsEdit } from "../batteryView.js";
 import type { DrawingBoardContent } from "../content.js";
 import { NumberField } from "../fields.js";
+import type { ShipEntity } from "../selection/store.js";
 import { Panel } from "./Panel.js";
 import type { Edit } from "./types.js";
-import { batteryAttrs } from "../selection/navigation.js";
+import { batteryAttrs, shipLinkAttrs } from "../selection/navigation.js";
 
 const tonnes = (kg: number) => (kg / 1000).toLocaleString("en-US", { maximumFractionDigits: 0 });
 /** "gun"/"guns", "tube"/"tubes". */
@@ -21,11 +23,17 @@ export function BatteryPanel({
   draft,
   content,
   edit,
+  onSelect,
+  selectedInstanceId,
 }: {
   readonly cards: readonly BatteryCard[];
   readonly draft: DesignDraft;
   readonly content: DrawingBoardContent;
   readonly edit: Edit;
+  /** When given, each mount is a control that pins it in the drawing's selection. */
+  readonly onSelect?: (entity: ShipEntity) => void;
+  /** The mount the drawing has pinned, so the control shows its pressed state. */
+  readonly selectedInstanceId?: string | null;
 }) {
   const defOf = (id: string) => content.components.find((c) => c.id === id);
   return (
@@ -55,9 +63,24 @@ export function BatteryPanel({
               <ul className="flex flex-wrap gap-1.5" aria-label={`${title} mounts`}>
                 {mounts.map((m) => (
                   <li key={m.instanceId}>
-                    <Badge variant="outline" className="tabular-nums">
-                      {m.name} · {sideText[m.side]} · {m.stationPermille}‰
-                    </Badge>
+                    {onSelect ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant={selectedInstanceId === m.instanceId ? "default" : "outline"}
+                        aria-pressed={selectedInstanceId === m.instanceId}
+                        aria-label={`Select mount ${m.name}`}
+                        className="tabular-nums"
+                        onClick={() => onSelect({ kind: "fitting", instanceId: m.instanceId })}
+                        {...shipLinkAttrs([{ kind: "fitting", instanceId: m.instanceId }])}
+                      >
+                        {m.name} · {sideText[m.side]} · {m.stationPermille}‰
+                      </Button>
+                    ) : (
+                      <Badge variant="outline" className="tabular-nums">
+                        {m.name} · {sideText[m.side]} · {m.stationPermille}‰
+                      </Badge>
+                    )}
                   </li>
                 ))}
               </ul>

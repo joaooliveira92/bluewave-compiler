@@ -1,5 +1,6 @@
 import type { DesignDraft } from "@bluewave/ship-design";
 import { arcSectors, sectorPath } from "./arcs.js";
+import { useShipSelection } from "../../selection/useShipSelection.js";
 import { NON_SCALING, STROKE } from "./drafting.js";
 import { fittingPoint, type PlanFrame } from "./geometry.js";
 
@@ -52,18 +53,23 @@ export function GunArcLayer({
   readonly mounts: readonly { instanceId: string; effectiveBeamArcDeg: number }[];
 }) {
   const arcByInstance = new Map(mounts.map((m) => [m.instanceId, m.effectiveBeamArcDeg]));
+  // A selected mount's arcs read strongest: the coverage it can actually bear on its own drawing.
+  const selected = useShipSelection((s) => s.selected);
+  const highlightId = selected?.kind === "fitting" ? selected.instanceId : undefined;
   return (
     <g data-testid="gun-arcs">
       {draft.placements.flatMap((p, i) => {
         const { x, y } = fittingPoint(frame, p.stationPermille, p.side, i);
+        const highlighted = p.instanceId === highlightId;
         return arcSectors(p.instanceId, p.side, arcByInstance.get(p.instanceId)).map((s) => (
           <path
             key={`${p.instanceId}-${s.beam}`}
             d={sectorPath(x, y, ARC_R, s)}
             className="fill-primary stroke-primary"
-            fillOpacity={0.12}
-            strokeOpacity={0.4}
+            fillOpacity={highlighted ? 0.3 : 0.12}
+            strokeOpacity={highlighted ? 0.9 : 0.4}
             data-arc={`${p.instanceId}:${s.beam}`}
+            data-highlight={highlighted || undefined}
           >
             <title>{`${p.instanceId}: ${Math.round(s.widthDeg)}° ${s.beam === "STBD" ? "starboard" : "port"} beam arc`}</title>
           </path>

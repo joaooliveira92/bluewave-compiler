@@ -57,10 +57,15 @@ function ComponentHover({
   def,
   placement,
   view,
+  onSelect,
+  selected,
 }: {
   readonly def: ComponentDef | undefined;
   readonly placement: PlacementSpec;
   readonly view: WorkshopView;
+  /** When given, the name is a control that pins this fitting in the drawing's selection. */
+  readonly onSelect?: () => void;
+  readonly selected?: boolean;
 }) {
   if (!def) return <span>{placement.componentId}</span>;
   const facts = componentFacts(
@@ -70,8 +75,17 @@ function ComponentHover({
   return (
     <HoverCard>
       <HoverCardTrigger
-        render={<button type="button" />}
-        className="cursor-help text-left underline decoration-dotted underline-offset-2"
+        render={
+          <button
+            type="button"
+            onClick={onSelect}
+            aria-pressed={onSelect === undefined ? undefined : selected === true}
+          />
+        }
+        className={cn(
+          "cursor-help text-left underline decoration-dotted underline-offset-2",
+          selected === true && "font-medium text-foreground",
+        )}
       >
         {facts.name}
       </HoverCardTrigger>
@@ -123,6 +137,8 @@ export function PlacementsPanel({
   edit,
   categories,
   title = "Components and arrangement",
+  onSelect,
+  selectedInstanceId,
 }: {
   readonly draft: DesignDraft;
   readonly content: DrawingBoardContent;
@@ -135,6 +151,10 @@ export function PlacementsPanel({
   readonly categories?: ReadonlySet<ComponentCategory>;
   /** The panel's heading and region name. */
   readonly title?: string;
+  /** When given, each row's name is a control that pins that fitting in the drawing's selection. */
+  readonly onSelect?: (instanceId: string) => void;
+  /** The fitting the drawing has pinned, so its row shows its pressed state. */
+  readonly selectedInstanceId?: string | null;
 }) {
   const defs = new Map(content.components.map((c) => [c.id, c]));
   const shown = (def: ComponentDef | undefined) =>
@@ -198,7 +218,13 @@ export function PlacementsPanel({
                     render={<tr className="border-t align-top" {...placementAttrs(p.instanceId)} />}
                   >
                     <th scope="row" className="p-1 text-left font-normal">
-                      <ComponentHover def={d} placement={p} view={view} />
+                      <ComponentHover
+                        def={d}
+                        placement={p}
+                        view={view}
+                        onSelect={onSelect === undefined ? undefined : () => onSelect(p.instanceId)}
+                        selected={selectedInstanceId === p.instanceId}
+                      />
                       <div className="text-xs text-muted-foreground">
                         {names.has(p.instanceId) && (
                           <Badge variant="secondary" className="mr-1">

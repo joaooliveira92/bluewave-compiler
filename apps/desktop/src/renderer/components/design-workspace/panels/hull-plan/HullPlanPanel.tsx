@@ -24,6 +24,13 @@ import { SelectionLayer } from "./SelectionLayer.js";
 import { GunArcLayer, HullFittingLayer } from "./fitting-layers.js";
 import { HullOutlineLayer, HullZoneLayer } from "./plan-layers.js";
 import { HullTopsideLayer } from "./HullTopsideLayer.js";
+import {
+  ArmourZoneLayer,
+  CompartmentLayer,
+  MachineryLayoutLayer,
+  MassMarkersLayer,
+} from "./ship-view-layers.js";
+import { DEFAULT_VIEW, SHIP_VIEW_DEFS, type ShipOverlay, type ShipView } from "./ship-view.js";
 import { planModel, type PlanModel } from "./planModel.js";
 import { useHullPlanEditing, type HullPlanEditing } from "./useHullPlanEditing.js";
 import { Info } from "lucide-react";
@@ -57,6 +64,8 @@ export function HullPlanPanel({
   onShowArcs,
   findingsView: givenFindingsView,
   onFindingsView,
+  shipView: givenShipView,
+  overlays: givenOverlays,
 }: {
   readonly draft: DesignDraft;
   readonly content: DrawingBoardContent;
@@ -78,6 +87,13 @@ export function HullPlanPanel({
   /** Which findings show on the plan; the board toolbar owns it, the plan only when shown on its own. */
   readonly findingsView?: FindingsView;
   readonly onFindingsView?: (next: FindingsView) => void;
+  /**
+   * The view the workspace switches between (ticket 04). Omitted, the drawing behaves as the Drawing Board's
+   * single top view: every layer is drawn and the gun arcs follow `showArcs`.
+   */
+  readonly shipView?: ShipView;
+  /** The overlays switched on. Omitted, every layer is drawn (the Drawing Board's behaviour). */
+  readonly overlays?: ReadonlySet<ShipOverlay>;
 }) {
   // Display preferences are lifted to the board toolbar; the plan falls back to its own state when shown on its own.
   const [localShowArcs, setLocalShowArcs] = useState(true);
@@ -86,7 +102,7 @@ export function HullPlanPanel({
   const setShowArcs = onShowArcs ?? setLocalShowArcs;
   const findingsView = givenFindingsView ?? localFindingsView;
   const setFindingsView = onFindingsView ?? setLocalFindingsView;
-  const arcsControl = onShowArcs === undefined;
+  const showArcsControl = onShowArcs === undefined && givenOverlays === undefined;
   const findingsControl = onFindingsView === undefined;
   const planRef = useRef<HTMLDivElement>(null);
   const model = givenModel ?? planModel(draft, content, view, month, given);
@@ -106,6 +122,12 @@ export function HullPlanPanel({
   const { tool, notice, ghost, planHandlers, onNudge, onSide } = editing;
   const { frame, zones, form, facts, superstructure, placedFunnels, mounts, targets } = model;
   const shown = model.findings.filter((f) => passesFilter(f.severity, findingsView.filter));
+  // View and overlays are the workspace's; without them the drawing is the Drawing Board's single top view.
+  const viewDef = SHIP_VIEW_DEFS[givenShipView ?? DEFAULT_VIEW];
+  const overlaysGiven = givenOverlays !== undefined;
+  const on = (overlay: ShipOverlay) => givenOverlays === undefined || givenOverlays.has(overlay);
+  const arcsOn = (overlaysGiven ? on("arcs") : true) && showArcs;
+  const lcgPermille = view.compiled.stability?.lcgPermille;
   return (
     <Panel title="Hull plan" className="rounded-none border-0 bg-transparent">
       <PlanToolOptions
@@ -116,7 +138,7 @@ export function HullPlanPanel({
         onNudge={onNudge}
         onSide={onSide}
       />
-      {arcsControl && (
+      {showArcsControl && (
         <div className="flex items-center gap-2 text-sm">
           <Checkbox
             id="show-gun-arcs"
@@ -134,8 +156,10 @@ export function HullPlanPanel({
           shipFindings={shown.filter((f) => f.entities.some((e) => e.kind === "ship"))}
         />
       )}
-      <div className="space-y-1" ref={planRef}>
-        <p className="text-xs font-medium text-muted-foreground">Waterline plan</p>
+      <div className="space-y-1" ref={planRef} hidden={viewDef.profileOnly}>
+        <p className="text-xs font-medium text-muted-foreground">
+          {viewDef.profileOnly ? "Waterline plan" : viewDef.hint}
+        </p>
         <div className="relative">
           <svg
             viewBox={`0 0 ${PLAN_W} ${PLAN_H}`}
@@ -146,13 +170,23 @@ export function HullPlanPanel({
             <HullOutlineLayer frame={frame} />
             <SelectionLayer frame={frame} zones={zones} draft={draft} warns={model.warns} />
             <HullZoneLayer frame={frame} zones={zones} />
-            <HullTopsideLayer frame={frame} draft={draft} content={content} zones={zones} />
-            {showArcs && <GunArcLayer frame={frame} draft={draft} mounts={mounts} />}
-            <HullFittingLayer
-              frame={frame}
-              draft={draft}
-              selectedId={tool.mode === "move" ? tool.instanceId : undefined}
-            />
+            {viewDef.id === "compartments" && <CompartmentLayer frame={frame} zones={zones} />}
+            {on("armour") && <ArmourZoneLayer frame={frame} draft={draft} />}
+            {on("topside") && (
+              <HullTopsideLayer frame={frame} draft={draft} content={content} zones={zones} />
+            )}
+            {on("mass") && lcgPermille !== undefined && (
+              <MassMarkersLayer frame={frame} lcgPermille={lcgPermille} />
+            )}
+            {on("machinery") && <MachineryLayoutLayer frame={frame} draft={draft} />}
+            {arcsOn && <GunArcLayer frame={frame} draft={draft} mounts={mounts} />}
+            {on("footprint") && (
+              <HullFittingLayer
+                frame={frame}
+                draft={draft}
+                selectedId={tool.mode === "move" ? tool.instanceId : undefined}
+              />
+            )}
             {tool.mode !== "off" && (
               <rect
                 x={0}
@@ -187,11 +221,13 @@ export function HullPlanPanel({
             disabled={tool.mode !== "off"}
             warns={(instanceId) => model.warns({ kind: "fitting", instanceId })}
           />
-          <FindingMarkers
-            groups={findingsView.visible ? layoutMarkers(shown, frame, draft, zones) : []}
-            names={model.entityName}
-            hidden={tool.mode !== "off"}
-          />
+          {on("conflicts") && (
+            <FindingMarkers
+              groups={findingsView.visible ? layoutMarkers(shown, frame, draft, zones) : []}
+              names={model.entityName}
+              hidden={tool.mode !== "off"}
+            />
+          )}
         </div>
         <SectionLabels
           zones={zones}

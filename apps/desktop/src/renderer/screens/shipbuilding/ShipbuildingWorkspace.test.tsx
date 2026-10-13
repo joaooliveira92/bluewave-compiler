@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within, act } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vite-plus/test";
 import { buildWorkshopView } from "@bluewave/ship-design";
 import { loadDrawingBoardContent } from "../../components/design-workspace/index.js";
@@ -210,6 +210,117 @@ describe("Design map and inspector routing", () => {
     const finish = within(localTabs()).getByRole("tab", { name: "Finish" });
     expect(finish.getAttribute("aria-selected")).toBe("true");
   });
+});
+
+describe("Central ship workspace views and overlays", () => {
+  const ship = () => screen.getByRole("region", { name: "Ship view" });
+  const viewGroup = () => within(ship()).getByRole("group", { name: "Ship view" });
+  const overlays = () => within(ship()).getByRole("group", { name: "Overlays" });
+  const viewButton = (name: string) => within(viewGroup()).getByRole("button", { name });
+  const overlay = (name: string) => within(overlays()).getByRole("checkbox", { name });
+  const plan = () => screen.queryByRole("img", { name: /^Top-down plan/ });
+
+  it("switches the drawing among the five views", () => {
+    render(<ShipbuildingWorkspace />);
+    for (const name of ["Top", "Side", "Armour", "Compartments", "Firing arcs"])
+      expect(viewButton(name)).toBeTruthy();
+    expect(viewButton("Top").getAttribute("aria-pressed")).toBe("true");
+    // Side shows the profile and hides the plan.
+    fireEvent.click(viewButton("Side"));
+    expect(plan()).toBeNull();
+    expect(screen.getByRole("img", { name: /^Side profile/ })).toBeTruthy();
+    fireEvent.click(viewButton("Top"));
+    expect(plan()).not.toBeNull();
+  });
+
+  it("controls the overlays independently, and no view turns them all on", () => {
+    render(<ShipbuildingWorkspace />);
+    expect(overlay("Turret arcs").getAttribute("aria-checked")).toBe("true");
+    expect(overlay("Component footprint").getAttribute("aria-checked")).toBe("true");
+    expect(overlay("Armour zones").getAttribute("aria-checked")).toBe("false");
+    expect(overlay("Centre of mass").getAttribute("aria-checked")).toBe("false");
+
+    // Turning one overlay on leaves the others exactly as they were.
+    fireEvent.click(overlay("Centre of mass"));
+    expect(overlay("Centre of mass").getAttribute("aria-checked")).toBe("true");
+    expect(overlay("Turret arcs").getAttribute("aria-checked")).toBe("true");
+    expect(document.querySelector("[data-testid='mass-cg']")).not.toBeNull();
+
+    fireEvent.click(overlay("Turret arcs"));
+    expect(plan()!.querySelectorAll("[data-arc]")).toHaveLength(0);
+    // ...and switching view presets its own overlays.
+    fireEvent.click(viewButton("Armour"));
+    expect(overlay("Armour zones").getAttribute("aria-checked")).toBe("true");
+    expect(overlay("Turret arcs").getAttribute("aria-checked")).toBe("false");
+
+    // The overlays group is a toggle list, never all-on at once.
+    const boxes = within(overlays()).getAllByRole("checkbox");
+    expect(boxes.filter((b) => b.getAttribute("aria-checked") === "true").length).toBeLessThan(
+      boxes.length,
+    );
+  });
+});
+
+describe("Selection synchronization", () => {
+  const ship = () => screen.getByRole("region", { name: "Ship view" });
+  const fittings = () => within(ship()).getByRole("toolbar", { name: "Fittings on the plan" });
+  const fittingTarget = (id: string) =>
+    fittings().querySelector<SVGGElement>(`[data-target="${id}"]`)!;
+  const localTabs = () =>
+    within(screen.getByRole("complementary", { name: /^Inspector/ })).getByRole("tablist", {
+      name: /tabs$/,
+    });
+
+  it("opens the matching section, local tab and editor when a fitting on the ship is clicked", () => {
+    render(<ShipbuildingWorkspace />);
+    fireEvent.click(fittingTarget("gun_12pdr"));
+    expect(screen.getByRole("complementary", { name: "Inspector: Armament" })).toBeTruthy();
+    expect(
+      within(localTabs()).getByRole("tab", { name: "Secondary" }).getAttribute("aria-selected"),
+    ).toBe("true");
+    expect(screen.getByTestId("selection-banner").textContent).toMatch(/Selected on ship/);
+    // The mount's own control takes focus.
+    expect((document.activeElement as HTMLElement).getAttribute("aria-label")).toMatch(
+      /^Select mount /,
+    );
+
+    fireEvent.click(fittingTarget("mag_fwd"));
+    expect(screen.getByRole("complementary", { name: "Inspector: Protection" })).toBeTruthy();
+    expect(
+      within(localTabs()).getByRole("tab", { name: "Magazines" }).getAttribute("aria-selected"),
+    ).toBe("true");
+  });
+
+  it("does not steal focus back when the inspector focus moves to another element", () => {
+    render(<ShipbuildingWorkspace />);
+    fireEvent.click(fittingTarget("gun_12pdr"));
+    const mounts = within(screen.getByRole("region", { name: "Batteries" })).getAllByRole(
+      "button",
+      { name: /^Select mount / },
+    );
+    const other = mounts.find((b) => b !== document.activeElement);
+    expect(other).toBeTruthy();
+    act(() => other!.focus());
+    expect(document.activeElement).toBe(other);
+  });
+
+  it("highlights the element on the ship when it is selected in the inspector", () => {
+    render(<ShipbuildingWorkspace />);
+    openMap("Armament");
+    fireEvent.click(within(localTabs()).getByRole("tab", { name: "Secondary" }));
+    const battery = screen.getByRole("region", { name: "Batteries" });
+    const mount = within(battery).getAllByRole("button", { name: /^Select mount / })[0]!;
+    fireEvent.click(mount);
+    expect(fittingTarget("gun_12pdr").getAttribute("aria-pressed")).toBe("true");
+    expect(fittingTarget("gun_12pdr").getAttribute("data-state")).toBe("selected");
+    expect(fittings().querySelector("[data-testid='fitting-selected-ring']")).not.toBeNull();
+    // The selected mount's firing arcs read strongest.
+    expect(plan()!.querySelectorAll("[data-highlight]").length).toBeGreaterThan(0);
+  });
+
+  function plan() {
+    return screen.getByRole("img", { name: /^Top-down plan/ });
+  }
 });
 
 describe("Engineering status strip", () => {
