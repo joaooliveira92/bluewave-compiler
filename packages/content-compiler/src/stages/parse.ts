@@ -31,6 +31,9 @@ const WRAPPED_GROUPS: Readonly<Record<string, string>> = {
   ammunition: "ammunition",
   navalProfiles: "navalProfiles",
   referenceDesigns: "designs",
+  parts: "parts",
+  slotTemplates: "slotTemplates",
+  platforms: "platforms",
 };
 
 /** Collections whose files are a single mapping, kept whole (e.g. balance.yaml). */
@@ -68,6 +71,9 @@ export class ParseStage implements CompilerStage<CompilerInput, ParseOutput> {
       ammunition: input.ammunitionFiles ?? [],
       navalProfiles: input.navalProfileFiles ?? [],
       referenceDesigns: input.referenceDesignFiles ?? [],
+      parts: input.partFiles ?? [],
+      slotTemplates: input.slotTemplateFiles ?? [],
+      platforms: input.platformFiles ?? [],
       fleets: input.fleetFiles ?? [],
       economies: input.economyFiles ?? [],
       constructions: input.constructionFiles ?? [],

@@ -39,6 +39,15 @@ export interface CompilerInput {
   navalProfileFiles?: string[];
   referenceDesignFiles?: string[];
   /**
+   * The ship part model (ship-part-model SPM-R1–R3): part records, shared slot
+   * templates and platforms. Validated strictly; not yet carried into the bundle
+   * (the flatten stage and part index add them), so their absence or presence leaves
+   * the artifact byte-identical.
+   */
+  partFiles?: string[];
+  slotTemplateFiles?: string[];
+  platformFiles?: string[];
+  /**
    * Campaign-file collections (the authored campaign surface). Optional like the
    * ship-building groups: a content-pack-only `bwc compile` leaves them undefined
    * and its artifact stays byte-compatible; `content:build`/`content:check`

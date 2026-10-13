@@ -23,6 +23,9 @@ export interface ShipBuildingFileGroups {
   ammunitionFiles: string[];
   navalProfileFiles: string[];
   referenceDesignFiles: string[];
+  partFiles: string[];
+  slotTemplateFiles: string[];
+  platformFiles: string[];
 }
 
 /** Fixed ship-building catalogue files, one file per collection. */
@@ -35,10 +38,14 @@ const FIXED_FILES: ReadonlyArray<readonly [keyof ShipBuildingFileGroups, string]
   ["gunModelFiles", "ship-building/armament/gun-models.yaml"],
   ["gunMountFiles", "ship-building/armament/gun-mounts.yaml"],
   ["ammunitionFiles", "ship-building/armament/ammunition.yaml"],
+  ["slotTemplateFiles", "ship-building/slot-templates.yaml"],
+  ["platformFiles", "ship-building/platforms.yaml"],
 ];
 
 const NAVAL_PROFILE_DIR = "ship-building/naval-profiles";
 const REFERENCE_DESIGN_DIR = "ship-building/reference-designs";
+/** The ship part catalogue (ship-part-model SPM-R1): any number of files, one family or theme each. */
+const PART_DIR = "ship-building/parts";
 
 export function discoverShipBuildingFiles(contentDir: string): ShipBuildingFileGroups {
   const groups: ShipBuildingFileGroups = {
@@ -52,6 +59,9 @@ export function discoverShipBuildingFiles(contentDir: string): ShipBuildingFileG
     ammunitionFiles: [],
     navalProfileFiles: [],
     referenceDesignFiles: [],
+    partFiles: [],
+    slotTemplateFiles: [],
+    platformFiles: [],
   };
 
   for (const [key, rel] of FIXED_FILES) {
@@ -62,6 +72,7 @@ export function discoverShipBuildingFiles(contentDir: string): ShipBuildingFileG
 
   groups.navalProfileFiles = listYamlFiles(contentDir, NAVAL_PROFILE_DIR).map(safePath);
   groups.referenceDesignFiles = listReferenceDesignFiles(contentDir).map(safePath);
+  groups.partFiles = listYamlFiles(contentDir, PART_DIR).map(safePath);
   return groups;
 }
 

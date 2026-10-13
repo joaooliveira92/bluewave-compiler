@@ -1,7 +1,7 @@
 # Architecture decision records
 
 One ADR per durable decision: `ADR-NNNN-<slug>.md`. New decisions take the
-highest existing number + 1 (the next number is ADR-0154).
+highest existing number + 1 (the next number is ADR-0155).
 Refresh this table from each file's H1 when one is added or re-titled.
 (ADR-0043 was never written; the sequence intentionally continues at 0044.)
 See [DESIGN amendments](AMENDMENTS.md) for which ADRs amend which DESIGN doc.
@@ -93,6 +93,7 @@ Ship design, classification, construction, repair, and rebuild.
 | 0088 | [ADR-0088-opening-ship-types.md](ADR-0088-opening-ship-types.md) | Opening ship types, availability policy and engine-side enforcement | accepted | — |
 | 0132 | [ADR-0132-in-place-revision-limits.md](ADR-0132-in-place-revision-limits.md) | In-place design-revision limits (manual p27) | accepted | — |
 | 0135 | [ADR-0135-authored-national-dock-record.md](ADR-0135-authored-national-dock-record.md) | Authored national dock record (distinct from the production ceiling) | accepted | — |
+| 0154 | [ADR-0154-ship-part-model.md](ADR-0154-ship-part-model.md) | One part model for ships — platforms declare slots, parts plug in through stable interfaces | accepted | — |
 
 ## National content
 

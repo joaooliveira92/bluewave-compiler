@@ -15,6 +15,8 @@ import {
   NationNavalProfileSchema,
   NationSchema,
   PackManifestSchema,
+  PartSchema,
+  PlatformSchema,
   PortSchema,
   PossessionSchema,
   PresentationContentSchema,
@@ -24,6 +26,7 @@ import {
   RulesetManifestSchema,
   ShipComponentSchema,
   ShipHullFormSchema,
+  SlotTemplateSchema,
   TechnologyPrerequisiteChainSchema,
   validateAgainstSchema,
   type ContentSchema,
@@ -52,6 +55,9 @@ export interface ValidateOutput {
   ammunition?: unknown[];
   navalProfiles?: unknown[];
   referenceDesigns?: unknown[];
+  parts?: unknown[];
+  slotTemplates?: unknown[];
+  platforms?: unknown[];
   fleets?: unknown[];
   economies?: unknown[];
   constructions?: unknown[];
@@ -90,6 +96,9 @@ interface ValidatedCatalogue {
   ammunition: unknown[];
   navalProfiles: unknown[];
   referenceDesigns: unknown[];
+  parts: unknown[];
+  slotTemplates: unknown[];
+  platforms: unknown[];
 }
 
 /**
@@ -123,6 +132,9 @@ const SHIP_BUILDING_COLLECTIONS: readonly ShipBuildingCollection[] = [
     label: "ReferenceDesign",
     idField: "id",
   },
+  { key: "parts", schema: PartSchema, label: "Part", idField: "id" },
+  { key: "slotTemplates", schema: SlotTemplateSchema, label: "SlotTemplate", idField: "id" },
+  { key: "platforms", schema: PlatformSchema, label: "Platform", idField: "id" },
 ];
 
 /**
@@ -628,6 +640,9 @@ function validateShipBuildingCatalogue(
     ammunition: out["ammunition"] ?? [],
     navalProfiles: out["navalProfiles"] ?? [],
     referenceDesigns: out["referenceDesigns"] ?? [],
+    parts: out["parts"] ?? [],
+    slotTemplates: out["slotTemplates"] ?? [],
+    platforms: out["platforms"] ?? [],
   };
 }
 
@@ -647,6 +662,9 @@ function catalogueArrays(catalogue: ValidatedCatalogue): Record<string, unknown[
     ammunition: catalogue.ammunition,
     navalProfiles: catalogue.navalProfiles,
     referenceDesigns: catalogue.referenceDesigns,
+    parts: catalogue.parts,
+    slotTemplates: catalogue.slotTemplates,
+    platforms: catalogue.platforms,
   };
 }
 

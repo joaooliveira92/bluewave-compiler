@@ -82,6 +82,19 @@ const SHIP_BUILDING_COLLECTIONS: ReadonlyArray<{
     inputKey: "referenceDesignFiles",
     label: "reference design",
   },
+  { manifestKey: "parts", groupKey: "partFiles", inputKey: "partFiles", label: "ship part" },
+  {
+    manifestKey: "slotTemplates",
+    groupKey: "slotTemplateFiles",
+    inputKey: "slotTemplateFiles",
+    label: "slot template",
+  },
+  {
+    manifestKey: "platforms",
+    groupKey: "platformFiles",
+    inputKey: "platformFiles",
+    label: "platform",
+  },
 ];
 
 /**
@@ -178,6 +191,9 @@ export function buildFullSurfaceInput(
     ammunitionFiles: declaredByInputKey.ammunitionFiles,
     navalProfileFiles: declaredByInputKey.navalProfileFiles,
     referenceDesignFiles: declaredByInputKey.referenceDesignFiles,
+    partFiles: declaredByInputKey.partFiles,
+    slotTemplateFiles: declaredByInputKey.slotTemplateFiles,
+    platformFiles: declaredByInputKey.platformFiles,
     fleetFiles: (files.fleets ?? []).map(toAbsolute),
     economyFiles: (files.economies ?? []).map(toAbsolute),
     constructionFiles: (files.constructions ?? []).map(toAbsolute),
