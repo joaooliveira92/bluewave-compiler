@@ -65,7 +65,7 @@ const AREAS = [
     blurb: "Electron boundary, renderer screens, UX, and presentation.",
     nums: [
       23, 24, 28, 29, 30, 38, 55, 57, 58, 59, 69, 79, 82, 84, 87, 115, 118, 120, 121, 125, 126, 127,
-      133, 141, 142,
+      133, 141, 142, 148,
     ],
   },
   {

@@ -52,6 +52,7 @@
     "clsx": "^2.1.1",
     "tailwind-merge": "^3.7.0",
     "@bluewave/ship-design": "workspace:*",
+    "@bluewave/ship-visual": "workspace:*",
     "yaml": "^2.9.1"
   },
   "devDependencies": {

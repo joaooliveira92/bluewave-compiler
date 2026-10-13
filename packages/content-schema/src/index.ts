@@ -189,3 +189,15 @@ export {
   ShipHullFormCatalogueSchema,
   ShipHullFormSchema,
 } from "./ship-component.js";
+export type { ShipVisualCatalog } from "./ship-visual.js";
+export {
+  SHIP_VISUAL_ERAS,
+  SHIP_VISUAL_MOUNT_CLASSES,
+  SHIP_VISUAL_PLAN_BODIES,
+  SHIP_VISUAL_SIZES,
+  SHIP_VISUAL_STYLES,
+  SHIP_VISUAL_TONES,
+  ShipVisualCatalogSchema,
+  ShipVisualMastSchema,
+  ShipVisualMountSchema,
+} from "./ship-visual.js";

@@ -24,6 +24,10 @@
     "test": {
       "dependsOn": ["build"]
     },
+    "@bluewave/ship-visual#test": {
+      "dependsOn": ["build"],
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/content/ship-visual/**"]
+    },
     "clean": {
       "cache": false
     }

@@ -12,10 +12,14 @@ import {
 import type { BowStyle, SternStyle } from "./geometry.js";
 import { ProfileFittingsLayer, ProfileHullLayer, ProfileWaterlineLayer } from "./profile-layers.js";
 import { ProfileReferenceLayer } from "./ProfileReferenceLayer.js";
+import type { VisualMountInput } from "@bluewave/ship-visual";
+import { ProfileMountLayer, profileMounts } from "./profile-mounts.js";
+import type { VisualLook } from "./visualMounts.js";
 
 /**
  * Side profile (bow left), drawn under the plan on the same horizontal scale. SCHEMATIC: see `profileFrame`;
- * masts, guns and armour are not drawn. Layers, back to front: datums, hull silhouette, fitted structures.
+ * armour is not drawn. Layers, back to front (manual p137): datums, hull silhouette, superstructure and funnels,
+ * gun mounts from the ship-visual part catalog, the waterline datum.
  */
 export function ProfileView({
   draft,
@@ -26,6 +30,8 @@ export function ProfileView({
   lcbPermille,
   superstructure,
   facts,
+  mounts = [],
+  look,
 }: {
   readonly draft: DesignDraft;
   readonly content: DrawingBoardContent;
@@ -35,10 +41,15 @@ export function ProfileView({
   readonly lcbPermille: number;
   readonly superstructure: { startPermille: number; endPermille: number } | undefined;
   readonly facts: DrawingFacts;
+  /** The compiled placements to draw as gun mounts (`visualMountInputs`); omitted, none are drawn. */
+  readonly mounts?: readonly VisualMountInput[];
+  /** The nation style and visual era the mounts are drawn in. */
+  readonly look?: VisualLook;
 }) {
   const frame = profileFrame(draft.hull, sheerBp, bow, stern);
   const houses = houseMasses(frame, superstructure);
   const funnels = funnelShapes(frame, funnelPlacements(draft, content), houses);
+  const placed = look ? profileMounts(mounts, look, frame, houses).placed : [];
   return (
     <svg
       viewBox={`0 0 ${PROFILE_W} ${PROFILE_H}`}
@@ -50,6 +61,7 @@ export function ProfileView({
       <ProfileReferenceLayer frame={frame} />
       <ProfileHullLayer frame={frame} />
       <ProfileFittingsLayer houses={houses} funnels={funnels} />
+      <ProfileMountLayer placed={placed} />
       <ProfileWaterlineLayer frame={frame} lcbPermille={lcbPermille} />
     </svg>
   );

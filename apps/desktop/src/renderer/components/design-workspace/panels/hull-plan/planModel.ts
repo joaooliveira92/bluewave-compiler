@@ -9,6 +9,8 @@ import { funnelPlacements } from "./funnelPlacements.js";
 import { bowStyleFor, planFrame, type PlanFrame, sternStyleFor } from "./geometry.js";
 import type { FunnelInput } from "./profile-structures.js";
 import { SECTIONS, type ZoneRange } from "./sections.js";
+import type { VisualMountInput } from "@bluewave/ship-visual";
+import { type VisualLook, visualLook, visualMountInputs } from "./visualMounts.js";
 
 /**
  * Everything the hull-plan view renders, derived once from the draft, its compile and the catalogue. Pure and
@@ -30,6 +32,9 @@ export interface PlanModel {
   readonly targets: ReadonlyMap<string, FittingTarget>;
   readonly superstructure: ZoneRange | undefined;
   readonly placedFunnels: readonly FunnelInput[];
+  /** The compiled placements as the ship-visual catalog reads them, and the look they are drawn in. */
+  readonly visualMounts: readonly VisualMountInput[];
+  readonly look: VisualLook;
   readonly facts: DrawingFacts;
   readonly warns: (entity: ShipEntity) => boolean;
   readonly entityName: (entity: ShipEntity) => string;
@@ -110,6 +115,8 @@ export function planModel(
     targets,
     superstructure,
     placedFunnels,
+    visualMounts: visualMountInputs(draft, view),
+    look: visualLook(draft.nationId, month),
     facts,
     warns: (entity) => entityWarns(entity, findings),
     entityName,

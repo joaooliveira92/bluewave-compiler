@@ -1,6 +1,6 @@
 # Packages
 
-18 standalone TypeScript composite projects. **Authoritative sources:**
+19 standalone TypeScript composite projects. **Authoritative sources:**
 
 - **Boundaries and dependency direction** — [ADR-0001](../docs/adr/ADR-0001-monorepo-structure.md). Read it before adding a package or a cross-package import.
 - **Domain vocabulary** — [CONTEXT.md](../CONTEXT.md) (glossary; e.g. `Nation` not "country").
@@ -22,6 +22,7 @@ phase engine composing them; import only a package's public `exports`
 | `content-compiler` | Parse → validate → normalize → compile stages with diagnostics. |
 | `campaign` | Campaign compiler and state aggregates (world, nations, fleets, war…). |
 | `ship-design` | Component-level ship compiler (DESIGN-21/63). |
+| `ship-visual` | Presentation-only ship visual parts: era/nation part catalog, resolver, placement (ADR-0148). Renderer-only. |
 | `commands` | Command envelopes, 7-step lifecycle, authorization, ledger, reason codes. |
 | `events` | Domain event envelopes, explanation trees, ledger. |
 | `combat` | Deterministic tactical battle engine and auto-resolution. |

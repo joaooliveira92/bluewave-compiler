@@ -50,6 +50,7 @@ export const RUNTIME_FREE_ROOTS = [
   "packages/phase-engine/src",
   "packages/random/src",
   "packages/ship-design/src",
+  "packages/ship-visual/src",
 ];
 
 // The runtime-free subset ADR-0100 §2 permits. Anything else imported from

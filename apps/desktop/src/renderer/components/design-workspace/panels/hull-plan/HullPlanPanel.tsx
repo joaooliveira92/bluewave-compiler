@@ -258,6 +258,8 @@ export function HullPlanPanel({
           lcbPermille={frame.lcbPermille}
           superstructure={superstructure}
           facts={facts}
+          mounts={model.visualMounts}
+          look={model.look}
         />
       </div>
       <HullPlanLegend
@@ -286,8 +288,9 @@ export function HullPlanPanel({
             Schematic design views, not construction drawings or a true lines plan. The hull form's
             waterplane coefficient, LCB, sheer and the placed fittings drive the drawing; bow and
             stern character, sheer emphasis, deck-house steps and funnel shape are visual
-            conventions. Only station, side and arc width of fittings are data. Arcs show the
-            effective beam arc after obstruction.
+            conventions. Of the fittings, station, side and arc width are data, and so are a gun's
+            calibre, gun count and mount type; the mount's silhouette follows the designing nation
+            and period, a convention. Arcs show the effective beam arc after obstruction.
           </PopoverContent>
         </Popover>
       </div>
