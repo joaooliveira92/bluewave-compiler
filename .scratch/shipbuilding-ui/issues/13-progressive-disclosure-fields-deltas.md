@@ -44,7 +44,8 @@ Shipbuilding sections:
   section's "What the model does not carry"), so they are not fabricated as controls.
 - **Unit-aware number field** — `NumberField` gains a `recommended` prop: when the value differs from
   the recommended one a **Reset** control commits it (clamped to the valid range), wired for the
-  Machinery targets (the starting design's requirement values). It keeps direct keyboard entry,
+  Machinery targets (the starting design's requirement values) and for each fitted armour region's
+  thickness/length/height (the model's `newArmourRegion` starting size). It keeps direct keyboard entry,
   increment/decrement buttons, a unit label, an enforced `min`/`max`, and works under the workspace's
   undo. The field now sets Base UI's `allowWheelScrub`, which scrubs **only while the input is focused**
   (Base UI checks the active element), so scrolling the inspector never changes an unfocused value.
@@ -58,7 +59,9 @@ Shipbuilding sections:
   in the select (via a new `Select.onActiveValueChange` → `SelectField`), e.g. `Speed +1.3 kn`,
   `Displacement −84 t`, `Cost +£1,260`, `Reliability +8%`, `Required from 1885-01` — nothing is committed
   until the option is chosen. `SelectField` keeps every calculation out of the render path: the map is
-  built with `useMemo`, only while the Machinery section is open.
+  built with `useMemo`, only while the Machinery section is open. The primitive is wired at the ticket's
+  example (the propulsion plant); other option selects adopt it the same way, but the Protection material
+  select still commits without a preview (a per-region × per-material compile is not worth running eagerly).
 - **Immediate cause and effect** — edits already recompile synchronously (`buildWorkshopView` in a
   `useMemo`), so the drawing, displacement, cost, performance and stability update in the same render.
   No transition is used: there is no asynchronous calculation to delay or to replace with a stale

@@ -97,4 +97,14 @@ describe("protection view model", () => {
     expect(model.coverageBp).toBe(view.compiled.armour!.coverageBp);
     expect(model.totalWeightKg).toBe(view.compiled.armour!.totalWeightKg);
   });
+
+  it("carries the recommended starting plate for each fitted region", () => {
+    const model = protectionModel(ref.draft, view, materials);
+    expect(model.defaultMaterialId).not.toBe("");
+    for (const field of model.fitted) {
+      expect(field.recommended.region).toBe(field.region);
+      expect(field.recommended.materialId).toBe(model.defaultMaterialId);
+      expect(field.recommended.thicknessUm).toBeGreaterThan(0);
+    }
+  });
 });

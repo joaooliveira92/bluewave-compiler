@@ -208,6 +208,7 @@ function ProtectionFieldRow({
           unit="mm"
           value={region.thicknessUm}
           scale={1000}
+          recommended={field.recommended.thicknessUm}
           onCommit={(v) => onPatch(region, { thicknessUm: v })}
         />
         <NumberField
@@ -217,6 +218,7 @@ function ProtectionFieldRow({
           value={region.lengthMm}
           scale={1000}
           decimals={1}
+          recommended={field.recommended.lengthMm}
           onCommit={(v) => onPatch(region, { lengthMm: v })}
         />
         <NumberField
@@ -226,6 +228,7 @@ function ProtectionFieldRow({
           value={region.heightMm}
           scale={1000}
           decimals={1}
+          recommended={field.recommended.heightMm}
           onCommit={(v) => onPatch(region, { heightMm: v })}
         />
       </div>

@@ -129,7 +129,6 @@ export function SelectField({
   options,
   onChange,
   onActiveValueChange,
-  onOpenChange,
   className,
   inline = false,
 }: {
@@ -151,7 +150,6 @@ export function SelectField({
   readonly onChange: (value: string) => void;
   /** Called whenever the highlighted option changes (hovered or keyboard-active); null when none is highlighted. */
   readonly onActiveValueChange?: (value: string | null) => void;
-  readonly onOpenChange?: (open: boolean) => void;
   readonly className?: string;
 }) {
   const id = useId();
@@ -167,7 +165,6 @@ export function SelectField({
         value={value}
         onValueChange={onChange}
         onActiveValueChange={onActiveValueChange}
-        onOpenChange={onOpenChange}
         className="w-full"
       >
         <SelectTrigger

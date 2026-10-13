@@ -1,6 +1,7 @@
 import {
   allOrNothingRegions,
   ARMOUR_REGIONS,
+  newArmourRegion,
   type ArmourMaterialOption,
   type ArmourRegion,
   type ArmourRegionId,
@@ -80,6 +81,8 @@ export interface ProtectionField {
   readonly label: string;
   /** The draft region itself, so the editor can edit it without reaching back into the draft. */
   readonly armour: ArmourRegion;
+  /** The region as a fresh one would be sized, so a field can reset to the recommended starting plate. */
+  readonly recommended: ArmourRegion;
   readonly thicknessMm: number;
   readonly lengthMm: number;
   readonly heightMm: number;
@@ -137,6 +140,14 @@ export function protectionModel(
   const threat = draft.requirement.designThreatId;
   const lengthWl = Number(draft.hull.lengthWl);
   const effOf = new Map(materials.map((m) => [m.id, m.effBp]));
+  const regionSizing: RegionSizing = {
+    lengthWlMm: draft.hull.lengthWl,
+    beamMm: draft.hull.beam,
+    depthMm: draft.hull.depthToMainDeck,
+    citadelLengthMm: draft.armour.citadelLengthMm,
+  };
+  const defaultMaterialId =
+    draft.armour.regions[0]?.materialId ?? materials.find((m) => m.available)?.id ?? "";
 
   const fitted: ProtectionField[] = draft.armour.regions.map((r) => {
     const eff = effOf.get(r.materialId) ?? 10_000;
@@ -145,6 +156,7 @@ export function protectionModel(
       region: r.region,
       label: regionLabel(r.region),
       armour: r,
+      recommended: newArmourRegion(r.region, regionSizing, defaultMaterialId),
       thicknessMm: r.thicknessUm / 1000,
       lengthMm: r.lengthMm,
       heightMm: r.heightMm,
@@ -185,14 +197,8 @@ export function protectionModel(
     designThreatId: threat,
     designThreatLabel: words(threat),
     protectionGoal: draft.requirement.protectionGoal ?? "STANDARD",
-    regionSizing: {
-      lengthWlMm: draft.hull.lengthWl,
-      beamMm: draft.hull.beam,
-      depthMm: draft.hull.depthToMainDeck,
-      citadelLengthMm: draft.armour.citadelLengthMm,
-    },
-    defaultMaterialId:
-      draft.armour.regions[0]?.materialId ?? materials.find((m) => m.available)?.id ?? "",
+    regionSizing,
+    defaultMaterialId,
     allOrNothing: allOrNothingRegions(draft.armour.regions, draft.armour.citadelLengthMm),
     notes: [
       "Coverage is each plate's fore-aft extent as a share of the waterline (the header's belt coverage is the belt's share of the citadel); the design gives no station, so the plan draws regions amidships (a convention).",

@@ -731,4 +731,20 @@ describe("Protection armour section", () => {
     // The specialist material control is reachable inside the disclosure.
     expect(within(details).getByLabelText(/^Material of/)).toBeTruthy();
   });
+
+  it("resets an armour region's thickness to the recommended starting plate", () => {
+    render(<ShipbuildingWorkspace />);
+    openMap("Protection");
+    fireEvent.click(within(panel()).getByRole("button", { name: "Add region" }));
+    const thickness = () => screen.getByLabelText(/^Thickness of BELT_MAIN/) as HTMLInputElement;
+    const original = thickness().value;
+    commit(/^Thickness of BELT_MAIN/, "300");
+    expect(thickness().value).not.toBe(original);
+    fireEvent.click(
+      within(panel()).getByRole("button", {
+        name: "Reset Thickness of BELT_MAIN to recommended",
+      }),
+    );
+    expect(thickness().value).toBe(original);
+  });
 });
