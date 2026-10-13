@@ -52,6 +52,7 @@ export function profileMasts(
 
 /** Masts drawn behind the hull and the superstructure, so their feet sink into them (manual p137 layering). */
 export function ProfileMastLayer({ masts }: { readonly masts: readonly PlacedMast[] }) {
+  if (masts.length === 0) return null;
   return (
     <g data-testid="profile-masts" aria-hidden="true">
       {masts.map((m) => (

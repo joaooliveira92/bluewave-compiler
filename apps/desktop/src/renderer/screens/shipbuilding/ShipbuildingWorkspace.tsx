@@ -28,7 +28,6 @@ import {
   PlacementsPanel,
   PlanModeButtons,
   ShipSelectionProvider,
-  ShipTypePanel,
   ShipViewBoundary,
   SubmitPanel,
   TopsidePanel,
@@ -72,6 +71,7 @@ import {
   ShipStage,
   SystemsPanel,
   ViewToolbar,
+  ReferenceDesignBrowser,
   WorkspaceDialog,
   type PriorityLevel,
 } from "./components/index.js";
@@ -620,10 +620,13 @@ export function ShipbuildingWorkspace({ sessionId }: { readonly sessionId?: stri
           onClose={() => setDialog(null)}
           title="Start from a reference design"
           description="Each ship type has a starting design. Your current design is replaced only after you confirm."
+          wide
         >
-          <ShipTypePanel
+          <ReferenceDesignBrowser
             env={env}
             starters={starters}
+            content={content}
+            month={state.month}
             currentCategory={draft.requirement.category}
             onStart={(id) => {
               setDialog(null);

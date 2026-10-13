@@ -66,6 +66,7 @@ export function ShapePath({ shape }: { readonly shape: Shape }) {
 
 /** Gun mounts drawn from the part catalog, in front of the superstructure (manual p137 layering). */
 export function ProfileMountLayer({ placed }: { readonly placed: readonly PlacedMount[] }) {
+  if (placed.length === 0) return null;
   return (
     <g data-testid="profile-mounts">
       {placed.map((m) => {

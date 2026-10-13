@@ -40,6 +40,10 @@ export { passesFilter } from "./validation/severity.js";
 export * from "./panels/index.js";
 export { IDLE_TOOL, PlanModeButtons, type PlanTool } from "./panels/hull-plan/PlanToolbar.js";
 export { planModel } from "./panels/hull-plan/planModel.js";
+export { StarterProfile } from "./panels/hull-plan/StarterProfile.js";
+export { ShipTypeDetails, ShipTypeFacts } from "./panels/ShipTypeDetails.js";
+export { NationalIdentityPanel } from "./panels/NationalIdentityPanel.js";
+export { CATEGORY_LABEL } from "./shipTypes.js";
 export { useHullPlanEditing } from "./panels/hull-plan/useHullPlanEditing.js";
 
 // Workspace frame and shared controls.
