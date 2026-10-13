@@ -48,7 +48,7 @@ execution is a later effort off the handoff spec/tickets.
 - [Error-gate scope](issues/12-error-gate-scope.md): **resolved, applied** — `ContentArtifactError` gains `_tag` + `static is`; `assert-tagged-errors` `SCOPES` widened to every first-party root (apps + all packages) split by value-reachability; ADR-0152 §1/§2/§5 aligned and "renderer-reachable" defined as value-import reachability (persistence → `engine`); the three test `instanceof` helpers moved to `_tag`.
 - [Tagged-error residual gaps](issues/14-tagged-error-residual-gaps.md): **resolved, applied** — all remaining test `instanceof`/`toBeInstanceOf` narrowings moved to `_tag`/`isBluewaveError`; `diagnostics` confirmed **not** value-reachable (so `DiagnosticError` stays `Data.TaggedError` in `engine`; ADR-0128 §Context split value vs type reachability); ADR-0152 §1/§6 and `RULES.md` §Errors record the `toThrow(Class)`-only test exception; gate detects `globalThis.Error` + imported `Error` aliases with fixtures; events gains the `JSON.stringify`-vs-`structuredClone` `_tag` regression test.
 - [Boundary-decode gate scope](issues/13-boundary-decode-gate-scope.md): **resolved, applied, remediated** — `assert-boundary-decode` gains a `cli` scope (`apps/compiler-cli/src`) wired into `run-gates`; the honestly-decodable sites (campaign state, command ledger, final hash, placeholder allowlist) are decoded, and the four remaining `JSON.parse(...) as T` sites (`CommandEnvelope<CommandBody>` ×2, the two hand-authored debug fixtures) are a reviewed, justified, cast-source-keyed inline allowlist with occurrence counts (ADR-0151 §2). The gate fails closed on a stale entry and keys by raw normalised source (ADR-0151 §2 records the deviation from ADR-0106 §1's hash). Scope is load-bearing; ADR-0151 §1 records it.
-- [Schema.Struct excess-key contradiction](issues/04-schema-struct-excess-key-contradiction.md): **resolved by executable probe** (`.scratch/effect-conformance/probe/excess-key-probe.mjs`, 6/6) — `Schema.Struct` **strips** by default (open; string + symbol keys), `{ onExcessProperty: "error" }` rejects, JSON-Schema default is open (`additionalProperties: true`). **Doc-only, already applied** by ticket 01; no code change. Ticket 03's F5 "align decoders to one policy constant" remedy **withdrawn** — strict/strip split is faithful pre-migration parity (`5df46569^` combat; `0c7370d4^` desktop IPC). Durable note: `docs/research/effect-conformance-04-schema-struct-excess-key.md`.
+- [Schema.Struct excess-key contradiction](issues/04-schema-struct-excess-key-contradiction.md): **resolved by executable probe** (`.scratch/effect-conformance/probe/excess-key-probe.mjs`, 6/6) — `Schema.Struct` **strips** by default (open; string + symbol keys), `{ onExcessProperty: "error" }` rejects, JSON-Schema default is open (`additionalProperties: true`). **Doc-only, already applied** by ticket 01; no code change. Ticket 03's F5 "align decoders to one policy constant" remedy **withdrawn** — strict/strip split is faithful pre-migration parity (`5df46569^` combat; `0c7370d4^` desktop IPC). Ratified in `docs/adr/ADR-0155-per-schema-excess-key-strictness.md`. Durable note: `docs/research/effect-conformance-04-schema-struct-excess-key.md`.
 
 ## Not yet specified
 
@@ -56,9 +56,16 @@ execution is a later effort off the handoff spec/tickets.
   contradiction is real, does the code, the doc, or both change?) — graduates once
   tickets 01–04 report. *(Resolved by 01: the F1 contradiction is doc-only and
   doc-fixed across `effect-idioms.md` / ADR-0102 §4 / `RULES.md`; ticket 04 confirms it
-  executably. F2's code remedy is withdrawn — the probe shows no aliasing.)*
+  executably and withdraws ticket 03 F5's code remedy — the per-schema strict/strip split
+  is faithful pre-migration parity, ratified in ADR-0155. F2's code remedy is withdrawn —
+  the probe shows no aliasing.)*
 - Whether any newly-confirmed behavioural rule warrants a new ratchet gate
-  (ADR-0106 family) vs a doc/ADR statement.
+  (ADR-0106 family) vs a doc/ADR statement. *(Resolved: doc/ADR, no new gate — the
+  rule is per-schema parity, ratified in ADR-0155 and test-locked in the authored tree:
+  `packages/persistence/test/schema-serialization.test.ts` locks default-strip,
+  `packages/content-schema/test/parity.test.ts` and `packages/combat/test/air-defense/*`
+  lock `onExcessProperty:"error"` rejection, and `packages/persistence/test/schema-struct-excess-key.test.ts`
+  pins the raw mechanism.)*
 - Graduated by 01–03: tickets 12 (error-gate scope) and 13 (boundary-decode gate scope).
 
 ## Out of scope

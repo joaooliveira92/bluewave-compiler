@@ -92,7 +92,7 @@ The strict/strip split documented in `effect-conformance-03-result-boundary.md` 
 
 Unifying every boundary on one constant would *break* parity (weaken the `.strict()`
 boundaries or newly reject at formerly-open ones). The lever is per-schema parity,
-documented at each site.
+documented at each site. Ratified as `docs/adr/ADR-0155-per-schema-excess-key-strictness.md`.
 
 ## References
 
