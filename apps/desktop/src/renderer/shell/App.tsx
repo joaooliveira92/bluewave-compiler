@@ -14,6 +14,7 @@ import {
   RULES_OF_THE_NAVAL_AGE_HINT,
 } from "../screens/new-game/rules-of-the-naval-age-content.js";
 import { PreTurnReviewDialog } from "../components/PreTurnReviewDialog.js";
+import { PresentationContentGate } from "../content/PresentationContentGate.js";
 import { BridgeProvider } from "../lib/bridge-context.js";
 import {
   CAMPAIGN_SCREEN_SEARCH_TARGETS,
@@ -264,9 +265,11 @@ export function App({
 } = {}) {
   return (
     <BridgeProvider bridge={bridge}>
-      <CampaignShellProvider bridge={bridge}>
-        <CampaignShellApplication bridge={bridge} />
-      </CampaignShellProvider>
+      <PresentationContentGate>
+        <CampaignShellProvider bridge={bridge}>
+          <CampaignShellApplication bridge={bridge} />
+        </CampaignShellProvider>
+      </PresentationContentGate>
     </BridgeProvider>
   );
 }

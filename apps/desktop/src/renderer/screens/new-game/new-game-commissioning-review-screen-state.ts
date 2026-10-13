@@ -1,12 +1,11 @@
 import { findPreset, type ArchetypeSelection } from "@bluewave/campaign-engine";
 import type { PlayableSlotCountryId } from "../../content/nationAssetManifest.js";
-import {
-  NATION_DOSSIER_FIELDS,
-  type NationDossierFields,
-} from "../../content/nationDossierFields.js";
 import { isPlayableSlotCountryId } from "../../content/nationPresentationCatalog.js";
-import { NATION_PRESENTATION_CATALOG } from "../../content/nationPresentationCatalog.js";
-import { nationIdToCountryId } from "../../content/nationSlotMapping.js";
+import {
+  nationDossier,
+  nationIdToCountryId,
+  nationPresentation,
+} from "../../content/presentationContent.js";
 import type { NewGameOptions } from "../../../shared/new-game-contract.js";
 import type { FleetMethodDraft } from "./new-game-fleet-method-screen-state.js";
 import { FLEET_METHOD_CARDS } from "./fleet-method-content.js";
@@ -89,12 +88,14 @@ function identityLabel<V extends string>(
  * Accept either so callers holding a country id (tests, diplomacy) still work.
  */
 function resolveCountryId(nationId: string): PlayableSlotCountryId | null {
-  return isPlayableSlotCountryId(nationId) ? nationId : nationIdToCountryId(nationId);
+  if (isPlayableSlotCountryId(nationId)) return nationId;
+  const countryId = nationIdToCountryId(nationId);
+  return countryId !== null && isPlayableSlotCountryId(countryId) ? countryId : null;
 }
 
 function nationLabel(nationId: string): string {
   const countryId = resolveCountryId(nationId);
-  return countryId === null ? nationId : NATION_PRESENTATION_CATALOG[countryId].name;
+  return countryId === null ? nationId : nationPresentation(countryId).flavor.name;
 }
 
 function eraLabel(options: NewGameOptions | null, scenarioId: string): string {
@@ -206,7 +207,7 @@ export function buildStrategicForecast(
 ): StrategicForecast | null {
   const countryId = resolveCountryId(nationId);
   if (countryId === null) return null;
-  const dossier: NationDossierFields = NATION_DOSSIER_FIELDS[countryId];
+  const dossier = nationDossier(countryId);
   const expectedPressures = SIX_SETTING_FIELDS.map((field) =>
     field === "fleetSize"
       ? fleetSizeReadout(preferences.fleetSize)

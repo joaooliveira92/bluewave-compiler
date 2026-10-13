@@ -1,22 +1,14 @@
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { describe, expect, it } from "vite-plus/test";
 import type { WorldMapView } from "@bluewave/campaign-engine";
-import {
-  CAMPAIGN_AREA_TO_FIXTURE,
-  NATION_HOME_AREA,
-  fixtureAnchor,
-  fixtureAreaId,
-  homeFocusPoint,
-  joinWorldMap,
-  nationHomeArea,
-} from "./campaign-map-join.js";
+import { fixtureAreaId, nationHomeArea } from "../../content/presentationContent.js";
+import { fixtureAnchor, homeFocusPoint, joinWorldMap } from "./campaign-map-join.js";
 
 /**
- * Authored-join tests: the campaign world (ids from the production pack) must
- * land on the fixture's 36-area geometry deterministically. Every production
- * area referenced here must already be in `CAMPAIGN_AREA_TO_FIXTURE` (the
- * table is audited against `content/production/1880/areas.yaml`).
+ * Join tests: the campaign world (ids from the production pack) must land on the
+ * fixture's 36-area geometry deterministically. The authored join itself is
+ * validated at the artifact boundary (every production area has a region and a
+ * fixture mapping; see the content compiler's presentation validation), so these
+ * tests cover the runtime behaviour over the injected corpus.
  */
 
 const WORLD: WorldMapView = {
@@ -97,104 +89,6 @@ describe("joinWorldMap", () => {
   });
 });
 
-describe("CAMPAIGN_AREA_TO_FIXTURE", () => {
-  it("maps every production sea area to a fixture area", () => {
-    const seaAreas = [
-      "sea_english_channel",
-      "sea_north_sea",
-      "sea_baltic",
-      "sea_mediterranean_w",
-      "sea_mediterranean_c",
-      "sea_mediterranean_e",
-      "sea_black_sea",
-      "sea_red_sea",
-      "sea_arabian_sea",
-      "sea_bayofbengal",
-      "sea_south_china",
-      "sea_java_sea",
-      "sea_pacific_n",
-      "sea_pacific_s",
-      "sea_atlantic_n",
-      "sea_atlantic_s",
-      "sea_indian_ocean",
-      "sea_caribbean",
-    ];
-    for (const id of seaAreas) {
-      expect(CAMPAIGN_AREA_TO_FIXTURE[id], id).toBeDefined();
-    }
-  });
-
-  it("maps every production coastal area to a fixture area", () => {
-    const coastal = [
-      "eng_home_coast",
-      "fra_chan_coast",
-      "fra_med_coast",
-      "ger_baltic_coast",
-      "ger_ndgermany_coast",
-      "rus_baltic_coast",
-      "rus_blacksea_coast",
-      "rus_pacific_coast",
-      "auh_adriatic_coast",
-      "auh_dalmatia",
-      "ita_tyrrhenian_coast",
-      "ita_adriatic_coast",
-      "usa_atlantic_coast",
-      "usa_pacific_coast",
-      "usa_gulf_coast",
-      "jpn_home_coast",
-      "jpn_inland_sea",
-      "jpn_kyushu_coast",
-      "ott_marmara_coast",
-      "ott_aegean_coast",
-      "ott_blacksea_coast",
-      "ott_eg_coast",
-      "spa_med_coast",
-      "spa_atlantic_coast",
-      "ned_home_coast",
-      "por_home_coast",
-      "bra_rio_coast",
-      "bra_ne_coast",
-      "med_gibraltar",
-      "med_malta",
-      "med_cyprus",
-      "india_west_coast",
-      "india_east_coast",
-      "indian_ceylon",
-      "sea_singapore",
-      "sea_hong_kong",
-      "africa_cape",
-      "atlantic_bermuda",
-      "americas_halifax",
-      "pacific_australia",
-      "indian_adden",
-      "sea_mauritius",
-      "africa_algeria",
-      "africa_senegal",
-      "indochina_cochinchina",
-      "pacific_newcaledonia",
-      "pacific_tahiti",
-      "americas_martinique",
-      "indian_reunion",
-      "americas_cuba",
-      "americas_puertorico",
-      "philippines_luzon",
-      "dei_java",
-      "americas_suriname",
-      "africa_angola",
-      "africa_mozambique",
-      "asia_macau",
-      "asia_goa",
-      "chi_north_coast",
-      "chi_weihaiwei",
-      "chi_south_coast",
-      "chi_yangtze",
-    ];
-    for (const id of coastal) {
-      expect(CAMPAIGN_AREA_TO_FIXTURE[id], id).toBeDefined();
-    }
-  });
-});
-
 describe("fixtureAreaId", () => {
   it("returns the polygon a campaign area is drawn on, or null when it has none", () => {
     expect(fixtureAreaId("eng_home_coast")).toBe("area_north_sea");
@@ -223,29 +117,5 @@ describe("homeFocusPoint", () => {
   it("centres nowhere for an unknown or unmapped area rather than guessing", () => {
     expect(homeFocusPoint("not_a_real_area")).toBeNull();
     expect(homeFocusPoint(null)).toBeNull();
-  });
-});
-
-describe("NATION_HOME_AREA (production 1880 pack)", () => {
-  // Package tests run with the package dir (apps/desktop) as cwd.
-  const COUNTRIES_YAML = resolve(process.cwd(), "../../content/production/1880/countries.yaml");
-
-  const productionNationIds = [
-    ...readFileSync(COUNTRIES_YAML, "utf8").matchAll(/^\s*-\s+id:\s*"?([a-z0-9_]+)"?\s*$/gm),
-  ].map((match) => match[1] as string);
-
-  it("covers every production nation", () => {
-    expect(productionNationIds.length).toBeGreaterThan(0);
-    expect(productionNationIds.filter((id) => NATION_HOME_AREA[id] === undefined)).toEqual([]);
-  });
-
-  it("has no stale keys for nations the pack no longer defines", () => {
-    const known = new Set(productionNationIds);
-    expect(Object.keys(NATION_HOME_AREA).filter((id) => !known.has(id))).toEqual([]);
-  });
-
-  it("maps every home area to fixture geometry", () => {
-    const unmapped = Object.values(NATION_HOME_AREA).filter((id) => fixtureAreaId(id) === null);
-    expect(unmapped).toEqual([]);
   });
 });

@@ -1,8 +1,7 @@
 import type { JSX } from "react";
 import { SlidePanel } from "@/components/slide-panel/index.js";
 import type { PlayableSlotCountryId } from "@/content/nationAssetManifest.js";
-import { NATION_DOSSIER_FIELDS } from "@/content/nationDossierFields.js";
-import { NATION_FLAVOR_TEXT } from "@/content/nationFlavorText.js";
+import { nationDossier, nationFlavor } from "@/content/presentationContent.js";
 import { DossierAccordion } from "./DossierAccordion/index.js";
 import { DossierCover } from "./DossierCover.js";
 import { DossierHeader } from "./DossierHeader.js";
@@ -20,8 +19,8 @@ export function DossierSlidePanel({
   countryId,
   isOpen,
 }: DossierSlidePanelProps): JSX.Element | null {
-  const flavor = NATION_FLAVOR_TEXT[countryId];
-  const fields = NATION_DOSSIER_FIELDS[countryId];
+  const flavor = nationFlavor(countryId);
+  const fields = nationDossier(countryId);
   const tabs = buildDossierTabs(countryId, flavor);
 
   return (

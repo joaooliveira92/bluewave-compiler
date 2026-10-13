@@ -202,4 +202,93 @@ describe("presentation collections through the compiler (CAH-PRES-1/CAH-PRES-2)"
       fixture.cleanup();
     }
   });
+
+  it("fails an area with no presentation region instead of silently grouping it (CAH-PRES-2)", () => {
+    const fixture = createFixtureDir();
+    try {
+      writeFixture(
+        fixture.path,
+        "pack.json",
+        JSON.stringify({ name: "t", version: "0.1.0", type: "fixture", files: {} }),
+      );
+      writeFixture(
+        fixture.path,
+        "areas.yaml",
+        "- id: eng_home_coast\n  name: English Home Waters\n  type: coastal\n" +
+          "- id: new_area\n  name: New Area\n  type: sea\n",
+      );
+      writeFixture(fixture.path, "presentation.yaml", PRESENTATION);
+      const collector = compile(fixture.path, {
+        areaFiles: [resolve(fixture.path, "areas.yaml")],
+        presentationFiles: [resolve(fixture.path, "presentation.yaml")],
+      });
+      expect(collector.hasErrors).toBe(true);
+      const error = collector.errors.find((d) => d.code === "PRESENTATION_REGION")!;
+      expect(error.message).toContain("new_area");
+      expect(error.sourceLocation?.path).toContain("presentation.yaml");
+    } finally {
+      fixture.cleanup();
+    }
+  });
+
+  it("fails a region mapping to an undeclared region", () => {
+    const fixture = createFixtureDir();
+    try {
+      writeFixture(
+        fixture.path,
+        "pack.json",
+        JSON.stringify({ name: "t", version: "0.1.0", type: "fixture", files: {} }),
+      );
+      writeFixture(
+        fixture.path,
+        "areas.yaml",
+        "- id: eng_home_coast\n  name: English Home Waters\n  type: coastal\n",
+      );
+      writeFixture(
+        fixture.path,
+        "presentation.yaml",
+        PRESENTATION.replace("eng_home_coast: northern_europe", "eng_home_coast: atlantis"),
+      );
+      const collector = compile(fixture.path, {
+        areaFiles: [resolve(fixture.path, "areas.yaml")],
+        presentationFiles: [resolve(fixture.path, "presentation.yaml")],
+      });
+      expect(collector.hasErrors).toBe(true);
+      const error = collector.errors.find((d) => d.code === "PRESENTATION_REGION")!;
+      expect(error.message).toContain("atlantis");
+    } finally {
+      fixture.cleanup();
+    }
+  });
+
+  it("fails an area with no campaign-map fixture mapping", () => {
+    const fixture = createFixtureDir();
+    try {
+      writeFixture(
+        fixture.path,
+        "pack.json",
+        JSON.stringify({ name: "t", version: "0.1.0", type: "fixture", files: {} }),
+      );
+      writeFixture(
+        fixture.path,
+        "areas.yaml",
+        "- id: eng_home_coast\n  name: English Home Waters\n  type: coastal\n" +
+          "- id: new_area\n  name: New Area\n  type: sea\n",
+      );
+      writeFixture(
+        fixture.path,
+        "presentation.yaml",
+        PRESENTATION.replace("med_malta: mediterranean", "new_area: mediterranean"),
+      );
+      const collector = compile(fixture.path, {
+        areaFiles: [resolve(fixture.path, "areas.yaml")],
+        presentationFiles: [resolve(fixture.path, "presentation.yaml")],
+      });
+      expect(collector.hasErrors).toBe(true);
+      const error = collector.errors.find((d) => d.code === "PRESENTATION_REGION")!;
+      expect(error.message).toContain("fixture mapping");
+    } finally {
+      fixture.cleanup();
+    }
+  });
 });

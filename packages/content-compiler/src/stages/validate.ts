@@ -235,6 +235,7 @@ export class ValidateStage implements CompilerStage<ParseOutput, ValidateOutput>
     const campaign = validateCampaignCollections(validated, input, collector);
 
     const presentation = validatePresentation(input, collector);
+    validatePresentationRegions(validated, presentation, input, collector);
 
     if (collector.hasErrors) return undefined;
 
@@ -271,6 +272,153 @@ function validatePresentation(input: ParseOutput, collector: DiagnosticCollector
     sourcePath,
     collector,
   );
+}
+
+/**
+ * Domain-validates the presentation corpus against the compiled content
+ * (CAH-PRES-2). When the pack carries areas, every area must have a display
+ * region and a fixture mapping, with no stale keys, and every region it names
+ * must be declared (and used); when it carries countries, every country must
+ * have a home-waters area that names a known area. A new area or nation can
+ * therefore not silently miss a region, vanish from the map, or leave the
+ * renderer to guess — the pack fails to compile until the authored presentation
+ * corpus covers it. A presentation-only pack (no areas/countries) skips the
+ * corresponding checks.
+ */
+function validatePresentationRegions(
+  core: Record<string, unknown[]>,
+  presentation: unknown,
+  input: ParseOutput,
+  collector: DiagnosticCollector,
+): void {
+  if (presentation === null || typeof presentation !== "object") return;
+  const sourcePath = input.objectSourcePaths.get("presentation") ?? "presentation.yaml";
+  const areaIds = idsOf(core["areas"]);
+  const nationIds = idsOf(core["countries"]);
+
+  const fail = (entityId: string, message: string, remediation: string): void => {
+    collector.addError("PRESENTATION_REGION", message, {
+      stage: "validate",
+      sourceLocation: { path: sourcePath, line: 1 },
+      entityId,
+      remediation,
+    });
+  };
+
+  const regions = (presentation as { regions?: unknown }).regions;
+  if (regions !== null && typeof regions === "object") {
+    const declared = idsOf((regions as { regions?: unknown }).regions as unknown[] | undefined);
+    const areaRegion = asRecord((regions as { areaRegion?: unknown }).areaRegion);
+    if (areaIds.size > 0) {
+      for (const areaId of areaIds) {
+        if (!(areaId in areaRegion)) {
+          fail(
+            areaId,
+            `Area '${areaId}' has no presentation region`,
+            `Add '${areaId}' to presentation.regions.areaRegion`,
+          );
+        }
+      }
+      const used = new Set<string>();
+      for (const [areaId, regionId] of Object.entries(areaRegion)) {
+        if (!areaIds.has(areaId)) {
+          fail(
+            areaId,
+            `Presentation region mapping for unknown area '${areaId}'`,
+            `Remove '${areaId}' from presentation.regions.areaRegion`,
+          );
+        }
+        if (typeof regionId === "string") {
+          used.add(regionId);
+          if (!declared.has(regionId)) {
+            fail(
+              areaId,
+              `Presentation area '${areaId}' maps to unknown region '${regionId}'`,
+              `Declare region '${regionId}' in presentation.regions.regions`,
+            );
+          }
+        }
+      }
+      for (const regionId of declared) {
+        if (!used.has(regionId)) {
+          fail(
+            regionId,
+            `Declared presentation region '${regionId}' holds no area`,
+            `Assign an area to '${regionId}' or remove it from presentation.regions.regions`,
+          );
+        }
+      }
+    }
+  }
+
+  const mapJoin = (presentation as { mapJoin?: unknown }).mapJoin;
+  if (mapJoin !== null && typeof mapJoin === "object") {
+    const fixture = asRecord(
+      (mapJoin as { campaignAreaToFixture?: unknown }).campaignAreaToFixture,
+    );
+    if (areaIds.size > 0) {
+      for (const areaId of areaIds) {
+        if (!(areaId in fixture)) {
+          fail(
+            areaId,
+            `Area '${areaId}' has no campaign-map fixture mapping`,
+            `Add '${areaId}' to presentation.mapJoin.campaignAreaToFixture`,
+          );
+        }
+      }
+      for (const areaId of Object.keys(fixture)) {
+        if (!areaIds.has(areaId)) {
+          fail(
+            areaId,
+            `Campaign-map fixture mapping for unknown area '${areaId}'`,
+            `Remove '${areaId}' from presentation.mapJoin.campaignAreaToFixture`,
+          );
+        }
+      }
+    }
+    if (nationIds.size > 0) {
+      const home = asRecord((mapJoin as { nationHomeArea?: unknown }).nationHomeArea);
+      for (const nationId of nationIds) {
+        if (!(nationId in home)) {
+          fail(
+            nationId,
+            `Nation '${nationId}' has no home-waters area`,
+            `Add '${nationId}' to presentation.mapJoin.nationHomeArea`,
+          );
+        }
+      }
+      for (const [nationId, areaId] of Object.entries(home)) {
+        if (!nationIds.has(nationId)) {
+          fail(
+            nationId,
+            `Home-waters mapping for unknown nation '${nationId}'`,
+            `Remove '${nationId}' from presentation.mapJoin.nationHomeArea`,
+          );
+        }
+        if (typeof areaId === "string" && !areaIds.has(areaId)) {
+          fail(
+            nationId,
+            `Nation '${nationId}' home waters name unknown area '${areaId}'`,
+            `Point '${nationId}' at a known area`,
+          );
+        }
+      }
+    }
+  }
+}
+
+/** The `id` values of a collection, as a set. */
+function idsOf(items: unknown[] | undefined): Set<string> {
+  return new Set(
+    (items ?? [])
+      .map((item) => (item as Record<string, unknown>)["id"])
+      .filter((id): id is string => typeof id === "string"),
+  );
+}
+
+/** A value as a string-keyed record, or an empty record. */
+function asRecord(value: unknown): Record<string, unknown> {
+  return value !== null && typeof value === "object" ? (value as Record<string, unknown>) : {};
 }
 
 /**

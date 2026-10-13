@@ -3,10 +3,17 @@
  * regions, with the Ships / Possessions lens. Pure: no React, no bridge.
  */
 import type { WorldMapView } from "@bluewave/campaign-engine";
-import { AREA_REGION, OTHER_REGION_LABEL, REGIONS } from "./area-regions.js";
-import { fixtureAreaId, type CampaignAreaEntry } from "./campaign-map-join.js";
+import {
+  areaRegion,
+  fixtureAreaId,
+  presentationRegions,
+} from "../../content/presentationContent.js";
+import type { CampaignAreaEntry } from "./campaign-map-join.js";
 
 export type AreaTreeMode = "ships" | "possessions";
+
+/** Area ids with no region sit under this label rather than vanishing (fixture fallback, future areas). */
+export const OTHER_REGION_LABEL = "Other waters";
 
 export interface AreaTreeRow {
   readonly id: string;
@@ -86,19 +93,21 @@ export interface BuildAreaTreeInput {
  */
 export function buildAreaTree(input: BuildAreaTreeInput): AreaTreeGroup[] {
   const needle = input.query.trim().toLowerCase();
+  const regionsByArea = areaRegion();
+  const declaredRegions = presentationRegions();
   const lens = input.rows.filter((row) => (input.mode === "ships" ? row.ships > 0 : row.possessed));
   const visible = needle === "" ? lens : lens.filter((row) => matches(row, needle));
 
   const buckets = new Map<string, AreaTreeRow[]>();
   for (const row of visible) {
-    const key = AREA_REGION[row.id] ?? OTHER_GROUP_ID;
+    const key = regionsByArea[row.id] ?? OTHER_GROUP_ID;
     const bucket = buckets.get(key);
     if (bucket === undefined) buckets.set(key, [row]);
     else bucket.push(row);
   }
 
   const order = [
-    ...REGIONS.map((r) => ({ id: r.id as string, label: r.label })),
+    ...declaredRegions.map((r) => ({ id: r.id, label: r.label })),
     {
       id: OTHER_GROUP_ID,
       label: OTHER_REGION_LABEL,

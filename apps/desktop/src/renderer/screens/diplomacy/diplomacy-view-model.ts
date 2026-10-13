@@ -1,8 +1,8 @@
 import { isHighTension, tensionLabel } from "@bluewave/campaign-engine";
 import type { DiplomacyScreenProjection } from "../../../shared/diplomacy-contract.js";
-import { NATION_DOSSIER_FIELDS } from "../../content/nationDossierFields.js";
 import { humanizeId } from "../../lib/humanize-id.js";
 import { nationIdToCountryId } from "../new-game/nation-selection/slotBridge.js";
+import { nationDossier } from "../../content/presentationContent.js";
 import {
   RELATION_LABELS,
   areaName,
@@ -56,7 +56,7 @@ export interface DiplomacyViewModel {
 
 function likelyRivalNames(playerNationId: string): readonly string[] {
   const playerCountryId = nationIdToCountryId(playerNationId);
-  return playerCountryId !== null ? NATION_DOSSIER_FIELDS[playerCountryId].likelyRivals : [];
+  return playerCountryId !== null ? nationDossier(playerCountryId).likelyRivals : [];
 }
 
 /**

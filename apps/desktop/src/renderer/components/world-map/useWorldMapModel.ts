@@ -13,11 +13,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { AREAS, AREAS_BY_ID, EDGES, PASSAGES_BY_ID, type AreaControl } from "./fixture-world.js";
-import {
-  campaignNationHue,
-  EMPTY_LIVE_OVERLAY,
-  type LiveWorldMapOverlay,
-} from "./campaign-map-join.js";
+import { EMPTY_LIVE_OVERLAY, type LiveWorldMapOverlay } from "./campaign-map-join.js";
+import { campaignNationHue } from "../../content/presentationContent.js";
 import { buildOwnershipRows, describeArea, type AreaOwnershipRow } from "./map-a11y.js";
 import { campaignTreeRows, type AreaTreeRow } from "./area-tree.js";
 import type { AreaSummary, MapPrototypeState, RouteReading } from "./map-state.js";

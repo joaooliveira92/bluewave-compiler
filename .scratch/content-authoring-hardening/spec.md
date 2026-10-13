@@ -11,11 +11,12 @@ same artifact instead of a duplicated hand-authored renderer corpus.
 repo that means the sliced implementation tickets carry `Status: open`,
 `Frontier: yes`, and a resolved/empty `Blocked by:` chain (see
 `docs/agents/triage-labels.md`).
-**Status:** sliced — 14 frontier-ordered implementation tickets at
-`.scratch/content-authoring-hardening/issues/` (01 manifest authority · 02
-codepoint ordering · 03 content lock + verify · 04–06 schema coverage · 07 decode
-at boundary · 08 provenance · 09 placeholder gate · 10–13 presentation
-expand–contract · 14 retire dead paths).
+**Status:** complete except the deferred tail — 13 of 14 implementation tickets
+resolved at `.scratch/content-authoring-hardening/issues/` (01 manifest authority
+· 02 codepoint ordering · 03 content lock + verify · 04–06 schema coverage · 07
+decode at boundary · 08 provenance · 09 placeholder gate · 10–13 presentation
+expand–contract); 14 (retire dead paths) partially landed, full deletion of the
+raw-input branch deferred and recorded.
 **Source of truth:** this spec. It is the follow-on to the *completed*
 `.scratch/content-runtime-integrity/` effort (ADR-0122/0123/0124/0125); it
 **extends, does not replace** those ADRs, ADR-0004 (compiler stages), ADR-0005

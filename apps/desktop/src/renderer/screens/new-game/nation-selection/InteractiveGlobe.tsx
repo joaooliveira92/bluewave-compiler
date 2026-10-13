@@ -4,7 +4,8 @@ import * as d3Zoom from "d3-zoom";
 import { type JSX, useEffect, useRef } from "react";
 import type { PlayableSlotCountryId } from "@/content/nationAssetManifest.js";
 
-import { DOMINANT_FLAG_COLORS, POINTS_DATA } from "./globePins.js";
+import { dominantFlagColors, globePoints } from "./globePins.js";
+import type { GlobePoint } from "./globeTypes.js";
 import { GlobeShell } from "./GlobeShell.js";
 import {
   isVisible,
@@ -62,8 +63,10 @@ export function InteractiveGlobe({
     const svg = d3Selection.select(svgEl);
     const pinSel = d3Selection.select(globe.pinRef.current);
     const ringSel = d3Selection.select(globe.ringRef.current);
-    const focused = (): (typeof POINTS_DATA)[number] | undefined =>
-      focusedRef.current ? POINTS_DATA.find((p) => p.countryId === focusedRef.current) : undefined;
+    const points = globePoints();
+    const colors = dominantFlagColors();
+    const focused = (): GlobePoint | undefined =>
+      focusedRef.current ? points.find((p) => p.countryId === focusedRef.current) : undefined;
 
     const baseScale = projection.scale();
     const extentWidth = globe.containerRef.current?.clientWidth ?? 800;
@@ -73,8 +76,8 @@ export function InteractiveGlobe({
     const unregisterRenderer = globe.registerFrameRenderer(() => {
       const pixelRadius = PIN_BASE_RADIUS_PX;
       pinSel
-        .selectAll<SVGGElement, (typeof POINTS_DATA)[number]>("g")
-        .data(POINTS_DATA, (d) => d.countryId)
+        .selectAll<SVGGElement, GlobePoint>("g")
+        .data(points, (d) => d.countryId)
         .join(
           (enter) => {
             const g = enter.append("g").attr("class", "svg-globe-pin");
@@ -119,13 +122,13 @@ export function InteractiveGlobe({
             .attr("cx", x)
             .attr("cy", y)
             .attr("r", pixelRadius * 0.85)
-            .attr("fill", DOMINANT_FLAG_COLORS[d.countryId] ?? "var(--globe-accent)");
+            .attr("fill", colors[d.countryId] ?? "var(--globe-accent)");
         });
 
       const ringPoint = focused();
       const ringHalf = RING_BASE_HALF_PX;
       ringSel
-        .selectAll<SVGRectElement, (typeof POINTS_DATA)[number]>("rect")
+        .selectAll<SVGRectElement, GlobePoint>("rect")
         .data(ringPoint && isVisible(projection, ringPoint.lat, ringPoint.lng) ? [ringPoint] : [])
         .join(
           (enter) =>
@@ -242,7 +245,7 @@ export function InteractiveGlobe({
     if (!focusedCountryId) return;
     const projection = globe.projection();
     if (!projection) return;
-    const target = POINTS_DATA.find((p) => p.countryId === focusedCountryId);
+    const target = globePoints().find((p) => p.countryId === focusedCountryId);
     if (!target) return;
 
     const [fromLambda, fromPhi] = projection.rotate();

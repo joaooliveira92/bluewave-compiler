@@ -1,7 +1,7 @@
 # Architecture decision records
 
 One ADR per durable decision: `ADR-NNNN-<slug>.md`. New decisions take the
-highest existing number + 1 (the next number is ADR-0149).
+highest existing number + 1 (the next number is ADR-0150).
 Refresh this table from each file's H1 when one is added or re-titled.
 (ADR-0043 was never written; the sequence intentionally continues at 0044.)
 See [DESIGN amendments](AMENDMENTS.md) for which ADRs amend which DESIGN doc.
@@ -196,6 +196,7 @@ Electron boundary, renderer screens, UX, and presentation.
 | 0141 | [ADR-0141-shipbuilding-workspace.md](ADR-0141-shipbuilding-workspace.md) | Shipbuilding workspace beside the Drawing Board | accepted | — |
 | 0142 | [ADR-0142-shipbuilding-selection-routing.md](ADR-0142-shipbuilding-selection-routing.md) | Shipbuilding screen ↔ selection routing | accepted | — |
 | 0148 | [ADR-0148-ship-visual-part-catalog.md](ADR-0148-ship-visual-part-catalog.md) | Era- and nation-aware ship visual parts from an authored catalog | accepted | — |
+| 0149 | [ADR-0149-presentation-content-from-artifact.md](ADR-0149-presentation-content-from-artifact.md) | Presentation content sourced from the compiled artifact | accepted | — |
 
 ## Process & documentation
 

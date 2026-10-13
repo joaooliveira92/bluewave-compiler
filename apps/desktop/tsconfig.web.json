@@ -25,6 +25,7 @@
     "src/renderer/components/**/*.ts",
     "src/renderer/components/**/*.tsx",
     "src/renderer/content/**/*.ts",
+    "src/renderer/content/**/*.tsx",
     "src/renderer/content/**/*.json",
     "src/renderer/lib/**/*.ts",
     "src/renderer/lib/**/*.tsx",

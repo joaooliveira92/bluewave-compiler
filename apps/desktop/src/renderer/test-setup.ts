@@ -1,9 +1,11 @@
 import { configure } from "@testing-library/react";
 
 import { loadShipBuildingData } from "../main/shipBuildingContent.js";
+import { loadPresentationContent } from "../main/presentationContent.js";
 // The seam module directly, not the barrel: loading the whole layer here would cache it before a
 // test file's `vi.mock` of one of its dependencies takes effect.
 import { setDrawingBoardContent } from "./components/design-workspace/content.js";
+import { setPresentationContent } from "./content/presentationContent.js";
 
 /**
  * Renderer tests inject decoded content instead of parsing raw YAML (ticket 04,
@@ -13,6 +15,14 @@ import { setDrawingBoardContent } from "./components/design-workspace/content.js
  * tests render exactly the content the compiler validated.
  */
 setDrawingBoardContent({ catalogue: loadShipBuildingData() });
+
+/**
+ * The presentation corpus (CAH-PRES-3) is decoded by main from the same
+ * artifact; seed the renderer seam from the main loader so screens and the pure
+ * view-models read exactly the content the compiler validated. In the app the
+ * DTO arrives over `inspectPresentationContent` via `PresentationContentGate`.
+ */
+setPresentationContent(loadPresentationContent());
 
 /**
  * Testing Library's default async wait is 1s. Under the full suite, files run in parallel and

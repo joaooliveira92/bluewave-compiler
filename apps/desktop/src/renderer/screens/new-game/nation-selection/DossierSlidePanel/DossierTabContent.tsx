@@ -1,7 +1,6 @@
 import type { JSX, ReactNode } from "react";
 import type { PlayableSlotCountryId } from "@/content/nationAssetManifest.js";
-import { NATION_DOSSIER_FIELDS } from "@/content/nationDossierFields.js";
-import type { NationFlavorText } from "@/content/nationFlavorText.js";
+import { nationDossier, type PresentationFlavorDto } from "@/content/presentationContent.js";
 
 interface DossierFieldRowProps {
   label: string;
@@ -48,15 +47,15 @@ export interface DossierTabs {
 }
 
 /**
- * Composes the existing per-nation flavor paragraph (`nationFlavorText.ts`)
- * with INC-2's new hand-authored dossier fields (`nationDossierFields.ts`)
- * into the existing three-section accordion (spec §1) — no 4th section.
+ * Composes the nation's authored flavor paragraphs and dossier fields (both
+ * compiled into the presentation corpus and served over the content IPC) into
+ * the existing three-section accordion (spec §1) — no 4th section.
  */
 export function buildDossierTabs(
   countryId: PlayableSlotCountryId,
-  flavor: NationFlavorText,
+  flavor: PresentationFlavorDto,
 ): DossierTabs {
-  const fields = NATION_DOSSIER_FIELDS[countryId];
+  const fields = nationDossier(countryId);
 
   return {
     economy: (

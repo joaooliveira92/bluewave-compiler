@@ -9,7 +9,7 @@ import {
   OverviewNationsPanel,
   OverviewPrioritiesPanel,
 } from "./components/index.js";
-import { nationHomeArea } from "../../components/world-map/campaign-map-join.js";
+import { nationHomeArea } from "../../content/presentationContent.js";
 import { monthLabel } from "./month-report-format.js";
 import { useOverviewModel } from "./hooks/useOverviewModel.js";
 

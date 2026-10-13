@@ -26,9 +26,8 @@ import {
   type AreaSummary,
 } from "./map-state.js";
 import type { FleetPlacement, PossessionPlacement } from "./map-markers.js";
+import { campaignNationHue, campaignNationLabel } from "../../content/presentationContent.js";
 import {
-  campaignNationHue,
-  campaignNationLabel,
   fixtureAnchor,
   type CampaignAreaEntry,
   type LiveWorldMapOverlay,

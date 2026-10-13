@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { normalizeIndex } from "@/components/card-deck/index.js";
 import type { PlayableSlotCountryId } from "@/content/nationAssetManifest.js";
-import { NATION_COORDINATES } from "@/content/nationCoordinates.js";
+import { nationPresentationOrNull } from "@/content/presentationContent.js";
 import { playMechanicalAcoustic } from "@/shell/controller/mechanicalAcoustic.js";
 import { DossierSlidePanel } from "./DossierSlidePanel/index.js";
 import { FleetDispatchBoard } from "./FleetDispatchBoard.js";
@@ -49,7 +49,7 @@ export function NationSelectionScreen({
   const slotCount = slots.length;
   const normalizedFocusedIndex = normalizeIndex(focusedIndex, slotCount);
   const focusedSlotId = slots[normalizedFocusedIndex] as PlayableSlotCountryId;
-  const coords = NATION_COORDINATES[focusedSlotId];
+  const coords = nationPresentationOrNull(focusedSlotId)?.coordinates;
 
   // Stabilize external callbacks via Refs to prevent rendering stutters in child modules
   const onConfirmRef = useRef(onConfirm);

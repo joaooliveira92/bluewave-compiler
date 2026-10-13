@@ -33,6 +33,24 @@ const PLACEHOLDER_AREA = `
     sources: []
 `;
 
+/**
+ * Append the placeholder area to a copied pack and give it a display region and
+ * a fixture mapping, so the pack stays valid under the presentation-coverage
+ * invariant (CAH-PRES-2) and the gate reaches the placeholder check.
+ */
+function addPlaceholderArea(dir: string): void {
+  const areasPath = resolve(dir, "areas.yaml");
+  writeFileSync(areasPath, `${readFileSync(areasPath, "utf8")}${PLACEHOLDER_AREA}`, "utf8");
+  const presentationPath = resolve(dir, "presentation.yaml");
+  const patched = readFileSync(presentationPath, "utf8")
+    .replace("  areaRegion:\n", "  areaRegion:\n    cah_placeholder_area: northern_europe\n")
+    .replace(
+      "  campaignAreaToFixture:\n",
+      "  campaignAreaToFixture:\n    cah_placeholder_area: area_north_sea\n",
+    );
+  writeFileSync(presentationPath, patched, "utf8");
+}
+
 function captureStdout<T>(fn: () => T): { result: T; printed: string } {
   const write = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
   try {
@@ -76,8 +94,7 @@ describe("content:gate over the production pack (CAH-PROV-3)", () => {
   it("fails a shipping pack containing a placeholder, naming collection/record/field", () => {
     const dir = tempDir();
     cpSync(contentDir, dir, { recursive: true });
-    const areasPath = resolve(dir, "areas.yaml");
-    writeFileSync(areasPath, `${readFileSync(areasPath, "utf8")}${PLACEHOLDER_AREA}`, "utf8");
+    addPlaceholderArea(dir);
 
     const { result, printed } = captureStdout(() =>
       runContentGate({
@@ -96,8 +113,7 @@ describe("content:gate over the production pack (CAH-PROV-3)", () => {
   it("admits a placeholder on the justified allowlist", () => {
     const dir = tempDir();
     cpSync(contentDir, dir, { recursive: true });
-    const areasPath = resolve(dir, "areas.yaml");
-    writeFileSync(areasPath, `${readFileSync(areasPath, "utf8")}${PLACEHOLDER_AREA}`, "utf8");
+    addPlaceholderArea(dir);
     writeFileSync(
       resolve(dir, "placeholder-allowlist.json"),
       JSON.stringify({
@@ -127,8 +143,7 @@ describe("content:gate over the production pack (CAH-PROV-3)", () => {
   it("fails when an allowlist entry carries no justification", () => {
     const dir = tempDir();
     cpSync(contentDir, dir, { recursive: true });
-    const areasPath = resolve(dir, "areas.yaml");
-    writeFileSync(areasPath, `${readFileSync(areasPath, "utf8")}${PLACEHOLDER_AREA}`, "utf8");
+    addPlaceholderArea(dir);
     writeFileSync(
       resolve(dir, "placeholder-allowlist.json"),
       JSON.stringify({

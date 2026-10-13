@@ -5,8 +5,7 @@ import {
   type OpeningBriefingRelationsRow,
 } from "@bluewave/campaign-engine";
 import type { ReactNode } from "react";
-import { NATION_DOSSIER_FIELDS } from "../../content/nationDossierFields.js";
-import { NATION_FLAVOR_TEXT } from "../../content/nationFlavorText.js";
+import { nationPresentationOrNull } from "../../content/presentationContent.js";
 import type { PlayableSlotCountryId } from "../../content/nationAssetManifest.js";
 import { Button } from "../../components/ui/button.js";
 import { GlassCard } from "../../components/ui/glass-card.js";
@@ -54,8 +53,9 @@ function AppointmentPage({
   readonly projection: OpeningBriefingProjection;
   readonly nationId: PlayableSlotCountryId;
 }) {
-  const dossier = NATION_DOSSIER_FIELDS[nationId];
-  const flavor = NATION_FLAVOR_TEXT[nationId];
+  const record = nationPresentationOrNull(nationId);
+  const dossier = record?.dossier;
+  const flavor = record?.flavor;
   const title = dossier?.appointmentTitle ?? projection.nationName;
   return (
     <div className="flex flex-col gap-4">

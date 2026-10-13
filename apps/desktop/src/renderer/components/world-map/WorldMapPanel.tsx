@@ -4,7 +4,7 @@ import { Button } from "../ui/button.js";
 import { CardContent, CardHeader, CardTitle } from "../ui/card.js";
 import { GlassCard } from "@/components/ui/glass-card.js";
 import { Skeleton } from "../ui/skeleton.js";
-import { fixtureAreaId } from "./campaign-map-join.js";
+import { fixtureAreaId } from "../../content/presentationContent.js";
 import { useWorldMapController } from "./useWorldMapController.js";
 import { cn } from "../../lib/utils.js";
 

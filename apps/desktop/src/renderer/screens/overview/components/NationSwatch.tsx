@@ -1,4 +1,4 @@
-import { campaignNationHue } from "../../../components/world-map/campaign-map-join.js";
+import { campaignNationHue } from "../../../content/presentationContent.js";
 import type { NationRailRow } from "../nation-rail-state.js";
 
 /** The nation's flag art, or a letter on its nation hue when it has none yet. */

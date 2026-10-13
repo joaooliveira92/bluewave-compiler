@@ -174,6 +174,18 @@ describe("content:verify over the production pack (CAH-LOCK)", () => {
       `${readFileSync(areasPath, "utf8")}\n- id: "cah_drift_area"\n  name: "Drift Area"\n  type: "land"\n`,
       "utf8",
     );
+    // Keep the drift valid under the presentation-coverage invariant (CAH-PRES-2).
+    const presentationPath = resolve(dir, "presentation.yaml");
+    writeFileSync(
+      presentationPath,
+      readFileSync(presentationPath, "utf8")
+        .replace("  areaRegion:\n", "  areaRegion:\n    cah_drift_area: northern_europe\n")
+        .replace(
+          "  campaignAreaToFixture:\n",
+          "  campaignAreaToFixture:\n    cah_drift_area: area_north_sea\n",
+        ),
+      "utf8",
+    );
     expect(
       runContentVerify({
         manifest: localManifest,

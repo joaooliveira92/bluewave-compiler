@@ -2,8 +2,7 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { PLAYABLE_SLOT_COUNTRY_IDS } from "@/content/nationAssetManifest.js";
-import { NATION_DOSSIER_FIELDS } from "@/content/nationDossierFields.js";
-import { NATION_FLAVOR_TEXT } from "@/content/nationFlavorText.js";
+import { nationDossier, nationFlavor } from "@/content/presentationContent.js";
 import { DossierSlidePanel } from "./DossierSlidePanel.js";
 
 beforeEach(() => {
@@ -58,8 +57,8 @@ describe("DossierSlidePanel", () => {
 
   it.each(PLAYABLE_SLOT_COUNTRY_IDS)("renders %s's full dossier field set", (countryId) => {
     renderPanel(countryId);
-    const flavor = NATION_FLAVOR_TEXT[countryId];
-    const fields = NATION_DOSSIER_FIELDS[countryId];
+    const flavor = nationFlavor(countryId);
+    const fields = nationDossier(countryId);
 
     // Economy is the default intelligence card.
     fireEvent.click(screen.getByRole("button", { name: "Economy" }));
