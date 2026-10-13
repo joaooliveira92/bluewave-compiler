@@ -25,7 +25,6 @@ import {
   HullPlanPanel,
   IDLE_TOOL,
   LedgerPanel,
-  MachineryPanel,
   MetricsPanel,
   PlacementsPanel,
   PlanModeButtons,
@@ -66,12 +65,14 @@ import {
   EngineeringStatusBar,
   Inspector,
   InspectorResizeHandle,
+  MachineryEditor,
   NotAvailable,
   ShipStage,
   ViewToolbar,
   WorkspaceDialog,
 } from "./components/index.js";
 import { armamentEntries } from "./armament.js";
+import { machineryModel } from "./machinery-view.js";
 import {
   SECTIONS,
   categoriesOf,
@@ -292,7 +293,10 @@ export function ShipbuildingWorkspace({ sessionId }: { readonly sessionId?: stri
           <MetricsPanel view={view} />
         ) : (
           <>
-            <MachineryPanel draft={draft} content={content} edit={actions.edit} />
+            <MachineryEditor
+              model={machineryModel(draft, view, content, state.month, env.ctx.unlockedTechs)}
+              edit={actions.edit}
+            />
             {fittingsPanel(at)}
           </>
         );

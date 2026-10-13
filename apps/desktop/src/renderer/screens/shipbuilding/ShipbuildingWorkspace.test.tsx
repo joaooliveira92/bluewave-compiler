@@ -382,6 +382,32 @@ describe("Armament master-detail editor", () => {
   });
 });
 
+describe("Machinery outcomes-first section", () => {
+  const panel = () => screen.getByRole("region", { name: "Machinery, fuel and range" });
+
+  it("shows editable targets and configuration beside calculated results", () => {
+    render(<ShipbuildingWorkspace />);
+    openMap("Machinery");
+    const config = within(panel()).getByRole("region", { name: "Propulsion configuration" });
+    const results = within(panel()).getByRole("region", { name: "Calculated results" });
+    // Inputs are editable.
+    for (const label of [
+      /^Target speed/,
+      /^Cruising speed/,
+      /^Range/,
+      /^Installed power/,
+      /^Fuel capacity/,
+    ])
+      expect(within(config).getByLabelText(label)).toBeTruthy();
+    // Results are outputs, never editable controls.
+    expect(within(results).queryAllByRole("spinbutton")).toHaveLength(0);
+    const outputs = within(results).getByTestId("machinery-outputs").textContent ?? "";
+    expect(outputs).toMatch(/Power required at target speed/);
+    expect(outputs).toMatch(/Machinery weight/);
+    expect(outputs).toMatch(/Reliability/);
+  });
+});
+
 describe("Engineering status strip", () => {
   const strip = () => screen.getByRole("region", { name: "Engineering status" });
   const item = (id: string) => strip().querySelector<HTMLElement>(`[data-status="${id}"]`)!;
