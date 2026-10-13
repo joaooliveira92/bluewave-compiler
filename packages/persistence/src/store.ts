@@ -443,6 +443,11 @@ export class SaveStore {
     try {
       state = {
         ...parsedResult.success,
+        // Accepted narrowing (ticket INC-3): `StorableSnapshotSchema` validates
+        // the snapshot's container shape only and leaves deeply-typed leaves
+        // permissive (schemas.ts NOTE); deep value-fidelity is enforced by the
+        // envelope + rawHash checks below, and `fromStorableSnapshot` reads the
+        // same shape `toStorableSnapshot` wrote, so this is the boundary seam.
         snapshot: fromStorableSnapshot(
           parsedResult.success.snapshot as unknown as StorableCampaignSnapshot,
         ),

@@ -7,8 +7,8 @@ conformance.
 **Triage:** `ready-for-agent` — fully specified, ready for an AFK agent. In this repo
 that means the sliced implementation tickets carry `Status: open`, `Frontier: yes`, and a
 resolved/empty `Blocked by:` chain (see `docs/agents/triage-labels.md`).
-**Status:** sliced — 4 frontier-ordered implementation tickets at
-`.scratch/effect-conformance/issues/` (`INC-1`..`INC-4`), all unblocked.
+**Status:** done — all four frontier-ordered implementation tickets
+(`INC-1`..`INC-4`) are resolved and applied.
 **Source of truth:** this spec, together with the findings register in
 `.scratch/effect-conformance/issues/11-assemble-conformance-plan.md` and the durable
 research notes under `docs/research/effect-conformance-*.md`.

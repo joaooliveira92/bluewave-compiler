@@ -63,11 +63,18 @@ const AttackTypeLiteral = Schema.Literals([
  * Standard SafeInt schema: accept a number, validate integer + safe range. The
  * `message` is surfaced verbatim on failure, matching the previous Zod custom
  * schema's `{ message }` behavior.
+ *
+ * The decoded value carries the `@bluewave/contracts` `SafeInt` brand at the
+ * schema seam. `Schema.brand` mints Effect's own brand (`Brand.Brand<"SafeInt">`,
+ * a `[BrandTypeId]` symbol), which is not the contracts brand
+ * (`{ readonly __brand: "SafeInt" }`), so the nominal type is annotated here
+ * instead — the runtime contract is unchanged (a validated integer; `Encoded`
+ * stays `number`) and no call site needs a narrowing cast (ticket INC-3).
  */
 function safeIntSchema(
   message: string,
   opts?: { min?: number; max?: number; nonNegative?: boolean; positive?: boolean },
-) {
+): Schema.Codec<SafeInt, number> {
   return Schema.Finite.check(
     Schema.makeFilter((val: number) => {
       if (!SafeInt.isSafeInt(val)) return message;
@@ -77,7 +84,7 @@ function safeIntSchema(
       if (opts?.max !== undefined && val > opts.max) return message;
       return undefined;
     }),
-  );
+  ) as Schema.Codec<SafeInt, number>;
 }
 
 // ---- AirDefenseAttack interface (§4) ----
@@ -201,7 +208,7 @@ export function validateAirDefenseAttack(value: unknown): AirDefenseAttack {
       },
     );
   }
-  return result.success as AirDefenseAttack;
+  return result.success;
 }
 
 // ---- createAirDefenseAttack ----

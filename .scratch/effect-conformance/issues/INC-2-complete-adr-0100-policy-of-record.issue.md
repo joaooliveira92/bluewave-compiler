@@ -1,7 +1,7 @@
 # INC-2 — Complete ADR-0100's policy of record
 
 **Type:** implementation
-**Status:** open
+**Status:** resolved
 **Blocked by:** None (can start immediately)
 **Frontier:** yes
 
@@ -41,4 +41,23 @@ closes ticket 05's F2/F3/F4 residuals.
 
 ## Answer
 
-_(empty)_
+Resolved (doc-only; no gate or code change).
+
+- **§1:** the `@effect/vitest` sentence is corrected — it is vendored on the
+  same version but **unused** (runner is the `vite-plus/test` built-in,
+  `RULES.md` "Tests and gates"; no first-party test imports it).
+- **§2 Policy of record (2026-10-13):** one block records the three missing
+  facts — (1) the declined modules are named (`Resources` — with `Scope` noted as
+  separately adopted at the IO boundary and **not** itself declined — `PubSub`,
+  `Stream`, `Batching`/`Request`, `Schedule`, `Observability`/`Logger`/`Metric`),
+  pointing at the closed allowlist in `assert-runtime-free.mjs`; (2) test files
+  are outside the runtime-free boundary by design (gate guards only `*/src`;
+  tests reach neither the renderer nor a published pure package; ADR-0150 §1;
+  `@effect/vitest` is not a dependency) — **accept + record**, a test-file scope
+  only a future alternative; (3) no gate change.
+- `scripts/assert-runtime-free.mjs` and every gate untouched.
+- Commands: `node scripts/docs-check.cjs` green (442 links, 154 ADRs indexed);
+  `node scripts/verify-doc-budgets.mjs` green (27 within ceiling); `pnpm preflight`
+  green.
+
+Closes ticket 05's `F-05-2`/`F-05-3`/`F-05-4` residuals.

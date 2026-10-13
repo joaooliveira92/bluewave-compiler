@@ -26,8 +26,10 @@ demotion is ADR-0103.
 
 1. **Bluewave adopts the Effect v4 line as its single monorepo idiom**, pinned to
    the exact stable version (`effect@4.0.2`, or the exact stable `4.0.x` at the
-   time of a bump) — **never an `rc`**. `@effect/vitest` tracks the same unified
-   version. The pin is enforced by the vendored workspace package (ADR-0101).
+   time of a bump) — **never an `rc`**. `@effect/vitest` is vendored on the same
+   version but **unused**: the test runner is the `vite-plus/test` built-in
+   (`RULES.md` "Tests and gates"), and no first-party test imports it. The pin is
+   enforced by the vendored workspace package (ADR-0101).
 2. **Runtime-usage policy is a hard architectural boundary.** Pure synchronous
    packages use only the runtime-free subset; the full Effect runtime is
    permitted only at explicit IO/infrastructure/orchestration/entrypoint
@@ -59,6 +61,27 @@ demotion is ADR-0103.
    to the `content-compiler` IO package; `campaignInput.ts` now owns only the
    coercion contract and `campaign` is genuinely IO-free. No reclassification was
    needed and no new ADR is raised.
+
+   **Policy of record (2026-10-13).** Three facts complete the runtime-usage
+   boundary:
+
+   - **Declined modules, named.** The runtime-free subset is a *closed*
+     allowlist — `scripts/assert-runtime-free.mjs` fails closed on any export
+     outside the symbols listed above — and it declines, by name: `Resources`
+     (the `05_resources` section; `Scope` is separately adopted at the IO
+     boundary and is **not** itself declined), `PubSub`, `Stream`,
+     `Batching`/`Request`, `Schedule`, and `Observability` (`Logger`/`Metric`).
+     A search for any of these names lands here rather than finding nothing.
+   - **Test files are outside the boundary by design.** The gate guards only
+     `*/src` roots; a `*.test.ts` file reaches neither the bundled renderer nor
+     a published pure package, and tests are excluded from the determinism gate
+     for the same reason ([ADR-0150](ADR-0150-authoritative-determinism-gate.md)
+     §1). `@effect/vitest` is not a declared dependency, so this is the implicit
+     barrier, recorded rather than newly gated. A dedicated test-file scope in
+     `assert-runtime-free.mjs` is a future alternative only if the boundary gains
+     a reason to cover tests.
+   - **No gate change.** The closed-subset rule already rejects every declined
+     module; no new guard is warranted.
 
 3. **The runtime is introduced where an effect is run**, not inside pure
    derivations. In-process domain errors are `Data.TaggedError`; serializable/wire

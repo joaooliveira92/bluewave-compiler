@@ -1,7 +1,7 @@
 # INC-4 — `validateAgainstSchema` uses `Result.isFailure`
 
 **Type:** implementation
-**Status:** open
+**Status:** resolved
 **Blocked by:** None (can start immediately)
 **Frontier:** yes
 
@@ -27,4 +27,13 @@ closes ticket 03's F6 nit.
 
 ## Answer
 
-_(empty)_
+Resolved. `packages/content-schema/src/schema-validator.ts` now imports `Result`
+from `effect` and narrows the decode result with `Result.isFailure(result)`
+instead of `result._tag === "Failure"`; control flow, diagnostic text, and codes
+are identical.
+
+Commands: `pnpm --filter @bluewave/content-schema typecheck` and
+`pnpm --filter @bluewave/content-schema exec vp test run` green (141 tests);
+`pnpm preflight` green.
+
+Closes ticket 03's `F-03-6` nit.

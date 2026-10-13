@@ -1,7 +1,7 @@
 # INC-3 — Remove the residual decode-then-narrow casts
 
 **Type:** implementation
-**Status:** open
+**Status:** resolved
 **Blocked by:** None (can start immediately)
 **Frontier:** yes
 
@@ -43,4 +43,47 @@ and keeps the decode-at-boundary guarantee from eroding.
 
 ## Answer
 
-_(empty)_
+Resolved. One of the six sites **removed the call-site cast** by carrying the
+nominal type at the schema seam; the other five are **recorded accepts** (the
+schema is deliberately looser than the domain type — a nominal brand, an
+optional/defaultable field, or a trust-class shape — so the decode genuinely
+cannot produce the nominal type without re-modeling it).
+
+**Removed (option a — the schema's output *is* the nominal type):**
+
+- `packages/combat/src/air-defense/attack.ts` — `safeIntSchema` now returns
+  `Schema.Codec<SafeInt, number>` (a documented seam **annotation**, not a
+  `Schema.brand`: Effect's `Schema.brand` mints `Brand.Brand<"SafeInt">`, a
+  `[BrandTypeId]` symbol, not `@bluewave/contracts`' `{ readonly __brand }`), so
+  `validateAirDefenseAttack` returns `result.success` with no call-site cast.
+  `Encoded` stays `number` and every verbatim filter message is unchanged.
+
+**Recorded accepts (option b — the decoded type is genuinely wider):**
+
+- `packages/combat/src/air-defense/air-defense-system-definition.ts` — the
+  schema marks the defaultable fields (`baseKillBp` … `saturationGroup`)
+  `Schema.optional` (`createAirDefenseSystemDefinition` fills them before
+  validating) while the interface is total; the call-site cast is kept with the
+  reason in place.
+- `apps/desktop/src/main/monthInput.ts` — the schema models the trust-class array
+  elements as `Record<string, unknown>`; the engine re-validates every envelope
+  when the month replays.
+- `apps/desktop/src/main/pendingCommands.ts` — `StoredQueueSchema` models the
+  envelope as `Record<string, unknown>`; the engine re-validates every restored
+  envelope at drain.
+- `packages/persistence/src/store.ts` — `StorableSnapshotSchema` validates the
+  container shape only (`schemas.ts` NOTE); deep value-fidelity is enforced by
+  the envelope + `rawHash` checks, and `fromStorableSnapshot` reads the shape
+  `toStorableSnapshot` wrote.
+- `apps/desktop/src/main/campaignBridge.ts` — the boundary schema only asserts
+  `scriptedOrders` is an array of unknown (a debug-gated seam); the renderer
+  builds the concrete `RawScriptedForceOrder[]`.
+
+No new `as unknown as` was introduced; excess-key policies are unchanged; the
+existing decode/boundary tests stay green; `scripts/assert-boundary-decode.mjs`
+green. Commands: `pnpm --filter @bluewave/combat exec vp test run` green (3799
+tests); `pnpm --filter @bluewave/persistence exec vp test run` green;
+`pnpm --filter @bluewave/desktop exec vp test run src/main/` green;
+`pnpm preflight` green. No golden/hash change.
+
+Closes ticket 03's `F-03-4` residual.

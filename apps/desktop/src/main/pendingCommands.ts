@@ -131,6 +131,10 @@ export function restorePendingQueue(sessionId: string): number {
   for (const e of parsed.entries)
     queue.set(e.transportRequestId, {
       transportRequestId: e.transportRequestId,
+      // Accepted narrowing (ticket INC-3): `StoredQueueSchema` models the
+      // envelope as `Record<string, unknown>`; the engine re-validates every
+      // restored envelope at drain, so this nominal assertion is the boundary
+      // seam, not a trust decision.
       envelope: e.envelope as unknown as CommandEnvelope<CommandBody>,
       payloadFingerprint: e.payloadFingerprint,
     });

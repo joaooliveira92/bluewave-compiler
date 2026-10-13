@@ -1,7 +1,7 @@
 # INC-1 — Pin `discoverShipBuildingFiles` order-independence
 
 **Type:** implementation
-**Status:** open
+**Status:** resolved
 **Blocked by:** None (can start immediately)
 **Frontier:** yes
 
@@ -39,4 +39,26 @@ determinism-advisory gating verdict).
 
 ## Answer
 
-_(empty)_
+Resolved. Added `packages/content-compiler/test/shipBuildingDiscovery.test.ts`.
+
+- The test builds a real temporary ship-building tree in a deliberately
+  non-lexical write order (nested `naval-profiles` + `parts`, three
+  `reference-designs` nations with `starters`/`historical` + extras), then drives
+  `discoverShipBuildingFiles` twice over the *same* tree: once with the real
+  `readdirSync`, once with a thin `node:fs` wrapper that reverses every
+  directory read. Both must equal the canonical expected groups, and each other.
+- The reversed-read call is the load-bearing assertion: it forces a different
+  host iteration order regardless of the underlying filesystem, so the test
+  proves the explicit `.sort()` in `listYamlFiles` and the UK-first
+  `nationOrder` comparator (plus the `starters`→`historical`→extras ordering)
+  are what make the result stable. Temporarily removing `.sort()` makes the test
+  fail — verified during implementation.
+- **Guarantee pinned:** the explicit sorted/UK-first ordering **stays**; the test
+  pins it (recursive part/naval-profile files lexicographic, reference designs UK
+  then nations lexical, conventional files first then lexical extras,
+  ADR-0109). A second case pins that a missing tree yields empty groups.
+- No production or compiled-surface change (no `content/` or artifact change).
+- Commands: `pnpm --filter @bluewave/content-compiler exec vp test run test/shipBuildingDiscovery.test.ts`
+  green (2 tests); `pnpm preflight` green.
+
+Closes ticket 06's `F-06-R` residual.

@@ -1,5 +1,5 @@
 import type { DiagnosticCollector } from "@bluewave/diagnostics";
-import { Schema, SchemaIssue } from "effect";
+import { Result, Schema, SchemaIssue } from "effect";
 
 import type { ContentSchema } from "./decode.js";
 
@@ -20,7 +20,7 @@ export function validateAgainstSchema<A>(
   collector: DiagnosticCollector,
 ): A | undefined {
   const result = Schema.decodeUnknownResult(schema, parseOptions)(data);
-  if (result._tag === "Failure") {
+  if (Result.isFailure(result)) {
     for (const issue of formatter(result.failure.issue).issues) {
       const pointer = (issue.path ?? []).filter(
         (key): key is string | number => typeof key === "string" || typeof key === "number",

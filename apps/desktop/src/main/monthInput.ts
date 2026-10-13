@@ -43,6 +43,10 @@ export function monthInputOf(
 /** Parses a stored month input; null when it is not a `month_input_v1` record. */
 export function parseMonthInput(value: unknown): MonthInput | null {
   const parsed = Schema.decodeUnknownResult(MonthInputSchema)(value);
+  // Accepted narrowing (ticket INC-3): the schema deliberately models the
+  // trust-class array elements as `Record<string, unknown>` (see JSDoc above);
+  // the engine re-validates every envelope when the month replays, so this
+  // nominal assertion is the boundary seam, not a substitute for validation.
   return Result.isSuccess(parsed) ? (parsed.success as unknown as MonthInput) : null;
 }
 

@@ -257,6 +257,9 @@ export function validateAirDefenseSystemDefinition(value: unknown): AirDefenseSy
       { code: INVALID_AIR_DEFENSE_SYSTEM_DEFINITION, errors },
     );
   }
+  // Accepted narrowing (ticket INC-3): the schema marks the defaultable fields
+  // (`baseKillBp` … `saturationGroup`) optional — `createAirDefenseSystemDefinition`
+  // fills them before validating — while the interface is total.
   return result.success as AirDefenseSystemDefinition;
 }
 

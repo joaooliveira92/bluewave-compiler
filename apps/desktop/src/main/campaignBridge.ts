@@ -329,6 +329,10 @@ export const defaultCommandRegistry: CommandRegistry = {
   recoverCampaign: payloadless(() => recoverCampaign(defaultContinuityDeps)),
   generateBattle: withSchema(GenerateBattlePayloadSchema, (payload) => generateBattle(payload)),
   resolveBattle: withSchema(BattleIdPayloadSchema, (payload) => resolveBattle(payload)),
+  // Accepted narrowing (ticket INC-3): the boundary schema only asserts
+  // `scriptedOrders` is an array of unknown (a debug-gated seam, ADR-0057); the
+  // renderer builds the concrete `RawScriptedForceOrder[]` via
+  // `parseScriptedOrders` before sending.
   resolveTacticalBattle: withSchema(ResolveTacticalBattlePayloadSchema, (payload) =>
     resolveTacticalBattle(payload as ResolveTacticalBattlePayload),
   ),
