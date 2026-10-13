@@ -18,6 +18,16 @@ export type ContentArtifactErrorCode =
   | "CONTENT_ARTIFACT_INVALID";
 
 export class ContentArtifactError extends Error {
+  /** Stable discriminator (RULES.md "Errors"): recover by `_tag`, not `instanceof`. */
+  readonly _tag = "ContentArtifactError";
+  /** `_tag`-based narrowing without `instanceof`. */
+  static is(value: unknown): value is ContentArtifactError {
+    return (
+      typeof value === "object" &&
+      value !== null &&
+      (value as { readonly _tag?: unknown })._tag === "ContentArtifactError"
+    );
+  }
   readonly code: ContentArtifactErrorCode;
   /** The specific verification failure code, when `code` is `CONTENT_ARTIFACT_INVALID`. */
   readonly reason?: string;

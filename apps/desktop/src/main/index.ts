@@ -291,12 +291,11 @@ if (!app.requestSingleInstanceLock()) {
     try {
       loadContentArtifact();
     } catch (error) {
-      const message =
-        error instanceof ContentArtifactError
-          ? error.message
-          : `The compiled content artifact could not be verified: ${
-              error instanceof Error ? error.message : String(error)
-            }`;
+      const message = ContentArtifactError.is(error)
+        ? error.message
+        : `The compiled content artifact could not be verified: ${
+            error instanceof Error ? error.message : String(error)
+          }`;
       hardFail(message);
       return;
     }

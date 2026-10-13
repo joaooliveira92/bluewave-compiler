@@ -10,8 +10,9 @@
 // `class … extends Error` with no `_tag` fails closed (ADR-0106 ratchet
 // pattern).
 //
-//   --scope engine   {contracts, combat, armament}      (not renderer-reachable)
-//   --scope surface  {ship-design, campaign, persistence} (renderer-reachable)
+//   --scope engine   roots whose error classes the renderer cannot reach
+//   --scope surface  the renderer-reachable roots (the renderer itself plus the
+//                    packages whose public error surface it can reach)
 //
 // A class is compliant when it carries a `_tag` (field or accessor) OR its name
 // is on the reviewed allowlist below with a one-line justification. The
@@ -28,10 +29,55 @@ import { parseSync } from "oxc-parser";
 
 const root = resolve(import.meta.dirname, "..");
 
-/** The reachability scopes the gate guards, keyed by `--scope` name. */
+/**
+ * The reachability scopes the gate guards, keyed by `--scope` name.
+ *
+ * "Renderer-reachable" means the renderer **value-imports** the root (directly,
+ * or transitively through another renderer-reachable root); a type-only import
+ * (`import type`, or an all-type `export … from`) is erased by the bundler and
+ * does not count — so `persistence` (only `import type { SaveMetadata }`) and
+ * `phase-engine` (only `import type { ForeignConstructionPreview }`) sit in
+ * `engine`. The renderer also touches a wider module graph through the
+ * value-imported packages (`armament`, `deterministic`, `random`,
+ * `content-schema`, `content-compiler`, `diagnostics`; ADR-0128 §Context), but
+ * none of those declare a renderer-facing plain `Error` subclass, so `surface`
+ * lists the roots that do: `contracts`, `ship-design`, `campaign`,
+ * `campaign-engine` and `ship-visual`.
+ *
+ * Both scopes enforce the same rule; the lists exist so the split is a reviewed
+ * decision, and together they cover every first-party source root, so an
+ * untagged error cannot hide in an unguarded package or app (ADR-0152 §4,
+ * ticket 12).
+ */
 export const SCOPES = {
-  engine: ["packages/contracts/src", "packages/combat/src", "packages/armament/src"],
-  surface: ["packages/ship-design/src", "packages/campaign/src", "packages/persistence/src"],
+  engine: [
+    "apps/compiler-cli/src",
+    "apps/desktop/src/main",
+    "apps/desktop/src/preload",
+    "apps/desktop/src/shared",
+    "packages/ai/src",
+    "packages/armament/src",
+    "packages/combat/src",
+    "packages/commands/src",
+    "packages/content-compiler/src",
+    "packages/content-schema/src",
+    "packages/cross-process-test/src",
+    "packages/deterministic/src",
+    "packages/diagnostics/src",
+    "packages/events/src",
+    "packages/persistence/src",
+    "packages/phase-engine/src",
+    "packages/random/src",
+    "packages/test-support/src",
+  ],
+  surface: [
+    "apps/desktop/src/renderer",
+    "packages/campaign/src",
+    "packages/campaign-engine/src",
+    "packages/contracts/src",
+    "packages/ship-design/src",
+    "packages/ship-visual/src",
+  ],
 };
 
 /**

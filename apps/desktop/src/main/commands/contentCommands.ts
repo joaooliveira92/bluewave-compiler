@@ -22,7 +22,7 @@ export function inspectDrawingBoardContent(): BridgeResult<DrawingBoardContentDt
       diagnostics: [],
     };
   } catch (err) {
-    if (err instanceof ContentArtifactError) {
+    if (ContentArtifactError.is(err)) {
       return { outcome: "error", reason: err.code, diagnostics: [err.message] };
     }
     const message = err instanceof Error ? err.message : String(err);
@@ -40,7 +40,7 @@ export function inspectPresentationContent(): BridgeResult<PresentationContentDt
   try {
     return { outcome: "success", value: loadPresentationContent(), diagnostics: [] };
   } catch (err) {
-    if (err instanceof ContentArtifactError) {
+    if (ContentArtifactError.is(err)) {
       return { outcome: "error", reason: err.code, diagnostics: [err.message] };
     }
     const message = err instanceof Error ? err.message : String(err);

@@ -47,7 +47,7 @@ function expectError(fn: () => unknown): ContentArtifactError {
   try {
     fn();
   } catch (error) {
-    expect(error).toBeInstanceOf(ContentArtifactError);
+    expect(ContentArtifactError.is(error)).toBe(true);
     return error as ContentArtifactError;
   }
   throw new Error("expected readContentArtifact to throw");

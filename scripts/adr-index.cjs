@@ -163,7 +163,6 @@ function load() {
 
 function buildIndex() {
   const { adrs, records } = load();
-  const active = records.filter((r) => r.location === "active");
   const archived = records.filter((r) => r.location === "archived");
   const max = Math.max(...adrs.keys());
   const out = [

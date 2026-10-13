@@ -10,11 +10,19 @@ import {
 } from "../src/index.js";
 import type { CommandBody, CommandEnvelope, CommandTypeDefinition } from "../src/index.js";
 
+function isCommandError(value: unknown): value is CommandError {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    (value as { readonly _tag?: unknown })._tag === "CommandError"
+  );
+}
+
 function capture(fn: () => unknown): CommandError {
   try {
     fn();
   } catch (error) {
-    if (error instanceof CommandError) return error;
+    if (isCommandError(error)) return error;
     throw error;
   }
   throw new Error("expected a CommandError");

@@ -15,11 +15,19 @@ function makeGenerator(overrides: Partial<AiCommandContext> = {}): AiCommandGene
   });
 }
 
+function isAiError(value: unknown): value is AiError {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    (value as { readonly _tag?: unknown })._tag === "AiError"
+  );
+}
+
 function capture(fn: () => unknown): AiError {
   try {
     fn();
   } catch (error) {
-    if (error instanceof AiError) return error;
+    if (isAiError(error)) return error;
     throw error;
   }
   throw new Error("expected an AiError");

@@ -13,11 +13,19 @@ import { FinancialLedger, PhaseEngineError } from "../src/index.js";
 import { cloneSnapshot } from "../src/snapshotClone.js";
 import { makeBattleSnapshot } from "./battle-fixtures.js";
 
+function isPhaseEngineError(value: unknown): value is PhaseEngineError {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    (value as { readonly _tag?: unknown })._tag === "PhaseEngineError"
+  );
+}
+
 function capture(fn: () => unknown): PhaseEngineError {
   try {
     fn();
   } catch (error) {
-    if (error instanceof PhaseEngineError) return error;
+    if (isPhaseEngineError(error)) return error;
     throw error;
   }
   throw new Error("expected a PhaseEngineError");

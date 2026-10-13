@@ -45,6 +45,7 @@ execution is a later effort off the handoff spec/tickets.
 - [Schema usage conformance vs vendored effect@4.0.2](issues/01-schema-usage-conformance.md): filters / `Result` / `SchemaIssue` formatter conform; **Blocker** — `Schema.Struct` *strips* by default (idioms + ADR-0102 + `RULES.md` wrong; doc-fixed); F2 shared-array aliasing **withdrawn** (probe: `Schema.Array` defaults are fresh per decode).
 - [Data.TaggedError + error-handling conformance](issues/02-tagged-errors-conformance.md): 14 classes conform; **Major gate gap** — `apps/**` uncovered by `assert-tagged-errors`, live `instanceof` in `contentArtifact.ts`; ADR-0152 self-inconsistent.
 - [Result + decode-at-boundary conformance](issues/03-result-boundary-decode-conformance.md): `Result` + boundary idiom conform; **Major gate gap** — `compiler-cli` `as T` casts un-gated by `assert-boundary-decode`.
+- [Error-gate scope](issues/12-error-gate-scope.md): **resolved, applied** — `ContentArtifactError` gains `_tag` + `static is`; `assert-tagged-errors` `SCOPES` widened to every first-party root (apps + all packages) split by value-reachability; ADR-0152 §1/§2/§5 aligned and "renderer-reachable" defined as value-import reachability (persistence → `engine`); the three test `instanceof` helpers moved to `_tag`.
 
 ## Not yet specified
 
