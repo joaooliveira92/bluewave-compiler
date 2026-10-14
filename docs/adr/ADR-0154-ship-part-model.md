@@ -176,6 +176,18 @@ The 1880 content has 91 reference designs with 823 placements (230 gun placement
       availability windows, entry identity and cycle checks and unlocked-technology
       requirements that the model cannot yet express, are follow-up work owned by
       ticket 11 (queries in 07). P1 changes no result.
+17. **Part queries (2026-10-14, ticket 07).** `resolvePart`, `availableParts`,
+    `partsForSlot`, `lineage`, `validateLoadout` and `loadoutCost` are pure, id-ordered
+    reads of a `PartCatalogue` in `partQueries.ts`.
+    - **Technology.** `FitInput.unlockedTechnologies` is the unlocked-technology input
+      (also on `availableParts` and `validateLoadout`). A part whose `lifecycle.requires`
+      is not covered is `FIT_TECHNOLOGY_LOCKED` (`detail.missing`), sorted after
+      `FIT_UNAVAILABLE`. Absent the input, technology is not evaluated.
+    - **Slot acceptance** is by interface and constraints on the part alone; constraints
+      needing other entries (a mount's calibre) are `undecided`, not accepted.
+      Lifecycle, nation and technology are `availableParts` concerns.
+    - **Cost.** A nested entry's units are its parent's units times its `mountCount`; the
+      multiplier comes from each component's declared basis.
 
 ## Consequences
 

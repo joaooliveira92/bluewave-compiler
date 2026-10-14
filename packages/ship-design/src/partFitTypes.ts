@@ -22,6 +22,8 @@ export const FIT_FINDING_CODES = [
   "FIT_CONSTRAINT_VIOLATED",
   "FIT_NOT_YET_AVAILABLE",
   "FIT_UNAVAILABLE",
+  /** The part's `lifecycle.requires` names technologies the caller has not unlocked. */
+  "FIT_TECHNOLOGY_LOCKED",
   "FIT_NATION_ACCESS",
   /** Stage 6: station or side outside the slot's declared placement. */
   "FIT_PLACEMENT",

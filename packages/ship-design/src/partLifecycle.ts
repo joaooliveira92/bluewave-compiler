@@ -33,6 +33,26 @@ function monthAt(index: number): string {
   return `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}`;
 }
 
+/** The month `delta` months from `month` (`YYYY-MM`); throws for a malformed month. */
+export function shiftMonth(month: string, delta: number): string {
+  return monthAt(monthIndex(month) + delta);
+}
+
+/** Where a month falls against a part's availability window (`availableUntil` exclusive). */
+export type LifecycleStatus = "NOT_YET_AVAILABLE" | "AVAILABLE" | "UNAVAILABLE";
+
+export function lifecycleStatus(
+  lifecycle: {
+    readonly availableFrom: string;
+    readonly availableUntil?: string | null | undefined;
+  },
+  month: string,
+): LifecycleStatus {
+  if (month < lifecycle.availableFrom) return "NOT_YET_AVAILABLE";
+  const until = lifecycle.availableUntil;
+  return until != null && month >= until ? "UNAVAILABLE" : "AVAILABLE";
+}
+
 /** The exclusive part `availableUntil` for an inclusive legacy retirement month. */
 export function availableUntilFromRetirementMonth(
   retirementMonth: string | null | undefined,

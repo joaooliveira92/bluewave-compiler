@@ -65,6 +65,12 @@ export interface FitInput {
    * fact (`ComponentDef.parameters`); it is the legacy `PARAM_RANGE` rule.
    */
   readonly mountCountRanges?: FitMountCountRanges;
+  /**
+   * The technology ids the designing nation has unlocked at `month`. When given, a part whose
+   * `lifecycle.requires` is not covered is `FIT_TECHNOLOGY_LOCKED`; when absent, technology
+   * is not evaluated (the model has no unlock history of its own).
+   */
+  readonly unlockedTechnologies?: readonly string[];
 }
 
 type Entry = NestedLoadoutEntry;
@@ -110,6 +116,7 @@ interface Ctx {
   readonly nation: FitNationInput | undefined;
   readonly ammo: FitAmmunitionCompatibility | undefined;
   readonly countRanges: FitMountCountRanges | undefined;
+  readonly unlocked: ReadonlySet<string> | undefined;
   readonly out: Collector;
 }
 
@@ -493,6 +500,21 @@ function shape(ctx: Ctx, entry: Entry, slot: SlotData, path: string): void {
 }
 
 function lifecycle(ctx: Ctx, part: FlattenedPart, slot: SlotData, path: string): void {
+  if (ctx.unlocked !== undefined) {
+    const missing = (part.lifecycle.requires ?? [])
+      .filter((t) => !ctx.unlocked?.has(t))
+      .sort(compareCodePoints);
+    if (missing.length > 0) {
+      ctx.out.finding(
+        "FIT_TECHNOLOGY_LOCKED",
+        path,
+        slot.id,
+        part.id,
+        { missing },
+        `Part '${part.id}' requires technology ${missing.join(", ")}, which is not unlocked.`,
+      );
+    }
+  }
   if (!ctx.monthOk) return;
   const { availableFrom, availableUntil } = part.lifecycle;
   if (ctx.month < availableFrom) {
@@ -708,6 +730,7 @@ export function validateLoadoutFit(input: FitInput): FitResult {
     nation: input.nation,
     ammo: input.ammunitionCompatibility,
     countRanges: input.mountCountRanges,
+    unlocked: input.unlockedTechnologies && new Set(input.unlockedTechnologies),
     out,
   };
   const placed: PlacedEntry[] = [];
