@@ -47,8 +47,8 @@ import {
 import { commitMonth } from "./commands/commitMonth.js";
 import { compileCampaign, defaultCompileCampaignDeps } from "./commands/compileCampaign.js";
 import {
-  inspectDrawingBoardContent,
-  inspectPresentationContent,
+  inspectDrawingBoardContentProgram,
+  inspectPresentationContentProgram,
 } from "./commands/contentCommands.js";
 import {
   cancelConstructionCommand,
@@ -228,6 +228,8 @@ function payloadless(
  */
 export const defaultCommandPrograms: Partial<Record<CampaignCommandName, CommandProgram>> = {
   listNewGameOptions: () => listNewGameOptionsProgram,
+  inspectDrawingBoardContent: () => inspectDrawingBoardContentProgram,
+  inspectPresentationContent: () => inspectPresentationContentProgram,
 };
 
 export const defaultCommandRegistry: CommandRegistry = {
@@ -245,8 +247,6 @@ export const defaultCommandRegistry: CommandRegistry = {
   inspectPriorities: withSchema(SessionIdPayloadSchema, (sessionId) =>
     inspectPriorities(sessionId),
   ),
-  inspectDrawingBoardContent: payloadless(() => inspectDrawingBoardContent()),
-  inspectPresentationContent: payloadless(() => inspectPresentationContent()),
   commitMonth: withSchema(CommandEnvelopePayloadSchema, (payload) => commitMonth(payload)),
   inspectConstructionScreen: withSchema(SessionIdPayloadSchema, (sessionId) =>
     inspectConstructionScreen(sessionId),

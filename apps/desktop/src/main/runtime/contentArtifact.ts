@@ -1,22 +1,47 @@
-// The compiled-content boundary as a service (INC-1; ADR-0159). Wraps the raw
-// synchronous compiler call in an `Effect` method, so command programs resolve
-// the artifact through the Layer rather than constructing it inline. Raw
-// `node:*` stays inside the service; no platform services are adopted.
+// The compiled-content boundary as a service (INC-1/INC-2; ADR-0159). Wraps the
+// raw synchronous content reads and the campaign compiler in `Effect` methods, so
+// command programs resolve content through the Layer rather than constructing it
+// inline. Raw `node:*` stays inside the service; no platform services are adopted.
 import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { Context, Effect, Layer } from "effect";
+import type {
+  DrawingBoardContentDto,
+  PresentationContentDto,
+} from "../../shared/content-contract.js";
 import { compileProductionCampaignFromArtifact } from "../compiler.js";
+import { ContentArtifactError } from "../contentArtifact.js";
 import { resolveGeneratedContentDir } from "../contentPack.js";
+import { loadPresentationContent } from "../presentationContent.js";
+import { loadShipBuildingData } from "../shipBuildingContent.js";
 import { CommandFailed } from "./commandError.js";
 
 export type CompiledCampaign = NonNullable<
   ReturnType<typeof compileProductionCampaignFromArtifact>
 >;
 
+/** Maps a thrown content-boundary error to a `CommandFailed`, preserving its code. */
+function contentUnavailable(error: unknown): CommandFailed {
+  if (ContentArtifactError.is(error)) {
+    return new CommandFailed({ reason: error.code, diagnostics: [error.message] });
+  }
+  return new CommandFailed({
+    reason: "CONTENT_UNAVAILABLE",
+    diagnostics: [error instanceof Error ? error.message : String(error)],
+  });
+}
+
 export class ContentArtifact extends Context.Service<
   ContentArtifact,
   {
     /** Compiles the production campaign, failing with `COMPILE_FAILED` diagnostics. */
     readonly compileProductionCampaign: () => Effect.Effect<CompiledCampaign, CommandFailed>;
+    /** Decodes the ship-building catalogue the drawing board reads (fail-closed). */
+    readonly loadDrawingBoardCatalogue: () => Effect.Effect<
+      DrawingBoardContentDto["catalogue"],
+      CommandFailed
+    >;
+    /** Decodes the presentation corpus (fail-closed). */
+    readonly loadPresentationContent: () => Effect.Effect<PresentationContentDto, CommandFailed>;
   }
 >()("bluewave/desktop/ContentArtifact") {}
 
@@ -45,5 +70,9 @@ export function contentArtifactLayer(
         }
         return output;
       }),
+    loadDrawingBoardCatalogue: () =>
+      Effect.try({ try: () => loadShipBuildingData(), catch: contentUnavailable }),
+    loadPresentationContent: () =>
+      Effect.try({ try: () => loadPresentationContent(), catch: contentUnavailable }),
   });
 }
