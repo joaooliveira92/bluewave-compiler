@@ -343,11 +343,13 @@ export function translateTubePlacement(input: {
       mountCount,
       launcherPart,
       entry: {
+        id: placement.instanceId,
         slot: compatibilitySlotId(placement.zoneId, "torpedo_launcher"),
         part: launcherPart.id,
         mountCount,
         stationPermille: placement.stationPermille,
         ...(placement.side !== undefined ? { side: placement.side } : {}),
+        ...(placement.magazineRef !== undefined ? { magazineEntry: placement.magazineRef } : {}),
       },
       quantities: quantityLines(
         launcherPart.quantities,

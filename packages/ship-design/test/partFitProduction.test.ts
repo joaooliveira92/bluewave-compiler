@@ -514,13 +514,20 @@ describe("fit over production ammunition nested in a gun mount (ticket 05 hand-o
     ],
   };
   const gunsPerMount = row.family === "gun_mount" ? row.spec.gunsPerMount : 1;
+  const rounds = gun.family === "gun" ? gun.parameters?.["rounds"]?.min : undefined;
   const { platform, slot } = slotFor("gun_mount");
   const carrier = (ammo: readonly string[]): LoadoutEntryData => ({
     slot,
     part: row.id,
     mountCount: 1,
     entries: {
-      guns: [{ part: gun.id, mountCount: gunsPerMount }],
+      guns: [
+        {
+          part: gun.id,
+          mountCount: gunsPerMount,
+          ...(rounds !== undefined ? { params: { rounds } } : {}),
+        },
+      ],
       ammunition: ammo.map((part) => ({ part })),
     },
   });
@@ -564,10 +571,10 @@ describe("fit over production ammunition nested in a gun mount (ticket 05 hand-o
     expect(codes("1950-07")).toEqual(["FIT_UNAVAILABLE"]);
   });
 
-  it("does not guess a magazine: the nested ammunition has no rounds and no magazineRef", () => {
+  it("does not guess a magazine: the nested ammunition has no magazineRef", () => {
     const record = present(ammunitionModel.records[0], "an ammunition part");
     const e = carrier([record.part.id]);
-    expect(JSON.stringify(e)).not.toMatch(/rounds|magazineRef/);
+    expect(JSON.stringify(e)).not.toMatch(/magazineRef/);
     const r = fitEntries(platform, [e], [withAmmunitionSlot, gun, record.part], month(record.part));
     expect(r.unresolved.map((u) => u.code)).toEqual(["FIT_MAGAZINE_UNDETERMINED"]);
   });

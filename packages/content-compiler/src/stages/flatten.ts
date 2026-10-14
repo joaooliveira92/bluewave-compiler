@@ -31,8 +31,9 @@ import type { PartModelSources, ValidateOutput } from "./validate.js";
  * Prototype inheritance (ADR-0154 §14, proposal §3.7 "`spec` and `quantities` values
  * only"): a variant's `spec` is a delta over its prototype's base spec, and it may
  * override a quantity component's `value` (never its `kind` or `basis`, and it may not
- * add one). It inherits `slots`, `parameters` and `visual` and may not redefine them.
- * Its identity, lifecycle, revisions, legacy exceptions and provenance are its own;
+ * add one). It inherits `slots`, `parameters`, `visual`, `entryUnits`, `engineering` and
+ * `capabilities` and may not redefine them (ticket 11b added the last three). Its
+ * identity, lifecycle, revisions, legacy exceptions, metadata and provenance are its own;
  * the prototype's revisions are never inherited.
  */
 
@@ -358,7 +359,14 @@ function checkVariant(part: PartData, prototype: PartData, report: Reporter): vo
       [prototype.id],
     );
   }
-  for (const field of ["slots", "parameters", "visual"] as const) {
+  for (const field of [
+    "slots",
+    "parameters",
+    "visual",
+    "entryUnits",
+    "engineering",
+    "capabilities",
+  ] as const) {
     if (part[field] !== undefined) {
       report(
         "PART_VARIANT_FIELD",
@@ -521,6 +529,9 @@ function flattenPart(
     ...(prototype.slots !== undefined ? { slots: prototype.slots } : {}),
     ...(prototype.parameters !== undefined ? { parameters: prototype.parameters } : {}),
     ...(prototype.visual !== undefined ? { visual: prototype.visual } : {}),
+    ...(prototype.entryUnits !== undefined ? { entryUnits: prototype.entryUnits } : {}),
+    ...(prototype.engineering !== undefined ? { engineering: prototype.engineering } : {}),
+    ...(prototype.capabilities !== undefined ? { capabilities: prototype.capabilities } : {}),
     revisions: sortedRevisions,
     origin: {
       sourceFile,

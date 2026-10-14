@@ -115,6 +115,8 @@ export function translateGunPlacement(input: {
   const gunsPerMount = mount.part.spec.gunsPerMount;
   const containedUnits = mountCount * gunsPerMount;
   const { placement } = input;
+  const roundsRange = input.gun.part.parameters?.["rounds"];
+  const rounds = placement.params?.["rounds"] ?? roundsRange?.min;
   return {
     designId: input.designId,
     instanceId: placement.instanceId,
@@ -131,13 +133,23 @@ export function translateGunPlacement(input: {
     mountPart: mount.part,
     gunPart: input.gun.part,
     entry: {
+      id: placement.instanceId,
       slot: compatibilitySlotId(placement.zoneId, "gun_mount"),
       part: mount.part.id,
       mountCount,
       stationPermille: placement.stationPermille,
       ...(placement.side !== undefined ? { side: placement.side } : {}),
+      ...(placement.magazineRef !== undefined ? { magazineEntry: placement.magazineRef } : {}),
       // A nested entry's part units are its parent's contained units (SPM-R13).
-      entries: { guns: [{ part: input.gun.part.id, mountCount: containedUnits }] },
+      entries: {
+        guns: [
+          {
+            part: input.gun.part.id,
+            mountCount: containedUnits,
+            ...(rounds !== undefined ? { params: { rounds } } : {}),
+          },
+        ],
+      },
     },
     quantities: [
       ...quantityLines(mount.part.quantities, "mount", mount.part.id, mountCount, gunsPerMount),

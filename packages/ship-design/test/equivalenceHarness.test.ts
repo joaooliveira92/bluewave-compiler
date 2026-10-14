@@ -1,10 +1,14 @@
+import { readFileSync } from "node:fs";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
 import { describe, expect, it } from "vite-plus/test";
 import {
+  APPROVED_DIFFS_SCHEMA,
   EQUIVALENCE_REPORT_SCHEMA,
   PINNED_COVERAGE,
   checkEquivalenceReport,
+  checkWithApprovedDiffs,
   compareMetrics,
+  decodeApprovedDiffs,
   serializeEquivalenceReport,
   type DesignReport,
   type EquivalenceReport,
@@ -95,6 +99,19 @@ describe("equivalence harness over current content (ticket 08)", () => {
   it(`is byte-identical across runs (EQUIVALENCE_REPORT_SHA256 ${reportSha})`, () => {
     expect(serializeEquivalenceReport(runEquivalence())).toBe(serializeEquivalenceReport(report));
     expect(canonicalSerialize(report)).toBe(serializeEquivalenceReport(report));
+  });
+
+  it("passes the approved-diff gate with the committed manifest, not around it", () => {
+    const raw: unknown = JSON.parse(
+      readFileSync(new URL("../approved-diffs.json", import.meta.url), "utf8"),
+    );
+    const decoded = decodeApprovedDiffs(raw);
+    expect(decoded.ok, decoded.ok ? "" : decoded.errors.join("\n")).toBe(true);
+    if (!decoded.ok) return;
+    expect(decoded.value.schema).toBe(APPROVED_DIFFS_SCHEMA);
+    const result = checkWithApprovedDiffs(report, decoded.value);
+    expect(result.failures).toEqual([]);
+    expect(result.applied).toEqual([]);
   });
 });
 

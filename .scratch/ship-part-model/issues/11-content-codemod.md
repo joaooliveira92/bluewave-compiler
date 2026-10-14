@@ -83,3 +83,26 @@ violate the single-change rule (AC 5).
   required, so it cannot represent "no metrics". The barrier is a wrapper that production
   calls (wired in 11d); `compileDesign` is its `derive`. Recorded in ADR-0154 §18.
 - AC 7 and AC 8 are satisfied at the seam; production wiring is confirmed in 11d.
+
+### 11b (2026-10-14) — implemented
+
+- Schema homes (content-schema `ship-parts.ts`, ADR-0154 §19): `engineering`
+  (`physical.envelopeHeightMm` + `centreOfGravity.zMm`/`PART_BASE`, `power` generation vs
+  consumption, `cooling` demand vs supply, `maintenance`), the closed `capabilities`
+  discriminated union, `entryUnits`, `metadata.tags` (`PART_TAGS`), the design header
+  (`DesignHeaderSchema`/`DesignLoadoutSchema`), `magazineEntry`, gun `parameters.rounds`, and
+  the reusable quantity kinds `lengthMm`/`powerKw`. Prototypes may not redefine the new blocks.
+- Whole-catalogue builder `partCatalogue.ts` (`buildPartCatalogue`): every gun model, mount
+  count, ammunition pattern, launcher variant, fitting, plant and armour material; central
+  batteries canonical by (family, gun count); deterministic ids/order; duplicate id fails;
+  `PART_SOURCE_FIELDS` documents one destination per source field.
+- Inverse readers `partCatalogueReaders.ts`: gun/tube/fitting entry → `PlacementSpec`, plant
+  entry + header → `MachineryPlan`, armour entry → `ArmourRegion`, header + loadout →
+  `DesignDraft`; typed `READER_*` failures, no guesses.
+- The equivalence candidate compiles the placements its parts rebuild, not the original legacy
+  placements; `changed` stays 0 and the report/gates are unchanged.
+- Tests: `partCatalogue.test.ts` (coverage, strict decode, round-trip, determinism,
+  duplicate-id failure) and the manifest gate in `equivalenceHarness.test.ts`; the
+  cross-process determinism script now proves both the report and the catalogue byte-identical.
+- **Deferred to 11c/11d:** the codemod writer and production pipeline activation. No production
+  content, save version or compatibility version changes here.

@@ -2,7 +2,12 @@ import { Schema } from "effect";
 
 import { TORPEDO_MOUNT_TYPE_VALUES } from "./design.js";
 import { ProvenanceSchema } from "./provenance.js";
-import { ARMOUR_REGION_IDS, MOUNT_SIDES } from "./reference-design.js";
+import {
+  ARMOUR_REGION_IDS,
+  DesignRequirementSchema,
+  HullSpecSchema,
+  MOUNT_SIDES,
+} from "./reference-design.js";
 import { SHIP_ZONE_IDS } from "./ship-component.js";
 
 /**
@@ -62,14 +67,36 @@ export const APPLICATION_BASES = [
   "PER_CONTAINED_UNIT",
 ] as const;
 
-/** What a quantity component measures; every kind names its unit. */
-export const QUANTITY_KINDS = [
+/**
+ * The quantity kinds a part's accounting `quantities` may carry (SPM-R5). A kind names a
+ * unit and a magnitude and nothing else; the field that holds the quantity gives it meaning.
+ */
+export const ACCOUNTING_QUANTITY_KINDS = [
   "massKg",
   "costMicro",
   "crew",
   "volumeLitre",
   "deckFootprintMm2",
 ] as const;
+
+/**
+ * Every reusable quantity kind (SPM-R5, extended by ticket 11b): the accounting kinds plus
+ * `lengthMm` and `powerKw`. Length and power are not accounting lines: they live in the
+ * `engineering` block, where the containing field says what they mean (a generation is not a
+ * consumption). A new kind needs a quantity that more than one field reuses.
+ */
+export const QUANTITY_KINDS = [...ACCOUNTING_QUANTITY_KINDS, "lengthMm", "powerKw"] as const;
+
+/** The unit each quantity kind is expressed in. Documentation and a test target, not logic. */
+export const QUANTITY_KIND_UNITS = {
+  massKg: "kg",
+  costMicro: "micro-currency",
+  crew: "persons",
+  volumeLitre: "L",
+  deckFootprintMm2: "mm2",
+  lengthMm: "mm",
+  powerKw: "kW",
+} as const satisfies Record<(typeof QUANTITY_KINDS)[number], string>;
 
 /** The closed set of migration-only data-quality waivers (§9.4, D14/D19). */
 export const LEGACY_EXCEPTION_CODES = ["DQ-TORPEDO-001"] as const;
@@ -131,6 +158,13 @@ const RangeSchema = Schema.Struct({ min: nonNegativeInt, max: nonNegativeInt }).
   Schema.makeFilter((r) => (r.min <= r.max ? undefined : "min must be <= max")),
 );
 
+/** An installable unit range: positive counts, stepped (ticket 11b). */
+const UnitRangeSchema = Schema.Struct({
+  min: positiveInt,
+  max: positiveInt,
+  step: positiveInt,
+}).check(Schema.makeFilter((r) => (r.min <= r.max ? undefined : "min must be <= max")));
+
 const ParameterRangeSchema = Schema.Struct({
   min: int,
   max: int,
@@ -164,9 +198,191 @@ export const PartLifecycleSchema = Schema.Struct({
 /** A quantity component with its required application basis (S1, S6, I-18). */
 export const QuantityComponentSchema = Schema.Struct({
   id: stableId,
-  kind: Schema.Literals(QUANTITY_KINDS),
+  kind: Schema.Literals(ACCOUNTING_QUANTITY_KINDS),
   value: nonNegativeInt,
   basis: Schema.Literals(APPLICATION_BASES),
+});
+
+/** A whole millimetre length: the `lengthMm` quantity kind as a scalar (ticket 11b). */
+export const LengthMmSchema = nonNegativeInt;
+
+/**
+ * A power component: the `powerKw` quantity kind with its application basis. It says how much
+ * power, not whether the part makes or uses it; `engineering.power.generation`,
+ * `engineering.power.consumption` and `engineering.cooling.*` give it that meaning.
+ */
+export const PowerComponentSchema = Schema.Struct({
+  id: stableId,
+  kind: Schema.Literal("powerKw"),
+  value: nonNegativeInt,
+  basis: Schema.Literals(APPLICATION_BASES),
+});
+
+const uniqueIds = (list: ReadonlyArray<{ readonly id: string }>) =>
+  new Set(list.map((c) => c.id)).size === list.length ? undefined : "component ids must be unique";
+
+const PowerComponentList = nonEmptyArray(PowerComponentSchema).check(
+  Schema.makeFilter((list) => uniqueIds(list)),
+);
+
+/**
+ * The part-local reference datums for a centre of gravity. `PART_BASE` is the only one:
+ * +z is up; zero is the plane the part stands on (its mounting face), at the part's own
+ * installed position; `zMm` is the height of the centre of gravity above it. The loadout
+ * stage owns the transformation to ship coordinates (height above the keel baseline): ship z
+ * is the mounting-plane height of the entry's slot plus `zMm`. No slot declares a mounting
+ * plane yet, so the plane is the keel baseline and the transformation is the identity
+ * (ADR-0154 §19).
+ */
+export const PART_LOCAL_DATUMS = ["PART_BASE"] as const;
+
+/** Physical extent and mass distribution of one installed unit (ticket 11b). */
+export const PhysicalEngineeringSchema = Schema.Struct({
+  /** Height of the unit's envelope above the `PART_BASE` plane, mm. */
+  envelopeHeightMm: LengthMmSchema,
+  centreOfGravity: Schema.Struct({
+    zMm: LengthMmSchema,
+    datum: Schema.Literals(PART_LOCAL_DATUMS),
+  }),
+});
+
+/**
+ * Electrical power, with the direction in the field name: a part that generates lists its
+ * output under `generation`, one that draws lists its draw under `consumption`. Values are
+ * non-negative; direction is never a sign. A part with no electrical effect declares neither.
+ */
+export const PowerEngineeringSchema = Schema.Struct({
+  generation: Schema.optional(PowerComponentList),
+  consumption: Schema.optional(PowerComponentList),
+}).check(
+  Schema.makeFilter((p) =>
+    p.generation !== undefined || p.consumption !== undefined
+      ? undefined
+      : "declare generation or consumption, or omit power",
+  ),
+);
+
+/** Heat removal: what a part adds to the cooling load, and what a part supplies (kW of duty). */
+export const CoolingEngineeringSchema = Schema.Struct({
+  demand: Schema.optional(PowerComponentList),
+  supply: Schema.optional(PowerComponentList),
+}).check(
+  Schema.makeFilter((c) =>
+    c.demand !== undefined || c.supply !== undefined
+      ? undefined
+      : "declare demand or supply, or omit cooling",
+  ),
+);
+
+/** Monthly upkeep as basis points of the part's cost. */
+export const MaintenanceEngineeringSchema = Schema.Struct({ monthlyBpOfCost: bp });
+
+/** Typed engineering data of one part. Every sub-block is optional and means one thing. */
+export const EngineeringSchema = Schema.Struct({
+  physical: Schema.optional(PhysicalEngineeringSchema),
+  power: Schema.optional(PowerEngineeringSchema),
+  cooling: Schema.optional(CoolingEngineeringSchema),
+  maintenance: Schema.optional(MaintenanceEngineeringSchema),
+});
+
+// ---------------------------------------------------------------------------
+// Capabilities and metadata (ticket 11b)
+// ---------------------------------------------------------------------------
+
+/** Fire-control classes a weapon needs and a director or rangefinder supports. */
+export const FIRE_CONTROL_CLASSES = ["heavy", "medium", "light"] as const;
+
+/** The closed capability kinds; each fixes its payload. One entry per kind unless stated. */
+export const CAPABILITY_KINDS = [
+  "ammunition_feed",
+  "arc_obstruction",
+  "damage_control",
+  "fire_control_class",
+  "fire_control_support",
+] as const;
+
+const FireControlClass = Schema.Literals(FIRE_CONTROL_CLASSES);
+
+/**
+ * Behaviour-bearing properties, as a discriminated union on `kind`. A capability is added
+ * only for a property that real source data carries and an inverse reader consumes. Each kind
+ * may appear once per part (no capability has a defined multiplicity).
+ */
+export const CapabilitySchema = Schema.Union([
+  /** The fire-control class a weapon requires. */
+  Schema.Struct({ kind: Schema.Literal("fire_control_class"), class: FireControlClass }),
+  /** The fire-control classes a director or rangefinder can serve. */
+  Schema.Struct({
+    kind: Schema.Literal("fire_control_support"),
+    classes: nonEmptyArray(FireControlClass).check(
+      Schema.makeFilter((c) => (new Set(c).size === c.length ? undefined : "classes must differ")),
+    ),
+  }),
+  /** The share of the magazine's feed a weapon can draw at once. */
+  Schema.Struct({ kind: Schema.Literal("ammunition_feed"), maxFeedPermille: permille }),
+  /** A structure that blocks arcs of fire: the blocked sector and how far its shadow reaches. */
+  Schema.Struct({
+    kind: Schema.Literal("arc_obstruction"),
+    blockedDeg: Schema.Finite.check(Schema.isInt(), Schema.isBetween({ minimum: 1, maximum: 360 })),
+    reachPermille: permille,
+  }),
+  /** Damage-control effect, basis points. */
+  Schema.Struct({ kind: Schema.Literal("damage_control"), effectBp: bp }),
+]);
+
+/** The capabilities of one part: kinds are unique, and sorted so the record is canonical. */
+export const CapabilitiesSchema = Schema.Array(CapabilitySchema).check(
+  Schema.isMinLength(1),
+  Schema.makeFilter((list) => {
+    const kinds = list.map((c) => c.kind);
+    if (new Set(kinds).size !== kinds.length) return "capability kinds must be unique";
+    const sorted = [...kinds].sort();
+    return kinds.every((k, i) => k === sorted[i])
+      ? undefined
+      : "capabilities must be sorted by kind";
+  }),
+);
+
+/**
+ * The closed tag vocabulary: discovery, grouping and presentation only. No fit rule, derived
+ * metric, cost rule or combat behaviour branches on a tag; behaviour is an interface, a spec
+ * field or a capability. Sorted codepoint order, the canonical serialization.
+ */
+export const PART_TAGS = [
+  "accommodation",
+  "damage_control",
+  "electrical",
+  "fire_control",
+  "funnel",
+  "gun",
+  "heavy",
+  "light",
+  "magazine",
+  "medium",
+  "smoothbore",
+  "torpedo",
+  "ventilation",
+] as const;
+
+export type PartTag = (typeof PART_TAGS)[number];
+
+/** Presentation data. `displayName` is the catalogue label; `name` stays the designation. */
+export const PartMetadataSchema = Schema.Struct({
+  displayName: Schema.optional(Schema.NonEmptyString),
+  tags: Schema.optional(
+    Schema.Array(Schema.Literals(PART_TAGS)).check(
+      Schema.isMinLength(1),
+      Schema.makeFilter((tags) => {
+        for (let i = 1; i < tags.length; i++) {
+          const a = tags[i - 1]!;
+          const b = tags[i]!;
+          if (a === b) return `duplicate tag '${b}'`;
+          if (a > b) return "tags must be sorted in codepoint order";
+        }
+        return undefined;
+      }),
+    ),
+  ),
 });
 
 /** A record-scoped data-quality waiver: one constraint, one counterpart part (I-22). */
@@ -284,7 +500,41 @@ export const PlatformSchema = Schema.Struct({
 // Family specs
 // ---------------------------------------------------------------------------
 
+/** The legacy weapon categories a gun family is filed under (ticket 11b). */
+export const GUN_WEAPON_CATEGORIES = [
+  "MAIN_GUN",
+  "SECONDARY_GUN",
+  "DUAL_PURPOSE_GUN",
+  "AA_WEAPON",
+] as const;
+
 const GunSpecFields = {
+  /**
+   * The shared gun family this model belongs to: the id a design placement and an ammunition
+   * pattern's compatibility list name. Every model of one family states the same id.
+   */
+  gunFamily: Schema.optional(stableId),
+  /** The family's weapon category. Stated by the family's standard model. */
+  weaponCategory: Schema.optional(Schema.Literals(GUN_WEAPON_CATEGORIES)),
+  /**
+   * The mount types this model may be installed in, in preference order: the first is the type
+   * a design gets (the mount type is never chosen). Codepoint-unique.
+   */
+  supportedMountTypes: Schema.optional(
+    nonEmptyArray(Schema.Literals(GUN_MOUNT_TYPES)).check(
+      Schema.makeFilter((t) =>
+        new Set(t).size === t.length ? undefined : "mount types must differ",
+      ),
+    ),
+  ),
+  /**
+   * True when this model is first-class armament content: its nation resolves weapons through
+   * the armament resolver. Absent: a catalogue model that supplies a national label and
+   * compatibility values only.
+   */
+  firstClassArmament: Schema.optional(Schema.Literal(true)),
+  /** Nominal horizontal firing arc when installed in the family's standard mount, degrees. */
+  beamArcDeg: Schema.optional(degrees),
   calibreUm: positiveInt,
   barrelLengthCalibers: Schema.optional(Schema.Finite.check(Schema.isGreaterThan(0))),
   gunMassKg: Schema.optional(nonNegativeInt),
@@ -301,6 +551,14 @@ const GunMountSpecFields = {
   mountType: Schema.Literals(GUN_MOUNT_TYPES),
   /** Guns in one mount. Total guns = `mountCount × gunsPerMount` (D2). */
   gunsPerMount: positiveInt,
+  /** The gun families this mount takes. Absent: the mount names no family. */
+  compatibleGunFamilies: Schema.optional(nonEmptyArray(stableId)),
+  /**
+   * The mount identity the compiled weapon contract reports when it is not the part id: parts
+   * that differ only in `gunsPerMount` share one contract identity (ticket 11b, ADR-0154 §19).
+   */
+  compiledMountId: Schema.optional(stableId),
+  hullSpaceUsageLitre: Schema.optional(nonNegativeInt),
   topWeightKg: Schema.optional(nonNegativeInt),
   supportedArmorMm: Schema.optional(nonNegativeInt),
   traverseDeg: Schema.optional(degrees),
@@ -316,6 +574,9 @@ const GunMountSpecFields = {
 
 const AmmunitionSpecFields = {
   shellType: Schema.Literals(["AP", "APC", "CPC", "SAP", "HE", "MELINITE"]),
+  /** Gun families and gun models this pattern fits; absent on both: no stated compatibility. */
+  compatibleGunFamilies: Schema.optional(nonEmptyArray(stableId)),
+  compatibleGunModels: Schema.optional(nonEmptyArray(stableId)),
   shellMassG: Schema.optional(nonNegativeInt),
   propellantInteractionBp: Schema.optional(nonNegativeInt),
   penetrationBiasBp: Schema.optional(bp),
@@ -336,6 +597,8 @@ const TorpedoSpecFields = {
 
 const TorpedoLauncherSpecFields = {
   launchType: Schema.Literals(TORPEDO_MOUNT_TYPE_VALUES),
+  /** The torpedo model the launcher is built to fire (combat's torpedo model id). */
+  loadsTorpedo: Schema.optional(stableId),
   /** Structured bore; never derived from a display label (I-25). */
   boreDiameterUm: positiveInt,
   reloadsPerTube: Schema.optional(nonNegativeInt),
@@ -444,6 +707,11 @@ function envelopeFields<const F extends PartFamily>(family: F) {
     slots: Schema.optional(Schema.Array(SlotSchema)),
     legacyExceptions: Schema.optional(Schema.Array(LegacyExceptionSchema)),
     visual: Schema.optional(PartVisualSchema),
+    /** Units one loadout entry of this part may install (a gun's barrels, a launcher's tubes). */
+    entryUnits: Schema.optional(UnitRangeSchema),
+    engineering: Schema.optional(EngineeringSchema),
+    capabilities: Schema.optional(CapabilitiesSchema),
+    metadata: Schema.optional(PartMetadataSchema),
     provenance: ProvenanceSchema,
   };
 }
@@ -652,6 +920,11 @@ const entryFields = {
   params: Schema.optional(Schema.Record(parameterName, int)),
   shape: Schema.optional(ArmourShapeSchema),
   feedsFrom: Schema.optional(slotId),
+  /**
+   * The `id` of the magazine entry that supplies this entry's ammunition (ticket 11b). It
+   * names one entry of the same loadout, not a slot, so a feed distance can be measured.
+   */
+  magazineEntry: Schema.optional(stableId),
 };
 
 export interface NestedLoadoutEntryEncoded {
@@ -664,6 +937,7 @@ export interface NestedLoadoutEntryEncoded {
   readonly params?: { readonly [key: string]: number } | undefined;
   readonly shape?: typeof ArmourShapeSchema.Encoded | undefined;
   readonly feedsFrom?: string | undefined;
+  readonly magazineEntry?: string | undefined;
   readonly entries?:
     | { readonly [childSlot: string]: ReadonlyArray<NestedLoadoutEntryEncoded> }
     | undefined;
@@ -679,6 +953,7 @@ export interface NestedLoadoutEntry {
   readonly params?: { readonly [key: string]: number } | undefined;
   readonly shape?: typeof ArmourShapeSchema.Type | undefined;
   readonly feedsFrom?: string | undefined;
+  readonly magazineEntry?: string | undefined;
   readonly entries?:
     | { readonly [childSlot: string]: ReadonlyArray<NestedLoadoutEntry> }
     | undefined;
@@ -712,6 +987,53 @@ export const LoadoutSchema = Schema.Struct({
   entries: Schema.Array(LoadoutEntrySchema),
 });
 
+// ---------------------------------------------------------------------------
+// The design header (ticket 11b)
+// ---------------------------------------------------------------------------
+
+/**
+ * The design facts a loadout does not carry: who builds it, what it is for, the hull's
+ * principal dimensions, and the machinery and protection figures that belong to the ship and
+ * not to one part. A plant's power, zone and station are the plant entry; the plant's room
+ * split, the fuel load and the protection figures are here, each in one place.
+ */
+export const DesignHeaderSchema = Schema.Struct({
+  nation: stableId,
+  requirement: DesignRequirementSchema,
+  hull: HullSpecSchema,
+  machinery: Schema.Struct({
+    fuelCapacityKg: nonNegativeInt,
+    fuelZoneId: Schema.Literals(SHIP_ZONE_IDS),
+    fuelStationPermille: permille,
+    foulingBp: int.check(Schema.isGreaterThanOrEqualTo(-10_000)),
+    /** Optional split of the plant across zones; shares sum to 10000 (checked by the compile). */
+    rooms: Schema.optional(
+      Schema.Array(
+        Schema.Struct({
+          zoneId: Schema.Literals(SHIP_ZONE_IDS),
+          stationPermille: permille,
+          shareBp: bp,
+        }),
+      ),
+    ),
+  }),
+  protection: Schema.Struct({
+    citadelLengthMm: nonNegativeInt,
+    torpedoWarheadKg: nonNegativeInt,
+    bunkerProtectionBp: bp,
+  }),
+});
+
+/** A design as parts: its header and the loadout that fills its platform. */
+export const DesignLoadoutSchema = Schema.Struct({
+  header: DesignHeaderSchema,
+  loadout: LoadoutSchema,
+});
+
+export type DesignHeaderData = typeof DesignHeaderSchema.Type;
+export type DesignLoadoutData = typeof DesignLoadoutSchema.Type;
+export type CapabilityData = typeof CapabilitySchema.Type;
+export type EngineeringData = typeof EngineeringSchema.Type;
 export type PartData = typeof PartSchema.Type;
 export type SlotData = typeof SlotSchema.Type;
 export type SlotTemplateData = typeof SlotTemplateSchema.Type;

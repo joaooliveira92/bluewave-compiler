@@ -38,6 +38,7 @@ import {
 } from "./plantPartAdapter.js";
 import type { PlantPartModel } from "./plantPartAdapter.js";
 import { translateArmourRegion } from "./armourPartAdapter.js";
+import { readPlacements } from "./partCatalogueReaders.js";
 import { translateTubePlacement } from "./torpedoPartAdapter.js";
 import type { LauncherPartModel } from "./torpedoPartAdapter.js";
 
@@ -345,10 +346,35 @@ export function runCandidateDesign(
     mountCountRanges: ranges satisfies FitMountCountRanges,
   });
 
+  // The candidate compiles the placements its parts rebuild, never the original legacy
+  // placements (ticket 11b). An incomplete loadout is a typed failure, not a fallback.
+  const partById = new Map(uniqueParts(parts).map((p) => [p.id, p] as const));
+  const reconstructed = readPlacements({
+    designId: design.id,
+    entries,
+    partOf: (id) => partById.get(id),
+    slotOf: (id) => slots.find((s) => s.id === id),
+  });
+  if (reconstructed.issues.length > 0) {
+    for (const issue of reconstructed.issues) {
+      bad(issue.path, issue.code, issue.message);
+    }
+    return {
+      designId: design.id,
+      fit,
+      entries: details,
+      untranslated,
+      unresolvedGuns: sortedUnresolved,
+      draft: null,
+      compiled: null,
+    };
+  }
+
   const zoneOf = (slot: string) => slots.find((s) => s.id === slot)?.zone;
   const derived = deriveAfterFit(fit, () => {
     const candidateDraft: DesignDraft = {
       ...draft,
+      placements: reconstructed.placements,
       machinery: machineryPlanFromEntry(
         machinery.translation,
         present(zoneOf(machinery.translation.entry.slot), "machinery slot has no zone"),

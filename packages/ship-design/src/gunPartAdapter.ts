@@ -150,6 +150,7 @@ function gunPartFromModel(
   const gunKg = constantOf(component, "gun_kg");
   const costPerKg = constantOf(component, "cost_per_kg_micro");
   const requires = (model.requiredTechnologyIds ?? []).map(String);
+  const rounds = component?.parameters["rounds"];
   return {
     id: String(model.id),
     family: "gun",
@@ -163,6 +164,7 @@ function gunPartFromModel(
       ...(requires.length > 0 ? { requires } : {}),
     },
     spec: {
+      gunFamily: String(model.familyId),
       calibreUm: model.caliberUm,
       ...(model.barrelLengthCalibers !== undefined
         ? { barrelLengthCalibers: model.barrelLengthCalibers }
@@ -182,6 +184,10 @@ function gunPartFromModel(
       ...(model.roundVolumeMl !== undefined ? { roundVolumeMl: model.roundVolumeMl } : {}),
       ...(model.reliabilityBp !== undefined ? { reliabilityBp: model.reliabilityBp } : {}),
     },
+    // The stowage choice is a per-placement parameter: the range lives on the gun part.
+    ...(rounds !== undefined
+      ? { parameters: { rounds: { min: rounds.min, max: rounds.max, step: rounds.step } } }
+      : {}),
     quantities: [
       ...definedQuantity("gun_mass", "massKg", model.gunMassKg, "PER_PART_UNIT"),
       ...definedQuantity(

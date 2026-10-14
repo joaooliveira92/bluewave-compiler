@@ -231,6 +231,19 @@ export function buildFittingPartModel(input: {
       revisions: [],
       origin: { sourceFile: FITTING_COMPONENT_FILE },
       provenance: placeholderProvenance(def),
+      // The count parameter's name (accommodation's `blocks`): the inverse reader names the
+      // entry's chosen value with it (ticket 11b). Absent for a one-unit fitting.
+      ...(countParameter !== null
+        ? {
+            parameters: {
+              [countParameter]: {
+                min: def.parameters[countParameter]!.min,
+                max: def.parameters[countParameter]!.max,
+                step: def.parameters[countParameter]!.step,
+              },
+            },
+          }
+        : {}),
     };
     const invalidSpec = (name: string) =>
       fail(
@@ -374,11 +387,14 @@ export function translateFittingPlacement(input: {
         .filter((name) => name !== counted)
         .sort(compareCodePoints),
       entry: {
+        id: placement.instanceId,
         slot: compatibilitySlotId(placement.zoneId, iface),
         part: record.part.id,
         mountCount,
         stationPermille: placement.stationPermille,
         ...(placement.side !== undefined ? { side: placement.side } : {}),
+        ...(counted !== null ? { params: { [counted]: mountCount } } : {}),
+        ...(placement.magazineRef !== undefined ? { magazineEntry: placement.magazineRef } : {}),
       },
       quantities: quantityLines(record.part.quantities, "fitting", record.part.id, mountCount, 1),
     },

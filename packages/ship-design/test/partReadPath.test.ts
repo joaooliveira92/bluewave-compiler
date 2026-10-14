@@ -124,13 +124,27 @@ describe("gun read path over today's content (ship-part-model 03)", () => {
         expect(t.mountCount * t.gunsPerMount, where(row)).toBe(barrels);
         expect(t.containedUnits, where(row)).toBe(barrels);
         expect(t.entry, where(row)).toEqual({
+          id: row.placement.instanceId,
           slot: `${row.placement.zoneId.toLowerCase()}.gun_mount`,
           part: t.mountPart.id,
           mountCount: t.mountCount,
           stationPermille: row.placement.stationPermille,
           ...(row.placement.side !== undefined ? { side: row.placement.side } : {}),
+          ...(row.placement.magazineRef !== undefined
+            ? { magazineEntry: row.placement.magazineRef }
+            : {}),
           // A nested entry's part units are its parent's contained units (SPM-R13).
-          entries: { guns: [{ part: t.gunPart.id, mountCount: t.containedUnits }] },
+          entries: {
+            guns: [
+              {
+                part: t.gunPart.id,
+                mountCount: t.containedUnits,
+                ...(row.placement.params?.rounds !== undefined
+                  ? { params: { rounds: row.placement.params.rounds } }
+                  : {}),
+              },
+            ],
+          },
         });
       }
     });

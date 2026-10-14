@@ -43,7 +43,7 @@ const bp = Schema.Finite.check(Schema.isInt(), Schema.isBetween({ minimum: 0, ma
 
 const ZoneIdSchema = Schema.Literals(SHIP_ZONE_IDS);
 
-const DesignRequirementSchema = Schema.Struct({
+export const DesignRequirementSchema = Schema.Struct({
   category: Schema.NonEmptyString,
   requiredSpeedMilliKnots: nonNegativeInt,
   cruiseSpeedMilliKnots: nonNegativeInt,
@@ -55,7 +55,7 @@ const DesignRequirementSchema = Schema.Struct({
   protectionGoal: Schema.optional(Schema.Literals(["NONE", "STANDARD"])),
 });
 
-const HullSpecSchema = Schema.Struct({
+export const HullSpecSchema = Schema.Struct({
   hullFormId: Schema.NonEmptyString,
   lengthWl: positiveInt,
   beam: positiveInt,

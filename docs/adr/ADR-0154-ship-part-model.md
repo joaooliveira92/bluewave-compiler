@@ -203,6 +203,52 @@ The 1880 content has 91 reference designs with 823 placements (230 gun placement
       only through `deriveAfterFit`. `compileDesign` stays the derivation itself, because its
       result type has non-optional derived fields and a rejected loadout must carry none.
       The production entry point (ticket 11d) calls the wrapper.
+19. **Schema homes and the whole-catalogue part builders (2026-10-14, ticket 11b).** The
+    legacy facts §15 had no home for, plus `rounds`/`magazineRef` and the design header, get
+    typed, strictly decoded destinations. **No free-form legacy bag** and no flat engineering
+    object: each fact states its meaning.
+    - **`engineering`.** `physical` (`envelopeHeightMm`, and `centreOfGravity.zMm` with the
+      explicit part-local datum `PART_BASE`) records axis (+z up), zero point (the part's
+      mounting face at its installed position) and the transform owner (the loadout stage to
+      ship z; identity today, because no slot declares a mounting plane). `power` separates
+      `generation` from `consumption` structurally (never a sign); `cooling` separates
+      `demand` from `supply`. Plants keep `installedKw` as their one parameter. A block is
+      present exactly when the source authors it; a half-authored physical block is a
+      `PARTCAT_PHYSICAL_INCOMPLETE` failure, never a guessed zero.
+    - **`capabilities`** is a closed discriminated union on `kind` (`fire_control_class`,
+      `fire_control_support`, `ammunition_feed`, `arc_obstruction`, `damage_control`), sorted
+      and duplicate-free (no kind has a defined multiplicity). Fire-control class is a typed
+      capability, not a generic tag.
+    - **`metadata.tags`** is a closed vocabulary (`PART_TAGS`), duplicate-free and
+      codepoint-sorted. Tags are discovery/grouping/presentation only; no fit rule, metric,
+      cost rule or combat behaviour reads one.
+    - **`rounds`/`magazineRef`.** `rounds` is a gun-part parameter, and its chosen value is
+      the nested `guns` entry's `params.rounds` (the legacy compile's own default applies when
+      the source omits it). `magazineRef` becomes the entry's `magazineEntry`, naming the
+      entry (its `id`, the placement's instance id) that supplies the ammunition.
+    - **Quantity kinds.** SPM-R5's reusable kinds extend with `lengthMm` and `powerKw` only;
+      a quantity type names unit and magnitude, the containing field names meaning.
+    - **The design header.** `DesignHeaderSchema` carries nation, requirement, hull, the
+      machinery residue (fuel, fouling, room split) and the protection figures — the facts a
+      loadout does not carry; `DesignLoadoutSchema` pairs it with the loadout.
+    - **Whole catalogue.** `buildPartCatalogue` builds parts for the complete buildable
+      catalogue, not only what the 91 designs place: every gun model (each family's standard
+      model, every authored model, every catalogue-only profile model), every mount (each
+      gun count of each type; a central battery is canonical by family and gun count, its
+      legacy source type in provenance), every ammunition pattern, launcher variant, fitting,
+      plant and armour material. Generated ids and order are deterministic; a duplicate
+      generated id fails (`PARTCAT_DUPLICATE_ID`).
+    - **Inverse readers.** `partCatalogueReaders.ts` rebuilds today's runtime shapes from the
+      parts: a gun/tube/fitting entry back to its `PlacementSpec`, a plant entry plus the
+      header back to the `MachineryPlan`, an armour entry back to its `ArmourRegion`, and the
+      pair back to a whole `DesignDraft`. Incomplete input is a typed, path-specific
+      `READER_*` failure, never a zero, `false`, empty list or guess. The equivalence
+      candidate compiles the placements its parts rebuild, not the original legacy placements.
+    - **Destinations.** `PART_SOURCE_FIELDS` documents one destination per source field the
+      migration reads; a field with none is `PARTCAT_UNMAPPED_FIELD`, not a silent drop.
+    - **Deferred.** Production activation and content rewrite are tickets 11c (codemod) and
+      11d (activation); this decision changes no production content, save or compatibility
+      version, and no result (equivalence `changed` stays 0).
 
 ## Consequences
 
