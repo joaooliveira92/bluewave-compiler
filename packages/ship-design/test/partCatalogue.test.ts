@@ -11,7 +11,7 @@
  * reference designs), never recomputed the way the builder computes them.
  */
 import { FlattenedPartSchema, PART_TAGS, decodeStrict } from "@bluewave/content-schema";
-import type { FlattenedPart } from "@bluewave/content-schema";
+import type { FlattenedPart, SlotData } from "@bluewave/content-schema";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
 import { describe, expect, it } from "vite-plus/test";
 import {
@@ -235,6 +235,57 @@ describe("inverse readers rebuild today's runtime shapes from parts (11b)", () =
     });
     expect(missing.issues.map((i) => i.code)).toEqual(["READER_UNKNOWN_PART"]);
     expect(missing.placements).toEqual([]);
+  });
+
+  it("attaches the launcher's compiled torpedo, else reports READER_TORPEDO_UNRESOLVED (ticket 13b)", () => {
+    const launcher = present(
+      built.parts.find(
+        (p): p is Extract<FlattenedPart, { readonly family: "torpedo_launcher" }> =>
+          p.family === "torpedo_launcher" && p.spec.loadsTorpedo !== undefined,
+      ),
+      "a launcher part naming a torpedo",
+    );
+    const torpedo = present(
+      built.parts.find((p) => p.id === launcher.spec.loadsTorpedo),
+      "the torpedo part the launcher loads",
+    );
+    const entry = { id: "tube_1", slot: "bow.torpedo_launcher", part: launcher.id, mountCount: 2 };
+    const slotOf = (id: string): SlotData => ({ id, accepts: ["torpedo_launcher"], zone: "BOW" });
+
+    // (i) The named torpedo resolves: the mount carries the neutral compiled record.
+    const ok = readPlacements({
+      designId: "d",
+      entries: [entry],
+      partOf: partLookup([launcher, torpedo]),
+      slotOf,
+    });
+    expect(ok.issues).toEqual([]);
+    expect(ok.placements[0]?.compiledTorpedo?.partId).toBe(torpedo.id);
+
+    // (ii) The named torpedo is missing: a typed issue, and the placement is still returned.
+    const missing = readPlacements({
+      designId: "d",
+      entries: [entry],
+      partOf: partLookup([launcher]),
+      slotOf,
+    });
+    expect(missing.issues.map((i) => i.code)).toEqual(["READER_TORPEDO_UNRESOLVED"]);
+    expect(missing.placements.map((p) => p.instanceId)).toEqual(["tube_1"]);
+    expect(missing.placements[0]?.compiledTorpedo).toBeUndefined();
+
+    // (iii) The part named is not a torpedo: the same typed issue.
+    const sensor = present(
+      built.parts.find((p) => p.family === "sensor"),
+      "a sensor part",
+    );
+    const wrongLauncher = { ...launcher, spec: { ...launcher.spec, loadsTorpedo: sensor.id } };
+    const wrong = readPlacements({
+      designId: "d",
+      entries: [entry],
+      partOf: partLookup([wrongLauncher, sensor, torpedo]),
+      slotOf,
+    });
+    expect(wrong.issues.map((i) => i.code)).toEqual(["READER_TORPEDO_UNRESOLVED"]);
   });
 
   it("rebuilds the machinery plan from the plant entry and the design header", () => {

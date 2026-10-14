@@ -47,6 +47,15 @@ Slice 13b is done; ticket 13 is resolved. See ADR-0157 §13b resolution.
 - **P4.** Equivalence byte-identical (`ebd0ddb6…`, zero `changed`, 91/91, 823/823); 11 golden hashes
   unchanged; cross-process determinism byte-identical.
 
+### Follow-ups (non-blocking, from the adversarial review)
+
+- **Phase-engine legacy-path fill not unit-pinned.** The authored/campaign path is covered
+  end-to-end (`cross-process-test` `production-pack-loop` P-1 AC-7), and the parts read path is
+  covered by `partCatalogue.test.ts`; the legacy `buildDesignVersion` fill branch
+  (`designVersion.ts`, `pricing.torpedoOf`) has no direct test because phase-engine test content
+  carries no `partModel` and the `as unknown` cast the shortcut needs is gate-forbidden. A fixture
+  that loads the compiled part model would pin it.
+
 ## Resolution (13a, 2026-10-14)
 
 Slice 13a is done; 13b is open. Committed together with this note. See ADR-0157.

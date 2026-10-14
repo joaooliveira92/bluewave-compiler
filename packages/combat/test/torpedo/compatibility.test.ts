@@ -176,7 +176,7 @@ describe("F2: launcher-family membership is enforced (launcherFamilyId must be d
     expect(canInstallTorpedo(g7e, l, p)).toBe(true);
   });
 
-  it("re-expresses membership as mount type + physical bore (ticket 13b, ADR-0158)", () => {
+  it("re-expresses membership as mount type + physical bore (ticket 13b, ADR-0157 §13b)", () => {
     // The neutral CompiledTorpedo carries DESIGN-40 §2 mount types + the physical diameter; the
     // retired exact `compatibleLauncherFamilyIds` string set is re-expressed as mount type + physical
     // bore. A 21-in (533 mm) model therefore matches a `533mm_...` launcher of a declared mount type

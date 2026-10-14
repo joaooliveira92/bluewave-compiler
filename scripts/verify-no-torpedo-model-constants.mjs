@@ -168,6 +168,9 @@ export function findTorpedoModelConstants(file, text) {
  */
 export function findUnscopedTorpedoFixture(file, text) {
   const normalized = file.replaceAll("\\", "/");
+  // Scope: `packages/combat/src` only. `packages/combat/test/**` is allowed to carry sample records
+  // (the combat test fixtures replicate the retired models); the symbol scan + the deleted model.ts
+  // are the guarantee that the engine itself holds no per-model data.
   if (TORPEDO_FIXTURE_HARNESSES.includes(normalized)) return [];
   const code = stripComments(text);
   if (/\bpartId\s*:/u.test(code) && /\bdiameterUm\s*:/u.test(code)) {
