@@ -651,6 +651,54 @@ function magazineRelationships(ctx: Ctx, placed: readonly PlacedEntry[]): void {
 }
 
 /** Validate a loadout's fit. Pure and total: expected failures are data in the result. */
+/**
+ * Entry identity (ticket 11a). Ids are unique across the loadout; an entry that contains
+ * itself would never terminate, so containment is walked with an on-path set. A decoded
+ * loadout is a finite tree and cannot cycle; this guards in-memory construction.
+ * Returns `false` when the loadout cannot be evaluated further.
+ */
+function entryIdentityHolds(
+  roots: readonly (Entry & { readonly slot?: string })[],
+  out: Collector,
+): boolean {
+  const seen = new Map<string, string>();
+  const onPath = new Set<object>();
+  let ok = true;
+  const walk = (entry: Entry, path: string): void => {
+    if (onPath.has(entry)) {
+      ok = false;
+      out.data(
+        "FIT_DATA_ENTRY_CYCLE",
+        path,
+        { part: entry.part },
+        `Entry '${path}' contains itself.`,
+      );
+      return;
+    }
+    if (entry.id !== undefined) {
+      const first = seen.get(entry.id);
+      if (first === undefined) {
+        seen.set(entry.id, path);
+      } else {
+        ok = false;
+        out.data(
+          "FIT_DATA_DUPLICATE_ENTRY_ID",
+          path,
+          { id: entry.id, first },
+          `Entry id '${entry.id}' is used at '${first}' and at '${path}'.`,
+        );
+      }
+    }
+    onPath.add(entry);
+    for (const [slot, children] of Object.entries(entry.entries ?? {})) {
+      children.forEach((child, i) => walk(child, `${path}/${slot}[${i}]`));
+    }
+    onPath.delete(entry);
+  };
+  roots.forEach((root, i) => walk(root, `entries[${i}]`));
+  return ok;
+}
+
 export function validateLoadoutFit(input: FitInput): FitResult {
   const out = new Collector();
   const finish = (platform: string): FitResult => {
@@ -705,6 +753,33 @@ export function validateLoadoutFit(input: FitInput): FitResult {
     );
     return finish(input.loadout.platform);
   }
+  if (monthOk && platform.lifecycle !== undefined) {
+    const { availableFrom, availableUntil } = platform.lifecycle;
+    if (input.month < availableFrom) {
+      out.finding(
+        "FIT_PLATFORM_NOT_YET_AVAILABLE",
+        `platforms/${platform.id}`,
+        "",
+        null,
+        { platform: platform.id, availableFrom },
+        `Platform '${platform.id}' is not available before ${availableFrom}.`,
+      );
+    } else if (
+      availableUntil !== undefined &&
+      availableUntil !== null &&
+      input.month >= availableUntil
+    ) {
+      out.finding(
+        "FIT_PLATFORM_UNAVAILABLE",
+        `platforms/${platform.id}`,
+        "",
+        null,
+        { platform: platform.id, availableUntil },
+        `Platform '${platform.id}' is no longer available from ${availableUntil}.`,
+      );
+    }
+  }
+  if (!entryIdentityHolds(input.loadout.entries, out)) return finish(platform.id);
   const rawSlots: SlotData[] = [];
   for (const templateId of platform.slotTemplates) {
     const template = input.slotTemplates.find((t) => t.id === templateId);

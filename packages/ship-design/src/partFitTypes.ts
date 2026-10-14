@@ -13,6 +13,9 @@
 
 /** Finding codes in their contractual sort order (ticket 06; stage order is in `partFit.ts`). */
 export const FIT_FINDING_CODES = [
+  /** Stage 0 (ticket 11a): the platform's availability window excludes the design month. */
+  "FIT_PLATFORM_NOT_YET_AVAILABLE",
+  "FIT_PLATFORM_UNAVAILABLE",
   /** Stage 1: the entry (or a nested entry) names a slot the platform or part does not have. */
   "FIT_UNKNOWN_SLOT",
   "FIT_COUNT_EXCEEDED",
@@ -37,6 +40,10 @@ export const FIT_DATA_ISSUE_CODES = [
   "FIT_DATA_DUPLICATE_SLOT",
   "FIT_DATA_BAD_MIRROR",
   "FIT_DATA_DUPLICATE_PART",
+  /** Two entries of one loadout share an `id` (ticket 11a). */
+  "FIT_DATA_DUPLICATE_ENTRY_ID",
+  /** An entry contains itself, directly or through nested entries (ticket 11a). */
+  "FIT_DATA_ENTRY_CYCLE",
   "FIT_DATA_UNKNOWN_PART",
   "FIT_DATA_BAD_MONTH",
   "FIT_DATA_PARAMETER_MISSING",

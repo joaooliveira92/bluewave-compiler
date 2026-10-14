@@ -577,13 +577,18 @@ describe("fit: data that cannot be evaluated is not an incompatibility", () => {
     ).toBe("Failure");
   });
 
-  it("containment cannot cycle or repeat an identifier: entries are a finite tree without ids", () => {
-    // Nested entries are plain data keyed by slot; `entry` has no id field, so the schema
-    // is the guard and an `id` is rejected as an excess property.
+  it("an entry id is decoded, and a malformed one is rejected (ticket 11a)", () => {
+    // Identity checks (duplicates, cycles) are in partFitCompleteness.test.ts.
     expect(
       decodeStrictResult(LoadoutSchema, {
         platform: "p",
         entries: [{ slot: "s", part: "x", id: "e1" }],
+      })._tag,
+    ).toBe("Success");
+    expect(
+      decodeStrictResult(LoadoutSchema, {
+        platform: "p",
+        entries: [{ slot: "s", part: "x", id: "E 1" }],
       })._tag,
     ).toBe("Failure");
   });

@@ -58,6 +58,7 @@ export * from "./partCompatibility.js";
 export * from "./partLifecycle.js";
 export * from "./partFitTypes.js";
 export * from "./partFit.js";
+export * from "./compileThroughFit.js";
 export * from "./partQueries.js";
 export * from "./partQuantities.js";
 export * from "./partReadPath.js";

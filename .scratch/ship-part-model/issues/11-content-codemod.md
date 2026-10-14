@@ -1,7 +1,7 @@
 # 11: One-shot content codemod, pipeline switch and save-compatibility activation (P2)
 
 **Type:** implementation
-**Status:** open
+**Status:** in progress (sliced 2026-10-14: 11a–11d below; 11d is the atomic activation)
 **Blocked by:** 09, 10
 **Frontier:** no
 **Requirements:** SPM-R20, SPM-R21 (activation), SPM-R24 (campaign goldens), SPM-R26 (P2 gate) · Stories 29, 30, 33, 48
@@ -53,3 +53,33 @@ observe are the nine approved central-battery reclassifications.
 - [ ] `pnpm snap` of the Shipbuilding workspace, started with a 1.2.0 draft, shows the
       default design, a clean console and the preserved draft file.
 - [ ] `pnpm check` is green.
+
+## Slicing (2026-10-14)
+
+Discovery against the tree at `f8c3ff24` found this ticket is four deliverables, and that
+its inputs were handed forward unresolved (ADR-0154 §15: legacy facts with no schema home;
+ticket 05: `rounds` and `magazineRef` have no representation; the candidate pipeline still
+compiles the *legacy* placements and only validates through parts). Activation therefore
+cannot be one honest edit. The slices land in order as additive commits; **only 11d
+changes content, pipeline or compatibility version**, so no intermediate commit can
+violate the single-change rule (AC 5).
+
+| Slice | Delivers | Acceptance criteria covered |
+| --- | --- | --- |
+| **11a** Fit completeness and barrier seam | Platform availability windows, loadout-entry identity with duplicate and containment-cycle checks, unlocked-technology wiring, `compileDesign` routed through `deriveAfterFit` when a fit context is supplied. Additive: absent a fit context, results are byte-identical. | AC 7, AC 8 |
+| **11b** Schema homes and whole-catalogue part builders | Typed homes for the legacy facts of ADR-0154 §15, for `rounds`/`magazineRef` and for the design header; whole-catalogue (not per-placement) parts for every gun model, mount, ammunition, launcher, fitting, plant and material, with the inverse readers that rebuild today's runtime shapes; an exhaustive equivalence test over every nation × family × mount type × count. | prerequisite of AC 1–4 |
+| **11c** Codemod | The deterministic writer, its property, idempotency and cross-process tests, run into a staging directory that no pack declares. | AC 1, AC 2 |
+| **11d** Activation | Rewritten content, parts pipeline in production, compatibility 2.0.0 current, changelog, equivalence and golden re-pin record, snap, `pnpm check`. One commit, explicit pathspec. | AC 3, 4, 5, 6, 9, 10 |
+
+### 11a (2026-10-14) — implemented
+
+- Platform `lifecycle`, loadout-entry `id`, and the fit checks and codes of ADR-0154 §18
+  (`partFit.ts`); tests in `partFitCompleteness.test.ts` (windows incl. exclusive end,
+  duplicate id, in-memory cycle, unlocked technology).
+- `compileDesignThroughFit` (`compileThroughFit.ts`): seam test proves no derivation runs
+  for `REJECTED`/`NOT_EVALUABLE` and the outcome has no derived metric field.
+- **Deviation:** AC 7 says "`compileDesign` routes loadout derivation through
+  `deriveAfterFit`". `compileDesign` returns a `CompiledDesign` whose ledger and hull are
+  required, so it cannot represent "no metrics". The barrier is a wrapper that production
+  calls (wired in 11d); `compileDesign` is its `derive`. Recorded in ADR-0154 §18.
+- AC 7 and AC 8 are satisfied at the seam; production wiring is confirmed in 11d.

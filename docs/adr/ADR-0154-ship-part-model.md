@@ -188,6 +188,21 @@ The 1880 content has 91 reference designs with 823 placements (230 gun placement
       Lifecycle, nation and technology are `availableParts` concerns.
     - **Cost.** A nested entry's units are its parent's units times its `mountCount`; the
       multiplier comes from each component's declared basis.
+18. **Fit completeness and the production barrier (2026-10-14, ticket 11a).**
+    - **Platform windows.** A platform may declare `lifecycle` (`availableFrom` inclusive,
+      `availableUntil` exclusive). Outside it the fit is `FIT_PLATFORM_NOT_YET_AVAILABLE` or
+      `FIT_PLATFORM_UNAVAILABLE`, sorted before every other finding. Absent, always available.
+    - **Entry identity.** An entry may carry an `id` (lower snake_case). Ids are unique across
+      the whole loadout, nested entries included; a repeat is `FIT_DATA_DUPLICATE_ENTRY_ID`.
+      A decoded loadout is a finite tree, so a containment cycle cannot be authored; an
+      in-memory cycle is `FIT_DATA_ENTRY_CYCLE` instead of a non-terminating walk. Both make
+      the result `NOT_EVALUABLE`.
+    - **Technology.** `FitInput.unlockedTechnologies` (ticket 07) is the evaluation of
+      `requires`; production passes the design context's unlocked set.
+    - **Barrier.** `compileDesignThroughFit` runs the fit check and reaches `compileDesign`
+      only through `deriveAfterFit`. `compileDesign` stays the derivation itself, because its
+      result type has non-optional derived fields and a rejected loadout must carry none.
+      The production entry point (ticket 11d) calls the wrapper.
 
 ## Consequences
 

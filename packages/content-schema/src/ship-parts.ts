@@ -246,10 +246,29 @@ export const SlotTemplateSchema = Schema.Struct({
   provenance: Schema.optional(ProvenanceSchema),
 });
 
+/**
+ * When a platform may be built (ship-part-model ticket 11a). `availableFrom` is inclusive,
+ * `availableUntil` exclusive and nullable, like a part's lifecycle. An absent window means
+ * always available, which keeps every platform written before the window existed valid.
+ */
+export const PlatformLifecycleSchema = Schema.Struct({
+  availableFrom: month,
+  availableUntil: Schema.optional(Schema.NullOr(month)),
+}).check(
+  Schema.makeFilter((l) =>
+    l.availableUntil === undefined ||
+    l.availableUntil === null ||
+    l.availableUntil > l.availableFrom
+      ? undefined
+      : "availableUntil must be after availableFrom",
+  ),
+);
+
 /** A hull form as the root assembly: its slots come from templates plus its own. */
 export const PlatformSchema = Schema.Struct({
   id: stableId,
   hullForm: stableId,
+  lifecycle: Schema.optional(PlatformLifecycleSchema),
   slotTemplates: Schema.Array(stableId),
   slots: Schema.optional(Schema.Array(SlotSchema)),
   provenance: Schema.optional(ProvenanceSchema),
@@ -619,6 +638,11 @@ const ArmourShapeSchema = Schema.Struct({
 export const DEFAULT_MOUNT_COUNT = 1;
 
 const entryFields = {
+  /**
+   * Identity of this entry within its loadout (ticket 11a). Optional; when present it is
+   * unique across the whole loadout, nested entries included, which the fit stage checks.
+   */
+  id: Schema.optional(stableId),
   part: stableId,
   /** Installed units of the entry's part; the only quantity field (D2, I-15). Absent = 1. */
   mountCount: Schema.optional(positiveInt),
@@ -631,6 +655,7 @@ const entryFields = {
 };
 
 export interface NestedLoadoutEntryEncoded {
+  readonly id?: string | undefined;
   readonly part: string;
   readonly mountCount?: number | undefined;
   readonly stationPermille?: number | undefined;
@@ -645,6 +670,7 @@ export interface NestedLoadoutEntryEncoded {
 }
 
 export interface NestedLoadoutEntry {
+  readonly id?: string | undefined;
   readonly part: string;
   readonly mountCount?: number | undefined;
   readonly stationPermille?: number | undefined;
