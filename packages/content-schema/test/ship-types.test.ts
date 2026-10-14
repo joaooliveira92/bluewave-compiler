@@ -68,6 +68,24 @@ describe("a valid ship-type record decodes", () => {
     expect(decodeOk(ShipTypeRecordSchema, withRequires([VALID_PREDICATE]))).toBe(true);
   });
 
+  it("accepts a dotted platform slot id in a classification predicate (ticket 12b)", () => {
+    // The platform slot ids every real loadout uses are dotted (`SlotSchema.id` and the
+    // loadout entries share the same `slotId` schema), so a requirement must be able to
+    // name one; a bare `stableId` would have made every authored requirement inert.
+    expect(
+      decodeOk(
+        ShipTypeRecordSchema,
+        withRequires([{ ...VALID_PREDICATE, slot: "forecastle.gun_mount" }]),
+      ),
+    ).toBe(true);
+    expect(
+      decodeOk(
+        ShipTypeRecordSchema,
+        withRequires([{ ...VALID_PREDICATE, slot: "armour.belt_main" }]),
+      ),
+    ).toBe(true);
+  });
+
   it("accepts a null required hull trait and a merchant-derived trait", () => {
     expect(decodeOk(ShipTypeRecordSchema, { ...valid, requiredHullTrait: null })).toBe(true);
     expect(
@@ -99,6 +117,7 @@ describe("an unknown closed-vocabulary value or key fails strict decoding", () =
     ["constraint key", { ...VALID_PREDICATE, constraints: { bogusConstraint: 1 } }],
     ["interface", { ...VALID_PREDICATE, interface: "laser" }],
     ["slot token", { ...VALID_PREDICATE, slot: "Main" }],
+    ["dotted slot token", { ...VALID_PREDICATE, slot: "forecastle.gun-mount" }],
   ])("rejects an unknown %s inside classification.requires", (_label, predicate) => {
     const record = withRequires([predicate]);
     expect(decodeOk(ShipTypeRecordSchema, record)).toBe(false);

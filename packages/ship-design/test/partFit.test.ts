@@ -8,6 +8,7 @@ import {
   type FlattenedPart,
   type LoadoutEntryData,
   type PlatformData,
+  type ShipTypeRequirement,
   type SlotData,
   type SlotTemplateData,
 } from "@bluewave/content-schema";
@@ -237,6 +238,9 @@ function fit(
     ...(options.nation !== undefined ? { nation: options.nation } : {}),
     ...(options.ammunitionCompatibility !== undefined
       ? { ammunitionCompatibility: options.ammunitionCompatibility }
+      : {}),
+    ...(options.shipTypeRequirements !== undefined
+      ? { shipTypeRequirements: options.shipTypeRequirements }
       : {}),
   });
 }
@@ -952,6 +956,116 @@ describe("fit: deterministic ordering", () => {
       goodMount({ mountCount: 1, stationPermille: 900 }),
     ]);
     expect(r.findings.map((f) => f.path)).toEqual(["slots/fwd_main", "entries/fwd_main/m_twin#4"]);
+  });
+});
+
+describe("fit: ship-type requirements (SPM-R12, ticket 12b)", () => {
+  it("emits no TYPE_REQUIRES_* finding when the type declares none", () => {
+    expect(fit([goodMount()], { shipTypeRequirements: [] }).status).toBe("ACCEPTED");
+  });
+
+  it("reports a required slot the loadout does not fill", () => {
+    const r = fit([], {
+      shipTypeRequirements: [
+        { slot: "fwd_main", interface: "gun_mount", constraints: {}, mountCountMin: 1 },
+      ],
+    });
+    expect(codes(r)).toEqual(["TYPE_REQUIRES_SLOT_MISSING"]);
+    expect(r.findings[0]).toMatchObject({ slot: "fwd_main", part: null });
+    expect(r.status).toBe("REJECTED");
+  });
+
+  it("reports an entry that does not provide the required interface", () => {
+    const r = fit([goodMount()], {
+      shipTypeRequirements: [{ slot: "fwd_main", interface: "magazine", constraints: {} }],
+    });
+    expect(codes(r)).toEqual(["TYPE_REQUIRES_INTERFACE_MISMATCH"]);
+  });
+
+  it("reports a constraint no candidate in the slot satisfies", () => {
+    const r = fit([goodMount()], {
+      shipTypeRequirements: [
+        { slot: "fwd_main", interface: "gun_mount", constraints: { calibreInchesMin: 13 } },
+      ],
+    });
+    expect(codes(r)).toEqual(["TYPE_REQUIRES_CONSTRAINT_VIOLATED"]);
+    expect(r.findings[0]?.part).toBe("m_twin");
+  });
+
+  it("reports a mount count below the required minimum", () => {
+    const r = fit([goodMount()], {
+      shipTypeRequirements: [
+        { slot: "fwd_main", interface: "gun_mount", constraints: {}, mountCountMin: 2 },
+      ],
+    });
+    expect(codes(r)).toEqual(["TYPE_REQUIRES_MOUNT_COUNT"]);
+    expect(r.findings[0]?.detail).toMatchObject({ total: 1, min: 2 });
+  });
+
+  it("accepts a requirement met by a multi-unit entry", () => {
+    const r = fit([goodMount({ mountCount: 2, entries: gunsOf("g12", 4) })], {
+      shipTypeRequirements: [
+        { slot: "fwd_main", interface: "gun_mount", constraints: {}, mountCountMin: 2 },
+      ],
+    });
+    expect(r.status).toBe("ACCEPTED");
+  });
+
+  it("sorts them in the contractual code order and is stable across runs", () => {
+    const requirements = [
+      { slot: "fwd_main", interface: "gun_mount", constraints: {}, mountCountMin: 2 },
+      { slot: "fwd_main", interface: "magazine", constraints: {} },
+    ] as const;
+    const r = fit([goodMount()], { shipTypeRequirements: requirements });
+    expect(codes(r)).toEqual(["TYPE_REQUIRES_INTERFACE_MISMATCH", "TYPE_REQUIRES_MOUNT_COUNT"]);
+    const rank = (c: string) => FIT_FINDING_CODES.indexOf(c as (typeof FIT_FINDING_CODES)[number]);
+    const ranks = r.findings.map((f) => rank(f.code));
+    expect(ranks).toEqual([...ranks].sort((a, b) => a - b));
+    expect(fit([goodMount()], { shipTypeRequirements: requirements })).toEqual(r);
+  });
+});
+
+describe("fit: ship-type requirements name real dotted platform slots (ticket 12b)", () => {
+  // The platform slots every real loadout fills are dotted (`armour.belt_main` in the fixture
+  // template, and `forecastle.gun_mount` etc. in production). A requirement's `slot` decodes
+  // through the same dotted-capable `slotId` as `SlotSchema.id`, so a real slot can be named
+  // and honoured; before the schema fix a bare `stableId` made every authored requirement inert.
+  const plate = {
+    thicknessUm: 200_000,
+    lengthMm: 40_000,
+    heightMm: 2_000,
+    cosObliquityBp: 10_000,
+  };
+  const beltEntry = entry({ slot: "armour.belt_main", part: "iron", shape: plate });
+  const beltRequirement = (extra: Partial<ShipTypeRequirement> = {}): ShipTypeRequirement => ({
+    slot: "armour.belt_main",
+    interface: "armour_material",
+    constraints: {},
+    ...extra,
+  });
+
+  it("accepts a loadout that fills the dotted slot the type requires", () => {
+    const r = fit([beltEntry], { shipTypeRequirements: [beltRequirement({ mountCountMin: 1 })] });
+    expect(r.status).toBe("ACCEPTED");
+  });
+
+  it("reports the dotted slot missing when the loadout does not fill it", () => {
+    const r = fit([], { shipTypeRequirements: [beltRequirement()] });
+    expect(codes(r)).toEqual(["TYPE_REQUIRES_SLOT_MISSING"]);
+    expect(r.findings[0]).toMatchObject({ slot: "armour.belt_main", part: null });
+  });
+
+  it("reports an interface mismatch for the dotted slot", () => {
+    const r = fit([beltEntry], {
+      shipTypeRequirements: [beltRequirement({ interface: "gun_mount" })],
+    });
+    expect(codes(r)).toEqual(["TYPE_REQUIRES_INTERFACE_MISMATCH"]);
+  });
+
+  it("reports a mount count below the dotted slot's required minimum", () => {
+    const r = fit([beltEntry], { shipTypeRequirements: [beltRequirement({ mountCountMin: 2 })] });
+    expect(codes(r)).toEqual(["TYPE_REQUIRES_MOUNT_COUNT"]);
+    expect(r.findings[0]?.detail).toMatchObject({ total: 1, min: 2 });
   });
 });
 

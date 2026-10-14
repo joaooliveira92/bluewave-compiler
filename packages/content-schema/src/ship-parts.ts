@@ -203,8 +203,10 @@ const stableId = Schema.String.check(
  * A canonical ship-type token (`B`, `CA`, `AMC`, …). The DESIGN-22 ids are upper-case
  * abbreviations, so this is the upper-case analogue of `stableId` — a stable authored
  * token, not a lowercase `stableId`. It is a closed *format* rather than a `Literals`
- * union of the fourteen known ids, so authored content can add a type without a code
- * change (ADR-0156 §1); behaviour is selected only by the closed `engineClass`.
+ * union of the fourteen known ids, so a record can carry any token; a **new usable type
+ * still needs a code change** (a new `ShipTypeId`, its hull-type mapping and its
+ * classification predicate — ADR-0156 §1), because the adapter drops ids outside the
+ * canonical vocabulary. Behaviour is selected only by the closed `engineClass`.
  */
 const shipTypeId = Schema.String.check(
   Schema.isPattern(/^[A-Z][A-Z0-9]*$/, { message: "must be an upper-case ship-type token" }),
@@ -916,14 +918,16 @@ export const PartLineageSchema = Schema.Struct({
 // ---------------------------------------------------------------------------
 
 /**
- * One fit-requirement predicate a ship type may declare (ADR-0156 §3). Closed: a slot
- * id, one interface from `interfaces/1`, the shared `SlotConstraintsSchema` keys, and an
- * optional minimum mount count. An unknown predicate key, constraint key or interface
- * fails decoding, so content cannot invent a fit rule. All 1880 records author an empty
- * `requires` (the classifier is still code-owned until 12b).
+ * One fit-requirement predicate a ship type may declare (ADR-0156 §3). Closed: a platform
+ * **slot id** (dotted capable, the same `slotId` the loadout entries and `SlotSchema.id`
+ * use — so a requirement can name a real slot like `forecastle.gun_mount` or
+ * `armour.belt_main`), one interface from `interfaces/1`, the shared `SlotConstraintsSchema`
+ * keys, and an optional minimum mount count. An unknown predicate key, constraint key or
+ * interface fails decoding, so content cannot invent a fit rule. All 1880 records author an
+ * empty `requires` (the classifier is still code-owned until 12b).
  */
 export const ShipTypeRequirementSchema = Schema.Struct({
-  slot: stableId,
+  slot: slotId,
   interface: InterfaceSchema,
   constraints: SlotConstraintsSchema,
   mountCountMin: Schema.optional(positiveInt),

@@ -60,8 +60,13 @@ than change them.
 
 ## Consequences
 
-- Content authors can add a type, change its presentation, roles, availability or
-  torpedo policy, and reorder the natural classifier without a code change.
+- Content authors can change an existing type's presentation, roles, availability or
+  torpedo policy, and reorder the natural classifier, without a code change.
+- **Adding a new usable type still needs a code change.** The `ShipTypeId` union, the
+  hull-type mapping (`HULL_TYPE_FOR_SHIP_TYPE`) and each type's classification predicate
+  are code-owned and closed. A record whose `id` is not one of the fourteen canonical
+  tokens is dropped by `shipTypeRegistryFromRecords` and reported
+  `SHIP_TYPE_UNREGISTERED`; editing content alone can never make it selectable.
 - Inline per-type numeric thresholds (the proposal §3.5 illustrative form) are
   deliberately **not** adopted in P3: moving them would risk changing
   classification outcomes, which the P3 gate forbids. Per-type threshold authoring

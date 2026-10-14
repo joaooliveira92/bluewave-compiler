@@ -2,6 +2,7 @@
 // The ship-type registry (DESIGN-22 section 1): one definition per canonical type, owned by the domain. Numeric
 // boundaries are NOT repeated here; they live in `ClassificationRules` (classification.ts) and the envelope shown to
 // players is derived from them (`shipTypeEnvelope`), so a ruleset change is one edit.
+import type { EngineBehaviourClass } from "@bluewave/content-schema";
 import { SHIP_TYPES } from "./shipTypeData.js";
 
 /** The fourteen canonical types in DESIGN-22 precedence order. Anything else is `SHIP_TYPE_UNREGISTERED`. */
@@ -114,6 +115,12 @@ export interface ShipTypeAvailabilityRequirement {
 export interface ShipTypeDefinition {
   readonly id: ShipTypeId;
   readonly name: string;
+  /**
+   * The closed engine behaviour class this type resolves to (ADR-0156 §2, invariant I-16). It is
+   * authored on the ship-type record and mirrored here for the code registry; no content string can
+   * select executable behaviour, only name one of the closed classes.
+   */
+  readonly engineClass: EngineBehaviourClass;
   readonly era: EraBand;
   readonly category: ShipTypeCategory;
   readonly roles: readonly ShipRole[];

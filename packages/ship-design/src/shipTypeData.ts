@@ -42,6 +42,7 @@ export const SHIP_TYPES: Readonly<Record<ShipTypeId, ShipTypeDefinition>> = {
   B: {
     id: "B",
     name: "Pre-dreadnought battleship",
+    engineClass: "capital_combatant",
     era: "EARLY",
     category: "CAPITAL_SHIP",
     roles: ["BATTLE_LINE", "COASTAL_DEFENCE"],
@@ -62,6 +63,7 @@ export const SHIP_TYPES: Readonly<Record<ShipTypeId, ShipTypeDefinition>> = {
   CA: {
     id: "CA",
     name: "Armoured cruiser",
+    engineClass: "cruiser",
     era: "EARLY",
     category: "CRUISER",
     roles: ["FLEET_SCOUTING", "COMMERCE_PROTECTION", "COMMERCE_RAIDING", "CRUISER_HUNTING"],
@@ -82,6 +84,7 @@ export const SHIP_TYPES: Readonly<Record<ShipTypeId, ShipTypeDefinition>> = {
   CL: {
     id: "CL",
     name: "Protected cruiser",
+    engineClass: "cruiser",
     era: "EARLY",
     category: "CRUISER",
     roles: ["FLEET_SCOUTING", "PATROL", "COMMERCE_PROTECTION", "FOREIGN_STATION", "SCREENING"],
@@ -102,6 +105,7 @@ export const SHIP_TYPES: Readonly<Record<ShipTypeId, ShipTypeDefinition>> = {
   DD: {
     id: "DD",
     name: "Torpedo boat / early destroyer",
+    engineClass: "torpedo_craft",
     era: "EARLY",
     category: "LIGHT_COMBATANT",
     roles: ["TORPEDO_ATTACK", "SCREENING", "COASTAL_DEFENCE"],
@@ -122,6 +126,7 @@ export const SHIP_TYPES: Readonly<Record<ShipTypeId, ShipTypeDefinition>> = {
   KE: {
     id: "KE",
     name: "Corvette / colonial gunboat",
+    engineClass: "colonial_vessel",
     era: "EARLY",
     category: "COLONIAL_VESSEL",
     roles: ["COLONIAL_PRESENCE", "PATROL", "LOCAL_DEFENCE", "FOREIGN_STATION"],
@@ -142,6 +147,7 @@ export const SHIP_TYPES: Readonly<Record<ShipTypeId, ShipTypeDefinition>> = {
   AMC: {
     id: "AMC",
     name: "Armed merchant cruiser",
+    engineClass: "merchant_auxiliary",
     era: "EARLY",
     category: "AUXILIARY",
     roles: ["COMMERCE_RAIDING", "COMMERCE_PROTECTION", "MINELAYING"],
@@ -162,6 +168,7 @@ export const SHIP_TYPES: Readonly<Record<ShipTypeId, ShipTypeDefinition>> = {
   BB: {
     id: "BB",
     name: "Dreadnought battleship",
+    engineClass: "capital_combatant",
     era: "PRE_WAR",
     category: "CAPITAL_SHIP",
     roles: ["BATTLE_LINE"],
@@ -178,6 +185,7 @@ export const SHIP_TYPES: Readonly<Record<ShipTypeId, ShipTypeDefinition>> = {
   BC: {
     id: "BC",
     name: "Battlecruiser",
+    engineClass: "capital_combatant",
     era: "PRE_WAR",
     category: "CAPITAL_SHIP",
     roles: ["BATTLE_LINE", "FLEET_SCOUTING"],
@@ -196,6 +204,7 @@ export const SHIP_TYPES: Readonly<Record<ShipTypeId, ShipTypeDefinition>> = {
   CVL: {
     id: "CVL",
     name: "Light aircraft carrier",
+    engineClass: "aviation",
     era: "INTERWAR",
     category: "AVIATION",
     roles: ["AVIATION"],
@@ -212,6 +221,7 @@ export const SHIP_TYPES: Readonly<Record<ShipTypeId, ShipTypeDefinition>> = {
   CV: {
     id: "CV",
     name: "Fleet aircraft carrier",
+    engineClass: "aviation",
     era: "INTERWAR",
     category: "AVIATION",
     roles: ["AVIATION"],
@@ -228,6 +238,7 @@ export const SHIP_TYPES: Readonly<Record<ShipTypeId, ShipTypeDefinition>> = {
   AV: {
     id: "AV",
     name: "Seaplane carrier / aviation support ship",
+    engineClass: "aviation",
     era: "PRE_WAR",
     category: "AVIATION",
     roles: ["AVIATION"],
@@ -245,6 +256,7 @@ export const SHIP_TYPES: Readonly<Record<ShipTypeId, ShipTypeDefinition>> = {
   SS: {
     id: "SS",
     name: "Submarine",
+    engineClass: "submarine",
     era: "EARLY",
     category: "SUBMARINE",
     roles: ["UNDERSEA"],
@@ -262,6 +274,7 @@ export const SHIP_TYPES: Readonly<Record<ShipTypeId, ShipTypeDefinition>> = {
   MTB: {
     id: "MTB",
     name: "Motor torpedo boat",
+    engineClass: "torpedo_craft",
     era: "INTERWAR",
     category: "LIGHT_COMBATANT",
     roles: ["TORPEDO_ATTACK", "COASTAL_DEFENCE"],
@@ -278,6 +291,7 @@ export const SHIP_TYPES: Readonly<Record<ShipTypeId, ShipTypeDefinition>> = {
   TR: {
     id: "TR",
     name: "Transport",
+    engineClass: "merchant_auxiliary",
     era: "EARLY",
     category: "AUXILIARY",
     roles: ["TRANSPORT"],

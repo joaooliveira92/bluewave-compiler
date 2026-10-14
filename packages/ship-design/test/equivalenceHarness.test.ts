@@ -15,6 +15,7 @@ import {
   type MetricRow,
 } from "../src/index.js";
 import { runEquivalence } from "./helpers/equivalenceRun.js";
+import { nationalContext, shipTypes } from "./helpers/earlyContext.js";
 
 const report = runEquivalence();
 
@@ -50,6 +51,14 @@ describe("equivalence harness over current content (ticket 08)", () => {
     expect(report.coverage.baseline).toEqual(PINNED_COVERAGE);
     expect(report.coverage.candidate).toEqual(PINNED_COVERAGE);
     expect(report.designs.every((d) => d.compared)).toBe(true);
+  });
+
+  it("reads the compiled ship-type registry from content, so the report is not vacuous (ticket 12b)", () => {
+    // The report only exercises the content-sourced classification/availability/fit paths if the
+    // harness context carries `shipTypes`. If threading is dropped, every read silently falls back
+    // to the code registry and the P3 report stops covering the change.
+    expect(shipTypes).toHaveLength(14);
+    expect(nationalContext("1880-01", "uk").shipTypes).toEqual(shipTypes);
   });
 
   it("has no changed row and passes both gates", () => {

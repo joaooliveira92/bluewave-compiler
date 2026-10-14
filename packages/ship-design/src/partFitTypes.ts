@@ -28,6 +28,15 @@ export const FIT_FINDING_CODES = [
   /** The part's `lifecycle.requires` names technologies the caller has not unlocked. */
   "FIT_TECHNOLOGY_LOCKED",
   "FIT_NATION_ACCESS",
+  /**
+   * Ship-type fit requirements (SPM-R12, ADR-0156 §4, ticket 12b): the intended type's
+   * `classification.requires` are not met. Placed after `FIT_NATION_ACCESS` in the contractual
+   * order, as SPM-R12 documents. Empty `requires` (every 1880 record) emits none of these.
+   */
+  "TYPE_REQUIRES_SLOT_MISSING",
+  "TYPE_REQUIRES_INTERFACE_MISMATCH",
+  "TYPE_REQUIRES_CONSTRAINT_VIOLATED",
+  "TYPE_REQUIRES_MOUNT_COUNT",
   /** Stage 6: station or side outside the slot's declared placement. */
   "FIT_PLACEMENT",
 ] as const;

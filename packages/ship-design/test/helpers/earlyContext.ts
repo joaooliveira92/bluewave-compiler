@@ -10,7 +10,9 @@ import {
   PropulsionPlantCatalogueSchema,
   ShipComponentCatalogueSchema,
   ShipHullFormCatalogueSchema,
+  ShipTypeRecordSchema,
   decodeStrict,
+  type ShipTypeRecord,
 } from "@bluewave/content-schema";
 import {
   buildShipBuildingContent,
@@ -114,10 +116,27 @@ export const shipBuildingData: ShipBuildingData = {
 export const shipBuildingContent = buildShipBuildingContent(shipBuildingData);
 export const navalProfiles = shipBuildingData.navalProfiles!;
 
+/**
+ * The authored ship-type records, decoded as the runtime loader sees them (ADR-0156, ticket 12b).
+ * The harness data carries no `partModel`, so `buildShipBuildingContent` threads no `shipTypes`;
+ * this supplies them to the context below, so the equivalence report exercises the content registry
+ * rather than falling back to the code registry.
+ */
+export const shipTypes: ShipTypeRecord[] = (
+  parse(readFileSync(join(sbDir, "ship-types.yaml"), "utf8")) as { shipTypes: unknown[] }
+).shipTypes.map((record) => decodeStrict(ShipTypeRecordSchema, record));
+
+/**
+ * The harness context plus the authored ship-type records. Classification precedence, availability,
+ * the roster and the type fit requirements all read content when `shipTypes` is present; the records
+ * equal the code registry (the 12a regression), so no outcome changes, only the source.
+ */
+const withShipTypes = (ctx: ShipContext): ShipContext => ({ ...ctx, shipTypes });
+
 /** Same ship-building context the engine and the UI use, for a given campaign month. */
 export const earlyContext = (month: string): ShipContext =>
-  shipBuildingContent.environmentFor(month).ctx;
+  withShipTypes(shipBuildingContent.environmentFor(month).ctx);
 /** A nation's context: the shared context with that nation's catalogue and capabilities applied. */
 export const nationalContext = (month: string, nationId: string): ShipContext =>
-  shipBuildingContent.environmentFor(month, nationId).ctx;
+  withShipTypes(shipBuildingContent.environmentFor(month, nationId).ctx);
 export const threats = shipBuildingData.balance.environment.threats;

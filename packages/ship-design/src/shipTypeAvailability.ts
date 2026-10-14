@@ -3,7 +3,13 @@
 // context gives the same answer; the compile, the construction-order rule and the roster all call it.
 import type { ClassificationRules } from "./classification.js";
 import { shipTarget, type Finding } from "./findings.js";
-import { eraBandReached, isShipTypeId, SHIP_TYPES, type ShipTypeDefinition } from "./shipTypes.js";
+import {
+  eraBandReached,
+  isShipTypeId,
+  SHIP_TYPES,
+  type ShipTypeDefinition,
+  type ShipTypeId,
+} from "./shipTypes.js";
 
 /**
  * Stable machine-readable reasons. `SHIP_TYPE_UNREGISTERED` and `AMC_FLEET_LIMIT_EXCEEDED` are DESIGN-22 section 26
@@ -61,6 +67,12 @@ export interface AvailabilityContext {
   readonly capabilities?: ReadonlySet<string> | undefined;
   /** Types forbidden by a treaty or by scenario configuration. */
   readonly restrictedTypes?: readonly string[] | undefined;
+  /**
+   * The compiled ship-type definitions (ADR-0156, ticket 12b). When supplied, the availability
+   * facts are read from content; absent falls back to the code registry, whose values the 12a
+   * regression pins equal.
+   */
+  readonly definitions?: ReadonlyMap<ShipTypeId, ShipTypeDefinition> | undefined;
 }
 
 const reason = (code: AvailabilityReasonCode): AvailabilityReason => ({
@@ -75,7 +87,7 @@ export function evaluateShipTypeAvailability(
 ): ShipTypeAvailability {
   if (!isShipTypeId(type))
     return { type, available: false, reasons: [reason("SHIP_TYPE_UNREGISTERED")] };
-  const def: ShipTypeDefinition = SHIP_TYPES[type];
+  const def: ShipTypeDefinition = ctx.definitions?.get(type) ?? SHIP_TYPES[type];
   const need = def.availability;
   const reasons: AvailabilityReason[] = [];
   if (!need.mechanicsImplemented) reasons.push(reason("SHIP_TYPE_MECHANICS_NOT_IMPLEMENTED"));

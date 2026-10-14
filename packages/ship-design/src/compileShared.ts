@@ -138,6 +138,12 @@ export interface ShipContext {
   readonly balance: ShipBalance;
   /** Nation capabilities granted by the scenario (checked against a ship type's `requiresCapability`); absent = none. */
   readonly capabilities?: ReadonlySet<string>;
+  /**
+   * The compiled ship-type records (ADR-0156, ticket 12b). When present, classification precedence,
+   * availability facts and fit requirements read content; absent falls back to the code registry,
+   * whose values the 12a regression pins equal. Optional so fixtures and older callers keep working.
+   */
+  readonly shipTypes?: readonly import("@bluewave/content-schema").ShipTypeRecord[];
   /** Ship types a scenario forbids outright (treaty categories are handled by `treaty.forbiddenCategories`). */
   readonly restrictedShipTypes?: readonly string[];
   /** Scenario switch for colonial-service ships (KE); absent = allowed. */

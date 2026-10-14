@@ -23,6 +23,7 @@ import { compileDesignThroughFit } from "./compileThroughFit.js";
 import type { CompiledDesign, DesignDraft, ShipContext } from "./compileShared.js";
 import type { Finding } from "./findings.js";
 import { validateLoadoutFit } from "./partFit.js";
+import { shipTypeRequirementsFor } from "./shipTypeRegistry.js";
 import type {
   FitAmmunitionCompatibility,
   FitMountCountRanges,
@@ -112,6 +113,10 @@ export function compileDesignFromLoadout(input: CompileDesignFromLoadoutInput): 
     return { status: "UNTRANSLATED", issues: rebuilt.issues };
   }
 
+  // The intended type's fit requirements come from the compiled registry in the context; a context
+  // built without content (or a type declaring none) adds no `TYPE_REQUIRES_*` finding.
+  const requirements = shipTypeRequirementsFor(input.ctx, input.header.requirement.category);
+
   const check = (): FitResult =>
     validateLoadoutFit({
       parts: input.model.parts,
@@ -127,6 +132,7 @@ export function compileDesignFromLoadout(input: CompileDesignFromLoadoutInput): 
       ...(input.ammunitionCompatibility === undefined
         ? {}
         : { ammunitionCompatibility: input.ammunitionCompatibility }),
+      ...(requirements.length === 0 ? {} : { shipTypeRequirements: requirements }),
     });
 
   const outcome = compileDesignThroughFit(rebuilt.draft, input.ctx, check);

@@ -194,6 +194,10 @@ export function buildShipBuildingContent(data: ShipBuildingData): ShipBuildingCo
       treaty: null,
       balance: ship,
       armamentContent: data.armament ?? null,
+      // Classification, availability and the fit requirements read the compiled ship-type registry
+      // (ADR-0156, ticket 12b) when the pack carries one; a pack without parts content falls back
+      // to the code registry, whose values the 12a regression pins equal.
+      ...(data.partModel === undefined ? {} : { shipTypes: data.partModel.partIndex.shipTypes }),
       ...(profile !== null
         ? {
             capabilities: new Set(profile.hardCapabilities.grants),

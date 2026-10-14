@@ -76,9 +76,19 @@ export function classFacts(
   };
 }
 
-/** First type, in precedence order, whose predicates all pass; null if none. */
-export function naturalClass(f: ClassFacts, r: ClassificationRules): ClassifiedShipType | null {
-  return CLASSIFIED_SHIP_TYPES.find((t) => classPredicates[t](f, r).length === 0) ?? null;
+/**
+ * First type, in precedence order, whose predicates all pass; null if none. `order` comes from the
+ * compiled ship-type registry when content supplies it; absent means the code-owned
+ * `CLASSIFIED_SHIP_TYPES` order (the 12a regression pins the two equal). The predicate functions
+ * themselves are always the closed code record `classPredicates`.
+ */
+export function naturalClass(
+  f: ClassFacts,
+  r: ClassificationRules,
+  order: readonly ClassifiedShipType[] = CLASSIFIED_SHIP_TYPES,
+): ClassifiedShipType | null {
+  for (const t of order) if (classPredicates[t](f, r).length === 0) return t;
+  return null;
 }
 
 /** DESIGN-22 section 5 mismatch policy. All three rejections are BLOCKING (DESIGN-21 section 25). */
@@ -86,10 +96,11 @@ export function classificationFindings(
   f: ClassFacts,
   intended: ClassifiedShipType,
   r: ClassificationRules,
+  order?: readonly ClassifiedShipType[],
 ): { natural: ClassifiedShipType | null; findings: Finding[] } {
   const ruleFailures = classRuleFailures[intended](f, r);
   const failures = ruleFailures.map((x) => x.message);
-  const natural = naturalClass(f, r);
+  const natural = naturalClass(f, r, order);
   const ev = (value: number): Finding["evidence"] => ({
     formulaId: "DESIGN-22",
     inputs: {

@@ -5,6 +5,7 @@ import { DESIGN_22_EARLY, type ClassificationRules } from "./classification.js";
 import type { DesignDraft } from "./compile.js";
 import { evaluateShipTypeAvailability, type ShipTypeAvailability } from "./shipTypeAvailability.js";
 import { shipTypeEnvelope, type ShipTypeEnvelope } from "./shipTypeEnvelope.js";
+import { shipTypeRegistryFromRecords } from "./shipTypeRegistry.js";
 import { SHIP_TYPE_LIST, type ShipTypeDefinition } from "./shipTypes.js";
 import { buildWorkshopView, type WorkshopEnvironment } from "./workshop.js";
 
@@ -66,12 +67,18 @@ export function buildShipTypeRoster(
   // The envelope follows the ruleset actually in force for this scenario (`balance.classification`), so the
   // roster, the Brief panel and the validator cannot disagree (ADR-0116).
   const effectiveRules = rules ?? env.ctx.balance.classification ?? DESIGN_22_EARLY;
-  return SHIP_TYPE_LIST.map((definition) => {
+  // When the context carries compiled ship-type records, the roster (definitions and availability
+  // facts) is content-authored; absent, the code registry stands in (the 12a regression pins them equal).
+  const registry =
+    env.ctx.shipTypes === undefined ? null : shipTypeRegistryFromRecords(env.ctx.shipTypes);
+  const definitions = registry?.list ?? SHIP_TYPE_LIST;
+  return definitions.map((definition) => {
     const availability = evaluateShipTypeAvailability(definition.id, {
       month: env.ctx.month,
       unlockedTechs: env.ctx.unlockedTechs,
       capabilities: env.ctx.capabilities,
       restrictedTypes: env.ctx.restrictedShipTypes,
+      ...(registry === null ? {} : { definitions: registry.byId }),
     });
     const chosen = availability.available
       ? starterFor(definition.id, starters, env.ctx.month, nationId)

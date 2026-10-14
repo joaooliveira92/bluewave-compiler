@@ -11,12 +11,15 @@ import {
   FlattenedPartSchema,
   PlatformSchema,
   ReferenceDesignLoadoutSchema,
+  ShipTypeRecordSchema,
   SlotTemplateSchema,
   decodeStrict,
   parseYamlSafe,
   type FlattenedPart,
   type PlatformData,
   type ReferenceDesignLoadoutData,
+  type ShipTypeRecord,
+  type ShipTypeRequirement,
   type SlotTemplateData,
 } from "@bluewave/content-schema";
 import { canonicalSerialize } from "@bluewave/deterministic";
@@ -54,6 +57,9 @@ const loadouts: ReferenceDesignLoadoutData[] = readdirSync(join(shipBuilding, "d
       decodeStrict(ReferenceDesignLoadoutSchema, record),
     ),
   );
+const shipTypeRecords: ShipTypeRecord[] = (
+  readYaml(join(shipBuilding, "ship-types.yaml"))["shipTypes"] as unknown[]
+).map((record) => decodeStrict(ShipTypeRecordSchema, record));
 
 const model = buildProductionPartModel({ parts, slotTemplates, platforms });
 const legacyById = new Map(readReferenceDesignEntries().map((d) => [d.id, d] as const));
@@ -149,6 +155,33 @@ describe("production parts content → compile (ticket 11d)", () => {
     expect(result.status).toBe("REJECTED");
     if (result.status === "REJECTED" || result.status === "NOT_EVALUABLE") {
       expect(result.findings.length).toBeGreaterThan(0);
+      expect(Object.hasOwn(result, "compiled")).toBe(false);
+    }
+  });
+
+  it("rejects a design whose intended type requires a slot the loadout does not fill (SPM-R12)", () => {
+    const loadout = loadouts[0]!;
+    const requirement: ShipTypeRequirement = {
+      slot: "not_a_real_slot",
+      interface: "gun_mount",
+      constraints: {},
+    };
+    const shipTypes = shipTypeRecords.map((record) => ({
+      ...record,
+      classification: { ...record.classification, requires: [requirement] },
+    }));
+    const result = compileDesignFromLoadout({
+      designId: loadout.id,
+      header: loadout.header,
+      loadout: loadout.loadout,
+      model,
+      month: loadout.month,
+      nation: { nationId: loadout.header.nation },
+      ctx: { ...nationalContext(loadout.month, loadout.header.nation), shipTypes },
+    });
+    expect(result.status).toBe("REJECTED");
+    if (result.status === "REJECTED" || result.status === "NOT_EVALUABLE") {
+      expect(result.findings.map((f) => f.id)).toContain("TYPE_REQUIRES_SLOT_MISSING");
       expect(Object.hasOwn(result, "compiled")).toBe(false);
     }
   });

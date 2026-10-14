@@ -22,6 +22,7 @@ import type {
   LoadoutData,
   NestedLoadoutEntry,
   PlatformData,
+  ShipTypeRequirement,
   SlotData,
   SlotTemplateData,
 } from "@bluewave/content-schema";
@@ -71,6 +72,12 @@ export interface FitInput {
    * is not evaluated (the model has no unlock history of its own).
    */
   readonly unlockedTechnologies?: readonly string[];
+  /**
+   * The intended ship type's fit requirements (`classification.requires`, ADR-0156 §4). Sourced
+   * from the compiled registry by the production paths; absent or empty emits no `TYPE_REQUIRES_*`
+   * finding, so a design whose type declares none is unchanged.
+   */
+  readonly shipTypeRequirements?: readonly ShipTypeRequirement[];
 }
 
 type Entry = NestedLoadoutEntry;
@@ -650,6 +657,135 @@ function magazineRelationships(ctx: Ctx, placed: readonly PlacedEntry[]): void {
   }
 }
 
+/** A loadout entry with the slot it fills and its resolved part (parent, for nested entries). */
+interface WalkedEntry {
+  readonly slot: string;
+  readonly entry: Entry;
+  readonly resolved: ResolvedFitPart | null;
+  readonly parent: ResolvedFitPart | null;
+}
+
+/** Every entry of a loadout flattened in tree order, tagged with the slot id it fills. */
+function walkEntries(
+  ctx: Ctx,
+  roots: readonly (Entry & { readonly slot: string })[],
+): WalkedEntry[] {
+  const out: WalkedEntry[] = [];
+  const walk = (slot: string, entry: Entry, parent: ResolvedFitPart | null): void => {
+    const part = ctx.parts.get(entry.part);
+    const resolved = part === undefined ? null : { part, spec: specAt(part, ctx.month) };
+    out.push({ slot, entry, resolved, parent });
+    for (const [childSlot, children] of Object.entries(entry.entries ?? {})) {
+      for (const child of children) walk(childSlot, child, resolved);
+    }
+  };
+  for (const root of roots) walk(root.slot, root, null);
+  return out;
+}
+
+/** True when an interface-matching candidate entry satisfies every constraint of the requirement. */
+function requirementHolds(
+  ctx: Ctx,
+  requirement: ShipTypeRequirement,
+  candidate: WalkedEntry,
+): boolean {
+  const subject = candidate.resolved;
+  if (subject === null) return false;
+  const nestedGuns: ResolvedFitPart[] = [];
+  for (const child of gunChildren(candidate.entry)) {
+    const gun = ctx.parts.get(child.part);
+    if (gun !== undefined) nestedGuns.push({ part: gun, spec: specAt(gun, ctx.month) });
+  }
+  const outcomes = evaluateConstraints({
+    slot: {
+      id: requirement.slot,
+      accepts: [requirement.interface],
+      constraints: requirement.constraints,
+    },
+    subject,
+    mountCount: mountCountOf(candidate.entry),
+    parent: candidate.parent,
+    nestedGuns,
+  });
+  // A constraint the requirement's candidate cannot answer is not a pass; only WAIVED counts.
+  return outcomes.every((o) => o.kind !== "VIOLATED" && o.kind !== "UNEVALUABLE");
+}
+
+/**
+ * The intended type's fit requirements (SPM-R12, ADR-0156 §4). Each requirement, in the authored
+ * order, checks in turn that the loadout has an entry in its slot, that one provides the required
+ * interface, that one satisfies the constraints, and that enough mount units qualify. At most one
+ * finding is emitted per requirement; the caller's sort puts them in the contractual code order.
+ * An empty requirement list emits nothing.
+ */
+function evaluateTypeRequirements(
+  ctx: Ctx,
+  roots: readonly (Entry & { readonly slot: string })[],
+  requirements: readonly ShipTypeRequirement[],
+): void {
+  if (requirements.length === 0) return;
+  const walked = walkEntries(ctx, roots);
+  for (const requirement of requirements) {
+    const path = `typeRequires/${requirement.slot}`;
+    const inSlot = walked
+      .filter((w) => w.slot === requirement.slot)
+      .sort(
+        (a, b) =>
+          compareCodePoints(a.entry.part, b.entry.part) ||
+          compareCodePoints(canonicalSerialize(a.entry), canonicalSerialize(b.entry)),
+      );
+    if (inSlot.length === 0) {
+      ctx.out.finding(
+        "TYPE_REQUIRES_SLOT_MISSING",
+        path,
+        requirement.slot,
+        null,
+        { slot: requirement.slot },
+        `The ship type requires a part in slot '${requirement.slot}', but the loadout fills none.`,
+      );
+      continue;
+    }
+    const providing = inSlot.filter((w) => w.resolved?.part.provides === requirement.interface);
+    if (providing.length === 0) {
+      ctx.out.finding(
+        "TYPE_REQUIRES_INTERFACE_MISMATCH",
+        path,
+        requirement.slot,
+        null,
+        { slot: requirement.slot, interface: requirement.interface },
+        `The ship type requires a '${requirement.interface}' in slot '${requirement.slot}', but no entry provides it.`,
+      );
+      continue;
+    }
+    const satisfying = providing.filter((w) => requirementHolds(ctx, requirement, w));
+    if (satisfying.length === 0) {
+      ctx.out.finding(
+        "TYPE_REQUIRES_CONSTRAINT_VIOLATED",
+        path,
+        requirement.slot,
+        providing[0]!.resolved?.part.id ?? null,
+        { slot: requirement.slot, interface: requirement.interface },
+        `The ship type requires a '${requirement.interface}' in slot '${requirement.slot}' meeting its constraints; none does.`,
+      );
+      continue;
+    }
+    const min = requirement.mountCountMin;
+    if (min !== undefined) {
+      const total = satisfying.reduce((sum, w) => sum + mountCountOf(w.entry), 0);
+      if (total < min) {
+        ctx.out.finding(
+          "TYPE_REQUIRES_MOUNT_COUNT",
+          path,
+          requirement.slot,
+          null,
+          { slot: requirement.slot, interface: requirement.interface, total, min },
+          `The ship type requires at least ${min} unit(s) of '${requirement.interface}' in slot '${requirement.slot}'; the loadout has ${total}.`,
+        );
+      }
+    }
+  }
+}
+
 /** Validate a loadout's fit. Pure and total: expected failures are data in the result. */
 /**
  * Entry identity (ticket 11a). Ids are unique across the loadout; an entry that contains
@@ -818,6 +954,7 @@ export function validateLoadoutFit(input: FitInput): FitResult {
     placed,
   );
   magazineRelationships(ctx, placed);
+  evaluateTypeRequirements(ctx, input.loadout.entries, input.shipTypeRequirements ?? []);
   return finish(platform.id);
 }
 

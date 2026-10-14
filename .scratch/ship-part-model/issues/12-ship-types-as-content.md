@@ -43,3 +43,24 @@ DESIGN-22 rules rather than changing them) and recorded in ADR-0156.
 | --- | --- | --- |
 | **12a** Schema, registry content and index | `ShipTypeRecordSchema` with a closed `engineClass` enum and a closed `classification` predicate vocabulary in `@bluewave/content-schema`; the 14 records authored at `content/production/1880/ship-building/ship-types.yaml` from today's code; declared in `pack.json`, carried through validate/flatten into the part artifact and `PartIndex.shipTypes`; strict-decode tests (unknown engine class / predicate key / category / role / era fails). Additive: classification still reads the existing code until 12b. | AC 1 (decode half) |
 | **12b** Classification from content | Classification reads the compiled ship-type registry and its closed predicates; `TYPE_REQUIRES_*` fit findings; equivalence P3 report with zero `changed`; content lock refresh; ship-type e2e and campaign goldens unchanged. | AC 1–4 |
+
+## Deferred (review 12b)
+
+The 12b review returned no blocker for these, but each is a known follow-up that this slice
+does not take on. Recorded here so they are not silently dropped:
+
+- **In-app type selector reads the code registry.** `apps/desktop/src/renderer/components/design-workspace/shipTypes.ts`
+  (`shipTypeChoices` / `shipTypeName` / `shipTypeRole`) still derives from the code registry.
+  Content equals code today, so there is no visible change; it should derive from `ctx.shipTypes`
+  when the UI is next touched.
+- **Nested `mountCountMin` scaling.** `evaluateTypeRequirements` sums `mountCountMin` over
+  top-level satisfying entries only; nested slots are not yet scaled by the parent's installed
+  units.
+- **`UNEVALUABLE` → violation mapping.** A requirement constraint that cannot be evaluated is
+  treated as "not satisfied" without an explicit mapping decision; the SPM-R12 behaviour for an
+  unevaluable requirement is deferred.
+- **Silent fallback when a registry omits a type.** `shipTypeRequirementsFor` returns `[]` when
+  the context's records omit a type, so the type's requirements vanish rather than being reported.
+- **`FitFinding.path` doc for `typeRequires/<slot>`.** The `typeRequires/<slot>` path shape the
+  fit findings use is not yet documented alongside the other `FitFinding` paths.
+

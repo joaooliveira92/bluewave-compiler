@@ -11,6 +11,7 @@ import {
   typeAdvisories,
 } from "./classification.js";
 import { availabilityFindings, evaluateShipTypeAvailability } from "./shipTypeAvailability.js";
+import { shipTypeRegistryFromRecords } from "./shipTypeRegistry.js";
 import { colonialServiceAdvisory, colonialServiceEligibility } from "./colonialService.js";
 import type { Finding } from "./findings.js";
 import { hasBlocking, sortFindings, withoutSubjects } from "./findings.js";
@@ -55,12 +56,18 @@ export function compileDesign(draft: DesignDraft, ctx: ShipContext): CompiledDes
   if (!plant) throw new Error(`unknown plant '${draft.machinery.plantId}'`);
   const catalogue = new Map(ctx.catalogue.map((c) => [c.id, c]));
   const intended = draft.requirement.category;
+  // The compiled ship-type registry when the context carries content (ADR-0156, ticket 12b); absent
+  // falls back to the code registry inside each consumer. Classification outcomes are identical
+  // because the 12a regression pins the content records to the code values.
+  const shipTypes =
+    ctx.shipTypes === undefined ? undefined : shipTypeRegistryFromRecords(ctx.shipTypes);
   // Whether the type may be designed at all is decided first: a locked or unknown type is a finding, never a throw.
   const availability = evaluateShipTypeAvailability(intended, {
     month: ctx.month,
     unlockedTechs: ctx.unlockedTechs,
     capabilities: ctx.capabilities,
     restrictedTypes: ctx.restrictedShipTypes,
+    ...(shipTypes === undefined ? {} : { definitions: shipTypes.byId }),
   });
 
   // 1. Technology availability and parameter validity (stage VALIDATE_TECHNOLOGY)
@@ -186,9 +193,9 @@ export function compileDesign(draft: DesignDraft, ctx: ShipContext): CompiledDes
   );
   if (!availability.available) {
     findings.push(...availabilityFindings(availability));
-    naturalClassId = naturalClass(facts, rules);
+    naturalClassId = naturalClass(facts, rules, shipTypes?.classified);
   } else if (isClassifiedShipType(intended)) {
-    const cls = classificationFindings(facts, intended, rules);
+    const cls = classificationFindings(facts, intended, rules, shipTypes?.classified);
     naturalClassId = cls.natural;
     findings.push(...cls.findings);
     if (cls.findings.length === 0) findings.push(...typeAdvisories(intended, facts));

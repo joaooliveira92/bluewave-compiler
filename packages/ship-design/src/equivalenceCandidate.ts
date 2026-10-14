@@ -31,6 +31,7 @@ import { resolveGunPlacementThroughParts } from "./partReadPath.js";
 import type { UnresolvedGunPlacement } from "./partReadPath.js";
 import { totalOf } from "./partQuantities.js";
 import type { QuantityLine } from "./partQuantities.js";
+import { shipTypeRequirementsFor } from "./shipTypeRegistry.js";
 import {
   machineryPlanFromEntry,
   propulsionPlantFromPart,
@@ -336,6 +337,7 @@ export function runCandidateDesign(
     };
   }
 
+  const requirements = shipTypeRequirementsFor(ctx, draft.requirement.category);
   const fit = validateLoadoutFit({
     parts: uniqueParts(parts),
     slotTemplates: env.compatibility.slotTemplates,
@@ -344,6 +346,7 @@ export function runCandidateDesign(
     month: design.month,
     nation: { nationId },
     mountCountRanges: ranges satisfies FitMountCountRanges,
+    ...(requirements.length === 0 ? {} : { shipTypeRequirements: requirements }),
   });
 
   // The candidate compiles the placements its parts rebuild, never the original legacy
