@@ -250,7 +250,11 @@ describe("inverse readers rebuild today's runtime shapes from parts (11b)", () =
       "the torpedo part the launcher loads",
     );
     const entry = { id: "tube_1", slot: "bow.torpedo_launcher", part: launcher.id, mountCount: 2 };
-    const slotOf = (id: string): SlotData => ({ id, accepts: ["torpedo_launcher"], zone: "BOW" });
+    const slotOf = (id: string): SlotData => ({
+      id,
+      accepts: ["torpedo_launcher"],
+      zone: "FORECASTLE",
+    });
 
     // (i) The named torpedo resolves: the mount carries the neutral compiled record.
     const ok = readPlacements({
