@@ -1,4 +1,4 @@
-import { Result, Schema, SchemaIssue } from "effect";
+import { Effect, ManagedRuntime, Result, Schema, SchemaIssue } from "effect";
 import type { BridgeResult } from "../shared/bridge-contract.js";
 import { CAMPAIGN_COMMAND_NAMES } from "../shared/campaign-command-contract.js";
 import type { ResolveTacticalBattlePayload } from "../shared/campaign-command-contract.js";
@@ -47,8 +47,8 @@ import {
 import { commitMonth } from "./commands/commitMonth.js";
 import { compileCampaign, defaultCompileCampaignDeps } from "./commands/compileCampaign.js";
 import {
-  inspectDrawingBoardContent,
-  inspectPresentationContent,
+  inspectDrawingBoardContentProgram,
+  inspectPresentationContentProgram,
 } from "./commands/contentCommands.js";
 import {
   cancelConstructionCommand,
@@ -99,7 +99,7 @@ import { inspectMap } from "./commands/inspectMap.js";
 import { closeCampaign, copyCampaign, saveCampaign } from "./commands/sessionCommands.js";
 import { inspectOpeningBriefing } from "./commands/inspectOpeningBriefing.js";
 import { inspectPriorities } from "./commands/inspectPriorities.js";
-import { listNewGameOptions } from "./commands/listNewGameOptions.js";
+import { listNewGameOptionsProgram } from "./commands/listNewGameOptions.js";
 import { inspectResearchScreen, setResearchPriorityCommand } from "./commands/researchCommands.js";
 import { readUiState, writeUiState } from "./uiState.js";
 import { readMonthlyReports } from "./monthlyReports.js";
@@ -108,6 +108,14 @@ import {
   WriteDrawingBoardDraftPayloadSchema,
   writeDrawingBoardDraft,
 } from "./drawingBoardDraft.js";
+import { projectCommandExit } from "./runtime/bridgeResult.js";
+import {
+  CommandFailed,
+  NotImplemented,
+  UnknownCommand,
+  type CommandError,
+} from "./runtime/commandError.js";
+import { ContentArtifact, contentArtifactLayer } from "./runtime/contentArtifact.js";
 
 /**
  * The `campaign:execute` command registry. Command name is validated at
@@ -131,6 +139,16 @@ type CommandOutcome = BridgeResult<unknown>;
 export type CampaignCommandHandler = (payload: unknown) => CommandOutcome | Promise<CommandOutcome>;
 
 export type CommandRegistry = Partial<Record<CampaignCommandName, CampaignCommandHandler>>;
+
+/**
+ * An Effect-program command handler (INC-1; ADR-0159). Its error channel is the
+ * command error union; its requirement is the services the Layer provides. The
+ * success value is the frozen `BridgeResult` envelope, so the IPC bytes are
+ * unchanged.
+ */
+export type CommandProgram = (
+  payload: unknown,
+) => Effect.Effect<BridgeResult<unknown>, CommandError, ContentArtifact>;
 
 /** Formats an Effect `SchemaError`'s issue tree into Zod-style per-field messages. */
 const formatIssues = SchemaIssue.makeFormatterStandardSchemaV1();
@@ -203,8 +221,18 @@ function payloadless(
  * stays uniformly keyed, so a missing entry is a `NOT_IMPLEMENTED` response
  * rather than a missing `switch` case.
  */
+/**
+ * Commands migrated to Effect programs. The dispatcher prefers these over the
+ * legacy {@link CommandRegistry}; INC-2..INC-5 widen this set until the registry
+ * is fully replaced (INC-5).
+ */
+export const defaultCommandPrograms: Partial<Record<CampaignCommandName, CommandProgram>> = {
+  listNewGameOptions: () => listNewGameOptionsProgram,
+  inspectDrawingBoardContent: () => inspectDrawingBoardContentProgram,
+  inspectPresentationContent: () => inspectPresentationContentProgram,
+};
+
 export const defaultCommandRegistry: CommandRegistry = {
-  listNewGameOptions: payloadless(() => listNewGameOptions()),
   compileCampaign: withSchema(CampaignConfigurationPayloadSchema, (payload) =>
     compileCampaign(payload, defaultCompileCampaignDeps),
   ),
@@ -219,8 +247,6 @@ export const defaultCommandRegistry: CommandRegistry = {
   inspectPriorities: withSchema(SessionIdPayloadSchema, (sessionId) =>
     inspectPriorities(sessionId),
   ),
-  inspectDrawingBoardContent: payloadless(() => inspectDrawingBoardContent()),
-  inspectPresentationContent: payloadless(() => inspectPresentationContent()),
   commitMonth: withSchema(CommandEnvelopePayloadSchema, (payload) => commitMonth(payload)),
   inspectConstructionScreen: withSchema(SessionIdPayloadSchema, (sessionId) =>
     inspectConstructionScreen(sessionId),
@@ -354,36 +380,75 @@ export const defaultCommandRegistry: CommandRegistry = {
 };
 
 /**
- * Builds the `campaign:execute` dispatcher around a registry. Depends on the
- * {@link CommandRegistry} seam rather than the concrete command set (DIP), so
- * tests can inject a registry and the production one is just a value.
+ * Lifts a legacy synchronous/promise handler onto the command error channel so
+ * the dispatcher has one program shape. A thrown/rejected error becomes an
+ * `INTERNAL` `CommandFailed`.
+ */
+function liftLegacy(
+  handler: CampaignCommandHandler,
+  payload: unknown,
+): Effect.Effect<BridgeResult<unknown>, CommandError> {
+  return Effect.tryPromise({
+    try: () => Promise.resolve(handler(payload)),
+    catch: (error) =>
+      new CommandFailed({
+        reason: "INTERNAL",
+        diagnostics: [error instanceof Error ? error.message : String(error)],
+      }),
+  });
+}
+
+/**
+ * Builds the `campaign:execute` dispatcher. It decodes the command name, prefers
+ * an Effect {@link CommandProgram}, falls back to the legacy
+ * {@link CommandRegistry}, runs the program on the injected runtime, and
+ * projects the `Exit` to the frozen `BridgeResult` envelope (INC-1; ADR-0159).
+ * Depends on the registry/runtime seams rather than the concrete command set
+ * (DIP), so tests can inject both.
  */
 export function createCampaignCommandDispatcher(
   registry: CommandRegistry,
+  getRuntime: () => ManagedRuntime.ManagedRuntime<ContentArtifact, never>,
+  programs: Partial<Record<CampaignCommandName, CommandProgram>> = defaultCommandPrograms,
 ): (command: string, payload: unknown) => Promise<BridgeResult<unknown>> {
   return async (command, payload) => {
-    const parsedCommand = Schema.decodeUnknownResult(CommandNameSchema)(command);
-    if (Result.isFailure(parsedCommand)) {
-      return {
-        outcome: "error",
-        reason: "UNKNOWN_COMMAND",
-        diagnostics: [`No such campaign command: ${command}`],
-      };
-    }
+    const program = Effect.gen(function* () {
+      const parsedCommand = Schema.decodeUnknownResult(CommandNameSchema)(command);
+      if (Result.isFailure(parsedCommand)) {
+        return yield* new UnknownCommand({ command });
+      }
 
-    const handler = registry[parsedCommand.success];
-    if (handler === undefined) {
-      return {
-        outcome: "error",
-        reason: "NOT_IMPLEMENTED",
-        diagnostics: [
-          `${parsedCommand.success} is not implemented yet (desktop-mvp ticket 11 scaffold).`,
-        ],
-      };
-    }
+      const commandProgram = programs[parsedCommand.success];
+      if (commandProgram !== undefined) {
+        return yield* commandProgram(payload);
+      }
 
-    return handler(payload);
+      const handler = registry[parsedCommand.success];
+      if (handler === undefined) {
+        return yield* new NotImplemented({ command: parsedCommand.success });
+      }
+
+      return yield* liftLegacy(handler, payload);
+    });
+
+    const exit = await getRuntime().runPromiseExit(program);
+    return projectCommandExit(exit);
   };
 }
 
-export const dispatchCampaignCommand = createCampaignCommandDispatcher(defaultCommandRegistry);
+let commandRuntimeSingleton: ManagedRuntime.ManagedRuntime<ContentArtifact, never> | undefined;
+
+/**
+ * The process-wide default runtime for the dispatcher. The Electron main process
+ * builds and owns its own runtime (disposed on quit); this lazy singleton serves
+ * tests and any non-Electron caller of {@link dispatchCampaignCommand}.
+ */
+export function getDefaultCommandRuntime(): ManagedRuntime.ManagedRuntime<ContentArtifact, never> {
+  commandRuntimeSingleton ??= ManagedRuntime.make(contentArtifactLayer());
+  return commandRuntimeSingleton;
+}
+
+export const dispatchCampaignCommand = createCampaignCommandDispatcher(
+  defaultCommandRegistry,
+  getDefaultCommandRuntime,
+);

@@ -1,9 +1,9 @@
 # INC-1 — Runtime skeleton, gate move, and one command end-to-end
 
 **Type:** implementation
-**Status:** open
+**Status:** resolved
 **Blocked by:** None (can start immediately)
-**Frontier:** yes
+**Frontier:** no
 
 **What to build:** Stand up the full Effect runtime in the desktop main process and
 prove it end-to-end on one command. Build one `ManagedRuntime` in
@@ -43,3 +43,50 @@ enforcement cannot drift.
 - Tests may exercise the `runPromise` edge with `vite-plus/test` for this slice;
   `@effect/vitest` arrives in INC-7.
 - Do not delete any `*Deps` object yet — INC-5 retires them.
+
+## Answer
+
+Resolved 2026-10-14 on branch `feat/effect-apps-runtime` (worktree
+`/Users/joao/dev/bluewave-effect-apps`), behaviour-preserving.
+
+**What landed.**
+- `apps/desktop/src/main/runtime/commandError.ts` — the `Data.TaggedError` command
+  error union (`UnknownCommand`, `NotImplemented`, `InvalidCommandPayload`,
+  `CommandRejected`, `CommandFailed`) with stable `_tag`s.
+- `apps/desktop/src/main/runtime/bridgeResult.ts` — the total `Exit → BridgeResult`
+  projection at the wire edge (structural `_tag` guard, never `instanceof`); a
+  defect collapses to `INTERNAL`.
+- `apps/desktop/src/main/runtime/contentArtifact.ts` — the `ContentArtifact`
+  service (`Context.Service`, method `Effect<A, E, never>`) + `contentArtifactLayer`,
+  wrapping raw `compileProductionCampaignFromArtifact`; no platform service.
+- `apps/desktop/src/main/commands/listNewGameOptions.ts` — migrated to the
+  `listNewGameOptionsProgram` Effect program (resolves `ContentArtifact`, compiles
+  through it, same success bytes, `COMPILE_FAILED` on the error channel).
+- `apps/desktop/src/main/campaignBridge.ts` — `CommandProgram` type,
+  `defaultCommandPrograms`, a `liftLegacy` adapter for the remaining handlers, and
+  a dispatcher that runs the program on an injected `ManagedRuntime` and projects
+  the `Exit`; `dispatchCampaignCommand` kept for non-Electron callers via a lazy
+  default runtime.
+- `apps/desktop/src/main/index.ts` — one `ManagedRuntime` built in `whenReady()`
+  (before `registerIpc`), disposed in the bounded-shutdown continuation;
+  `runPromiseExit` only at the `ipcMain.handle` edge.
+- Gate/docs: `scripts/assert-runtime-free.mjs` drops `apps/desktop/src/main` from
+  `RUNTIME_FREE_ROOTS` (15 roots) and its comment/error text cite ADR-0159;
+  `scripts/test/assert-runtime-free.test.mjs` asserts main is **not** guarded;
+  `RULES.md` §Effect names the two app surfaces; `docs/agents/runtime-free-gate.md`
+  drops main and cites ADR-0159.
+
+**Validation (all green).**
+- `pnpm --filter @bluewave/desktop typecheck`.
+- `listNewGameOptions.test.ts` (5) + `campaignBridge.test.ts` (44) pass; full
+  desktop suite **2017 passed / 1 skipped**; `boundary.test.ts` unchanged and green.
+- Renderer bundle clean (`check-renderer-bundle`: "no yaml/effect across 20 chunks").
+- `pnpm preflight` **37/37**; `pnpm test:scripts` 178 pass; `pnpm lint:effect`
+  0 errors; `pnpm check:golden` all 11 hashes match.
+
+**Notes.** The `BridgeResult` wire bytes for `listNewGameOptions` are unchanged
+(the existing assertions still pass); the error channel is exercised by the
+`COMPILE_FAILED` path. The `*Deps` objects are untouched (INC-5 retires them);
+`CommandDispatcher`/remaining services widen in INC-2..INC-5. Cold-cache Vitest
+timeouts in the `content-codemod` gate were environmental (fresh worktree),
+resolved by warming the module cache.

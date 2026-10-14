@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { readFileSync } from "node:fs";
+import { Effect, Layer, ManagedRuntime } from "effect";
 import type { CommandEnvelope, CommandBody } from "@bluewave/commands";
 import {
   runValidate,
@@ -120,11 +121,10 @@ gunnery:resolve-shot options:
   --seed <string>        RandomEngine master seed for the keyed hit draw
                          (default: "default-seed")`;
 
-function main(): void {
-  const args = process.argv.slice(2);
+function runCli(args: string[]): number {
   if (args.length === 0 || args[0] === "--help" || args[0] === "-h") {
     process.stdout.write(USAGE);
-    process.exit(0);
+    return exitCodes.success;
   }
   const command = args[0] as string;
   const existingCommands = [
@@ -158,15 +158,15 @@ function main(): void {
   if (!allCommands.includes(command)) {
     process.stderr.write(`Unknown command: ${command}\n`);
     process.stderr.write(USAGE);
-    process.exit(1);
+    return 1;
   }
   if (battleAdvanceMinuteCommands.includes(command)) {
     const bo = parseBattleAdvanceMinuteOptions(args.slice(1));
-    process.exit(exitCodes[runBattleAdvanceMinute(bo)]);
+    return exitCodes[runBattleAdvanceMinute(bo)];
   }
   if (gunneryResolveShotCommands.includes(command)) {
     const go = parseGunneryResolveShotOptions(args.slice(1));
-    process.exit(exitCodes[runGunneryResolveShot(go)]);
+    return exitCodes[runGunneryResolveShot(go)];
   }
   const isBattleGenerate = battleGenerateCommands.includes(command);
   const isNew = newCommands.includes(command) || isBattleGenerate;
@@ -239,7 +239,31 @@ function main(): void {
     default:
       exitCategory = "usage-error";
   }
-  process.exit(exitCodes[exitCategory]);
+  return exitCodes[exitCategory];
+}
+
+/**
+ * The CLI entrypoint facade (INC-6; ADR-0159). Runs the synchronous dispatch
+ * program on one `ManagedRuntime`, disposes it, then exits with the mapped code.
+ * The `run*` internals stay synchronous; the six-code exit contract is unchanged.
+ */
+function main(): void {
+  const runtime = ManagedRuntime.make(Layer.empty);
+  const program = Effect.gen(function* () {
+    return runCli(process.argv.slice(2));
+  });
+  const finish = (code: number): void => {
+    void runtime.dispose().then(
+      () => process.exit(code),
+      () => process.exit(code),
+    );
+  };
+  runtime.runPromise(program).then(finish, (error: unknown) => {
+    process.stderr.write(
+      `${error instanceof Error ? (error.stack ?? error.message) : String(error)}\n`,
+    );
+    finish(1);
+  });
 }
 
 function loadCommandsFile(
