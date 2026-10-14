@@ -1,3 +1,5 @@
+import type { FlattenedPart, PartInterface } from "@bluewave/content-schema";
+import { compareCodePoints } from "@bluewave/deterministic";
 import { armourAvailabilityFindings, type ArmourRegion, type ArmourRegionId } from "./armour.js";
 import type { ComponentCategory } from "./component.js";
 import {
@@ -10,6 +12,15 @@ import {
 import { computeCost, type CostBalance, type CostContext } from "./cost.js";
 import type { Finding } from "./findings.js";
 import { sortFindings } from "./findings.js";
+import { standardGunPartId } from "./partCatalogue.js";
+import {
+  COMPATIBILITY_INTERFACES,
+  compatibilitySlotId,
+  platformSlots,
+  type CompatibilityInterface,
+  type CompatibilityModel,
+} from "./partCompatibility.js";
+import { evaluateConstraints, specAt } from "./partFitConstraints.js";
 import { bp, kg, UM_PER_INCH } from "./units.js";
 
 /** DESIGN-22 §9/§11 gun boundary the armament rules read: 6 inches. */
@@ -179,8 +190,8 @@ export type RefitProjectType = "REPAIR" | "EQUIPMENT_INSTALLATION" | "REBUILD" |
 
 export interface RefitKindRule {
   readonly projectType: RefitProjectType;
-  /** Component categories that may be added or removed by this kind. */
-  readonly allowedCategories: readonly ComponentCategory[];
+  /** Part interfaces that may be added or removed by this kind (SPM-R18; formerly component categories). */
+  readonly allowedInterfaces: readonly PartInterface[];
   readonly minRemainingLifeMonths: number;
   /** The hull may not be this fatigued to start the refit, bp. */
   readonly maxHullFatigueBp: number;
@@ -280,6 +291,73 @@ const ARMOUR_GATE_IDS: ReadonlySet<string> = new Set([
 const fmt = (n: number) => n.toLocaleString("en-US");
 
 /**
+ * The legacy component categories that stood in for part interfaces before SPM-R18. Used only
+ * when the context carries no compiled part model (older packs and fixtures): the parts are the
+ * authority whenever they are present.
+ */
+const LEGACY_INTERFACE_BY_CATEGORY: Readonly<Partial<Record<ComponentCategory, PartInterface>>> = {
+  MAIN_GUN: "gun",
+  SECONDARY_GUN: "gun",
+  DUAL_PURPOSE_GUN: "gun",
+  AA_WEAPON: "gun",
+  MOUNT: "gun_mount",
+  MAGAZINE: "magazine",
+  DIRECTOR: "sensor",
+  RANGEFINDER: "sensor",
+  RADAR: "sensor",
+  COMMS: "sensor",
+  GENERATOR: "electrical_plant",
+  ENGINE: "propulsion_plant",
+  BOILER: "propulsion_plant",
+  ARMOUR_SCHEME: "armour_material",
+};
+
+const COMPATIBILITY_INTERFACE_LIST: readonly PartInterface[] = COMPATIBILITY_INTERFACES;
+function isCompatibilityInterface(value: PartInterface): value is CompatibilityInterface {
+  return COMPATIBILITY_INTERFACE_LIST.includes(value);
+}
+
+/**
+ * A deterministic lookup from a legacy component id to its part-model counterpart. Built once
+ * per evaluation (LOW-1: never `Object.values` order or a per-placement rescan). Precedence:
+ * a part that carries the component id, then a gun family's model (the `standard_<family>`
+ * model when present), then a variant's prototype. Ids are visited in codepoint order, so the
+ * result does not depend on the catalogue's declaration order.
+ */
+function buildPartIndex(ctx: ShipContext): ReadonlyMap<string, FlattenedPart> {
+  const model = ctx.partModel;
+  if (model === undefined) return EMPTY_PART_INDEX;
+  const parts = Object.values(model.partIndex.byId).sort((a, b) => compareCodePoints(a.id, b.id));
+  const index = new Map<string, FlattenedPart>();
+  const put = (key: string, part: FlattenedPart): void => {
+    if (!index.has(key)) index.set(key, part);
+  };
+  // 1. A part that carries the legacy component id directly (fittings, launchers, materials).
+  for (const part of parts) put(part.id, part);
+  // 2. A gun family resolves to one of its `gun` models; the standard model wins, otherwise the
+  // codepoint-first model of the family. A part already claiming the id itself is never displaced.
+  for (const part of parts) {
+    if (part.family !== "gun") continue;
+    const family = part.spec.gunFamily;
+    if (family === undefined) continue;
+    const current = index.get(family);
+    const currentIsFamilyGun =
+      current !== undefined && current.family === "gun" && current.spec.gunFamily === family;
+    if (current === undefined || (currentIsFamilyGun && part.id === standardGunPartId(family))) {
+      index.set(family, part);
+    }
+  }
+  // 3. A variant resolves to its prototype (the base launcher) when no other part claims it.
+  for (const part of parts) {
+    const prototype = part.origin.prototype?.id;
+    if (prototype !== undefined) put(prototype, part);
+  }
+  return index;
+}
+
+const EMPTY_PART_INDEX: ReadonlyMap<string, FlattenedPart> = new Map();
+
+/**
  * Evaluates a refit as a diff on the built ship: the whole compile pipeline runs on the modified design, so mass, volume,
  * stability, power, cooling and crew are all accounted for (I5). Pre-existing problems do not block; new BLOCKING or
  * CRITICAL findings do.
@@ -295,7 +373,6 @@ export function evaluateRefit(
 ): RefitEvaluation {
   const rule = balance.rules[plan.kind];
   const findings: Finding[] = [];
-  const catOf = (componentId: string) => ctx.catalogue.find((c) => c.id === componentId)?.category;
 
   // BULGE (RTW3 manual p. 32): a blister is required, and only a BULGE refit may add one.
   const bulgeMassKg =
@@ -370,19 +447,28 @@ export function evaluateRefit(
       );
     }
   }
-  const touched = [
-    ...plan.removeInstanceIds.map((id) => existing.get(id)?.componentId),
-    ...plan.add.map((p) => p.componentId),
-  ].filter((x): x is string => x !== undefined);
-  for (const cid of touched) {
-    const cat = catOf(cid);
-    if (cat === undefined || !rule.allowedCategories.includes(cat)) {
+  const touched: readonly PlacementSpec[] = [
+    ...plan.removeInstanceIds
+      .map((id) => existing.get(id))
+      .filter((p): p is PlacementSpec => p !== undefined),
+    ...plan.add,
+  ];
+  const partIndex = buildPartIndex(ctx);
+  const interfaceOfComponent = (componentId: string): PartInterface | undefined => {
+    const part = partIndex.get(componentId);
+    if (part !== undefined) return part.provides;
+    const category = ctx.catalogue.find((c) => c.id === componentId)?.category;
+    return category === undefined ? undefined : LEGACY_INTERFACE_BY_CATEGORY[category];
+  };
+  for (const placement of touched) {
+    const iface = interfaceOfComponent(placement.componentId);
+    if (iface === undefined || !rule.allowedInterfaces.includes(iface)) {
       findings.push(
         f(
           "REFIT_KIND_MISMATCH",
           "BLOCKING",
-          `${cid} is not part of a ${plan.kind} refit.`,
-          `Category ${cat ?? "unknown"} is outside this refit kind.`,
+          `${placement.componentId} is not part of a ${plan.kind} refit.`,
+          `Interface ${iface ?? "unknown"} is outside this refit kind.`,
           "A refit of this kind cannot touch that equipment.",
           [
             ["use_kind", "Choose the refit kind that covers this equipment."],
@@ -391,6 +477,86 @@ export function evaluateRefit(
           ],
         ),
       );
+    }
+  }
+  // SPM-R18: a touched part is legal only if the same slot accepts it and its constraints pass at
+  // the refit month. Supersession is never consulted (I-7). `REFIT_KIND_MISMATCH` (above) covers an
+  // interface outside the kind; `REFIT_SLOT_REJECTED` (new id) covers a slot rejection. Evaluated
+  // only where the compiled part model is present; guns resolve to their `gun` part, whose filling
+  // mount slot a legacy placement does not name (P7 authored mount slots), so only zone-slot
+  // interfaces get a constraint check.
+  const partModel = ctx.partModel;
+  if (partModel !== undefined) {
+    const compatibility: CompatibilityModel = {
+      slotTemplates: partModel.slotTemplates,
+      platforms: partModel.platforms,
+    };
+    const slots = platformSlots(compatibility, ship.design.hull.hullFormId);
+    if (slots !== null) {
+      const slot = (iface: CompatibilityInterface, zoneId: PlacementSpec["zoneId"]) =>
+        slots.find((s) => s.id === compatibilitySlotId(zoneId, iface));
+      for (const placement of touched) {
+        const part = partIndex.get(placement.componentId);
+        if (part === undefined || !isCompatibilityInterface(part.provides)) continue;
+        const target = slot(part.provides, placement.zoneId);
+        if (target === undefined) {
+          findings.push(
+            f(
+              "REFIT_SLOT_REJECTED",
+              "BLOCKING",
+              `${part.id} has no slot in ${placement.zoneId}.`,
+              `Platform '${ship.design.hull.hullFormId}' has no slot '${compatibilitySlotId(placement.zoneId, part.provides)}'.`,
+              "A refit may only swap a part for one a slot of the same hull accepts.",
+              [
+                ["pick_other", "Choose a part the hull can carry."],
+                ["use_kind", "Choose the refit kind that covers this equipment."],
+                ["reconstruct", "Plan a major reconstruction instead."],
+              ],
+            ),
+          );
+          continue;
+        }
+        if (!(target.accepts ?? []).includes(part.provides)) {
+          findings.push(
+            f(
+              "REFIT_SLOT_REJECTED",
+              "BLOCKING",
+              `${part.id} does not fit ${target.id}.`,
+              `Slot '${target.id}' accepts ${(target.accepts ?? []).join(", ") || "nothing"}, not '${part.provides}'.`,
+              "A refit may only swap a part for one the same slot accepts, with its constraints met.",
+              [
+                ["pick_other", "Choose a part the slot accepts."],
+                ["use_kind", "Choose the refit kind that covers this equipment."],
+                ["reconstruct", "Plan a major reconstruction instead."],
+              ],
+            ),
+          );
+          continue;
+        }
+        const violated = evaluateConstraints({
+          slot: target,
+          subject: { part, spec: specAt(part, ctx.month) },
+          mountCount: 1,
+          parent: null,
+          nestedGuns: [],
+        }).find((o) => o.kind === "VIOLATED");
+        if (violated !== undefined) {
+          findings.push(
+            f(
+              "REFIT_SLOT_REJECTED",
+              "BLOCKING",
+              `${part.id} does not fit ${target.id}.`,
+              `Part '${part.id}' violates constraint '${violated.constraint}' of slot '${target.id}'.`,
+              "A refit may only swap a part for one the same slot accepts, with its constraints met.",
+              [
+                ["pick_other", "Choose a part the slot accepts."],
+                ["use_kind", "Choose the refit kind that covers this equipment."],
+                ["reconstruct", "Plan a major reconstruction instead."],
+              ],
+            ),
+          );
+        }
+      }
     }
   }
   // REARMAMENT (RTW3 manual pp31-32): the manual's armament-change conditions, as a validation rule set.

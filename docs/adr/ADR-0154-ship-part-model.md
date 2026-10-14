@@ -322,6 +322,32 @@ The 1880 content has 91 reference designs with 823 placements (230 gun placement
       `placeholder-allowlist.json` pending a sourcing pass — a gate change recorded here, not a
       migration difference.
 
+22. **Refit compatibility from slot acceptance (2026-10-14, ticket 14).** A refit may swap a part
+    only for one the same slot accepts and whose constraints pass at the refit month; supersession
+    never implies compatibility (I-7). `RefitKindRule.allowedCategories` becomes
+    `allowedInterfaces: PartInterface[]`, and the kind check reads the touched part's provided
+    interface (a gun placement resolves to its `gun` part; the legacy fallback maps categories to
+    the same interface, so the two paths agree). `evaluateRefit` additionally evaluates the
+    platform's zone slot (`<zone>.<interface>`, `platformSlots` + `compatibilitySlotId`) with
+    `evaluateConstraints`, emitting BLOCKING `REFIT_SLOT_REJECTED`; it reads the compiled part
+    model from the new optional `ShipContext.partModel` (attached by `environmentFor`). A new
+    gate, `scripts/verify-no-upgradepath-refit-readers.mjs` (in `pnpm preflight`), fails if the
+    refit/design-compile/production-compatibility modules read `upgradePath` or decide
+    compatibility from `supersedes`.
+    - **Deferred, recorded.** `interfaces/1` has no aviation token, so
+      `AVIATION_CONVERSION.allowedInterfaces` is empty and an aviation-facility refit is rejected
+      with `REFIT_KIND_MISMATCH` rather than silently allowed (D-9; the interface and its parts
+      land with the aviation work at P7). A legacy gun placement resolves to the `gun` part, whose
+      filling mount slot it does not name, so only zone-slot interfaces get a constraint check
+      (authored mount slots are P7). The authored `balance.yaml` `refit:` section keeps
+      `allowedCategories`: it has no decoded reader (the desktop reads only
+      `bulgeProtectionGainBp`), and renaming it moves the content-lock and golden content hashes;
+      it is renamed together with that re-pin, not here.
+    - **No reader removal here.** The remaining `upgradePath` readers — the `partCatalogue`
+      read-path migration to `supersedes`, `component.ts` `lintCatalogue`, and the content
+      compiler's legacy validation — belong to the P1 read path that ticket 15 (P5) deletes with
+      the legacy formats.
+
 ## Consequences
 
 - One mechanism covers nine part families, platforms and ship types.

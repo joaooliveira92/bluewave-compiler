@@ -173,6 +173,18 @@ export const GATE_SETS = {
       args: ["scripts/verify-no-torpedo-model-constants.mjs"],
     },
     {
+      id: "upgradepath-refit-readers-self-test",
+      label: "no-upgradePath-refit-readers guard self-test",
+      needs: ["git-state"],
+      args: ["scripts/verify-no-upgradepath-refit-readers.mjs", "--self-test"],
+    },
+    {
+      id: "upgradepath-refit-readers",
+      label: "no upgradePath readers in the refit path",
+      needs: ["upgradepath-refit-readers-self-test"],
+      args: ["scripts/verify-no-upgradepath-refit-readers.mjs"],
+    },
+    {
       id: "test-focus",
       label: "no focused/unexplained-skip tests",
       needs: ["git-state"],

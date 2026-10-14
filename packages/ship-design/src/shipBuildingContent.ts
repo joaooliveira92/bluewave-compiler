@@ -204,6 +204,8 @@ export function buildShipBuildingContent(data: ShipBuildingData): ShipBuildingCo
       // (ADR-0156, ticket 12b) when the pack carries one; a pack without parts content falls back
       // to the code registry, whose values the 12a regression pins equal.
       ...(data.partModel === undefined ? {} : { shipTypes: data.partModel.partIndex.shipTypes }),
+      // SPM-R18 (ticket 14): a refit evaluates slot acceptance from the parts when the pack carries them.
+      ...(data.partModel === undefined ? {} : { partModel: data.partModel }),
       ...(profile !== null
         ? {
             capabilities: new Set(profile.hardCapabilities.grants),

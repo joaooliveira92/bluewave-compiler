@@ -163,6 +163,12 @@ export interface ShipContext {
    * explicitly documented compatibility path.
    */
   readonly armamentContent?: import("./armamentContent.js").AuthoredArmamentContent | null;
+  /**
+   * The compiled part model (SPM-R18, ticket 14). When present, a refit evaluates a touched
+   * part's slot acceptance from the parts themselves; absent, it falls back to the legacy
+   * component categories. Optional so fixtures and older callers keep working.
+   */
+  readonly partModel?: import("@bluewave/content-schema").CompiledPartModel;
 }
 
 export interface CompiledDesign {
