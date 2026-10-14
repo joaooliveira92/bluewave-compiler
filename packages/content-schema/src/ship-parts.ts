@@ -395,6 +395,23 @@ function requiredKeys(fields: Schema.Struct.Fields): readonly string[] {
   return Object.keys(fields).filter((key) => fields[key]?.ast.context?.isOptional !== true);
 }
 
+/**
+ * `DQ-TORPEDO-001` waives a launcher's `diameterUmEqualsBore`, so a legacy exception is
+ * admissible on a `torpedo_launcher` record only (SPM-R7, ADR-0154 §10). On any other
+ * family it fails decoding at `legacyExceptions`.
+ */
+function legacyExceptionsOnLauncherOnly(part: {
+  readonly family: PartFamily;
+  readonly legacyExceptions?: ReadonlyArray<unknown> | undefined;
+}) {
+  return part.legacyExceptions === undefined || part.family === "torpedo_launcher"
+    ? undefined
+    : {
+        path: ["legacyExceptions"],
+        issue: "a legacy exception is admissible on a torpedo_launcher record only",
+      };
+}
+
 /** The envelope fields shared by the authored and the flattened part of one family. */
 function envelopeFields<const F extends PartFamily>(family: F) {
   return {
@@ -435,9 +452,13 @@ function partMember<const F extends PartFamily, const SpecFields extends Schema.
     revisions: Schema.optional(Schema.Array(revisionSchema(delta))),
   }).check(
     Schema.makeFilter((part) => {
-      if (part.extends !== undefined) return undefined;
+      const misplaced = legacyExceptionsOnLauncherOnly(part);
+      if (part.extends !== undefined) return misplaced;
       const missing = required.filter((key) => !Object.hasOwn(part.spec, key));
-      return missing.map((key) => ({ path: ["spec", key], issue: "Missing key" }));
+      return [
+        ...missing.map((key) => ({ path: ["spec", key], issue: "Missing key" })),
+        ...(misplaced === undefined ? [] : [misplaced]),
+      ];
     }),
   );
 }
@@ -499,7 +520,7 @@ function flattenedMember<const F extends PartFamily, const SpecFields extends Sc
     quantities: Schema.Array(QuantityComponentSchema),
     revisions: Schema.Array(revisionSchema(Schema.Struct(optionalFields(specFields)))),
     origin: PartOriginSchema,
-  });
+  }).check(Schema.makeFilter(legacyExceptionsOnLauncherOnly));
 }
 
 /** A part after the flatten stage: what the content artifact carries. */

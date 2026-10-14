@@ -3,7 +3,7 @@
 **Type:** implementation
 **Status:** open
 **Blocked by:** 02, 06
-**Frontier:** no
+**Frontier:** yes
 **Requirements:** SPM-R15 · Stories 2, 17, 18, 19, 20
 
 ## What to build
@@ -16,6 +16,8 @@ An agent or the designer can ask the content directly:
 - `partsForSlot` — every part whose interface and constraints a slot accepts;
 - `lineage` — supersession ancestry and successors;
 - `validateLoadout` — the fit findings from ticket 06;
+  it wraps `validateLoadoutFit` and must expose the unlocked-technology input that ticket 06
+  could not evaluate (deferred from 06);
 - `loadoutCost` — each quantity component's value, basis, multiplier and contribution,
   with totals.
 

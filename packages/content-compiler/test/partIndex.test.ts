@@ -422,7 +422,12 @@ describe("cross-references fail with the file and field path", () => {
     [
       "an unknown legacy-exception forPart",
       [
+        // A legacy exception is admissible on a launcher only (ADR-0154 §10).
         part("a", {
+          family: "torpedo_launcher",
+          provides: "torpedo_launcher",
+          spec: { launchType: "ABOVE_WATER_TRAINABLE", boreDiameterUm: 380000 },
+          quantities: [],
           legacyExceptions: [
             { code: "DQ-TORPEDO-001", waives: "diameterUmEqualsBore", forPart: "nope", note: "n" },
           ],

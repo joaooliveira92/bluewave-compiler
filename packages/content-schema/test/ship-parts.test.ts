@@ -346,6 +346,37 @@ describe("migration-only aliases are rejected by the canonical decoder", () => {
     });
   });
 
+  it("a legacy exception on any family but torpedo_launcher fails at legacyExceptions", () => {
+    const exception = {
+      code: "DQ-TORPEDO-001",
+      waives: "diameterUmEqualsBore",
+      forPart: "whitehead_14in",
+      note: "inherited",
+    };
+    for (const [family, part] of Object.entries(PARTS)) {
+      const record = { ...part, legacyExceptions: [exception] };
+      if (family === "torpedo_launcher") {
+        expectAccepted(PartSchema, record);
+        continue;
+      }
+      expectRejected(PartSchema, record);
+      const flattened = { ...record, quantities: [], revisions: [], origin: { sourceFile: "x" } };
+      expectRejected(FlattenedPartSchema, flattened);
+      expectAccepted(FlattenedPartSchema, { ...flattened, legacyExceptions: undefined });
+    }
+    const { errors } = diagnose(
+      PartSchema,
+      { ...PARTS.torpedo, legacyExceptions: [exception] },
+      "ship-building/parts/torpedoes.yaml",
+    );
+    expect(errors.map((e) => e.message)).toContainEqual(
+      expect.stringContaining("Part.legacyExceptions"),
+    );
+    expect(
+      errors.every((e) => e.sourceLocation?.path === "ship-building/parts/torpedoes.yaml"),
+    ).toBe(true);
+  });
+
   it("an unknown legacy-exception code or waived constraint fails", () => {
     const exception = {
       code: "DQ-TORPEDO-001",

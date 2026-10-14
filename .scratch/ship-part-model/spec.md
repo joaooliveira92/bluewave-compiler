@@ -12,7 +12,7 @@ that means the implementation tickets, once sliced by `to-tickets`, carry
 P6 (visual alignment, which includes ship-visualization INC-4) waits on the owner's review
 of the exact visual-trait definitions.
 
-**Status:** sliced into 16 tickets at `issues/` (02 and 03 are resolved and 04–06 are the frontier; P1 = 01–09; 2.0.0 is implemented in 10 and activated atomically in 11, P2 = 10–11, P3 = 12, P4 = 13, P5 = 14–15, P6 = 16, gated on D16).
+**Status:** sliced into 16 tickets at `issues/` (01–06 are resolved and 07 and 08 are the frontier; P1 = 01–09; 2.0.0 is implemented in 10 and activated atomically in 11, P2 = 10–11, P3 = 12, P4 = 13, P5 = 14–15, P6 = 16, gated on D16).
 
 **Source of truth:** the approved design proposal [`proposal.md`](proposal.md)
 (revision 4.1) and its decision log D1–D19, invariants I-1–I-27, safeguards S1–S8 and
@@ -533,7 +533,7 @@ or the proposal's tables. They are never recomputed the way the code computes th
    sync test.
 
 The **test fixtures pin** the coverage numbers (91 designs, 823 placements, 230 gun, 28
-tube, 9 central-battery placements, 15 national launcher variants, 5 waivers), the nine
+tube, 9 central-battery placements, 17 national launcher variants, 5 waivers), the nine
 D17 rows and the 28 torpedo rows from the proposal tables. A content change that moves them
 fails until the fixture is deliberately updated.
 
@@ -565,7 +565,9 @@ fails until the fixture is deliberately updated.
 
 - **Corrected counts.** The coverage numbers come from a full decode of the reference
   designs and replace earlier figures (654 placements, 26 tube placements) that appeared in
-  early proposal revisions.
+  early proposal revisions. Production content has **17** national launcher variants, not
+  15. Spain and the USA also have a 356 mm variant (ticket 04). The waiver count (5) and
+  the waived entries (9) are unchanged, and the fixtures pin 17.
 - **Two identity strings are expected to change** in P2, for the nine central-battery
   entries only: the compiled weapon contract's `mountType` and `mountId`, and the engine
   design-version copy of `mountType`. Combat does not read gun mount type, and the

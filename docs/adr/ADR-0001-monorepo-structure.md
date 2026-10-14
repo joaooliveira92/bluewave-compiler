@@ -52,7 +52,7 @@ Applications:
 - `contracts` is the root. `armament`, `diagnostics`, `deterministic`, and `random` depend only on `contracts` (and `deterministic` on `@noble/hashes`).
 - `content-schema` depends on `contracts` + `diagnostics`; `content-compiler` adds `deterministic`.
 - `campaign` depends on `contracts`, `diagnostics`, `deterministic`, `content-schema`, `content-compiler`.
-- `ship-design` depends on `contracts`, `deterministic`, `random`, `armament`; `events` depends on `campaign`, `contracts`, `deterministic`, `diagnostics`.
+- `ship-design` depends on `contracts`, `deterministic`, `random`, `armament`, and `content-schema` for types only (the part-model read path is typed by its strict schemas; no runtime import, so no Effect in the renderer); `events` depends on `campaign`, `contracts`, `deterministic`, `diagnostics`.
 - `commands` depends on `contracts`, `deterministic`, `diagnostics`, `campaign`, `content-schema`, `ship-design`; `combat` depends on `contracts`, `deterministic`, `diagnostics`, `campaign`, `random`, `events`.
 - `ai` and `persistence` depend on the campaign/command layer; `campaign-engine` depends on `campaign` + `content-schema`.
 - `ship-visual` depends on `content-schema` + `diagnostics` — pure visual resolution, no authoritative state; the desktop renderer consumes its part types and resolver.

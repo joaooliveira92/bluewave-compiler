@@ -82,7 +82,9 @@ The 1880 content has 91 reference designs with 823 placements (230 gun placement
    transformation module the runtime-free package may not import.
 10. **Legacy exceptions** are a closed, migration-only set (`DQ-TORPEDO-001`). Each one
     waives exactly one named constraint (`diameterUmEqualsBore`) for one named
-    counterpart part, and carries a note.
+    counterpart part, and carries a note. Because that constraint belongs to a launcher,
+    "migrated records only" (SPM-R7) is enforced as: a legacy exception decodes on a
+    `torpedo_launcher` record only, and fails at `legacyExceptions` on any other family.
 11. **Saves.** Compatibility is decided before deserialisation. Incompatible saves are
     refused, never translated. The 2.0.0 gate is built in P2 and activated in the same
     change as the content and pipeline switch.
@@ -126,6 +128,54 @@ The 1880 content has 91 reference designs with 823 placements (230 gun placement
       inherited. Paths are relative to the content root with `/` separators, so the
       hash does not depend on the checkout path. Part provenance is in the confidence
       report and the placeholder gate (ADR-0147).
+15. **Legacy formulas become quantities (2026-10-14, ticket 05).** A part has no
+    formulas, so the read path (and P2's codemod) translates a component's mass, cost,
+    crew, volume and deck-footprint formula only when it is affine in one declared count
+    parameter over that parameter's whole range. The count-independent term becomes
+    `PER_LOADOUT_ENTRY`. The per-count term takes the slice's per-unit basis:
+    `PER_CONTAINED_UNIT` on a gun mount (§9.2), and `PER_PART_UNIT` on a launcher or
+    fitting. A one-unit component's constant is `PER_PART_UNIT`. A fitting's count
+    parameter (the quarters' `blocks`) is read as the entry's `mountCount`, because
+    `mountCount` is the only quantity field. A formula that reads another parameter, is
+    not affine, or gives a negative or fractional term is a coded read failure, never a
+    guess. Propulsion plants are parametric parts with `installedKw` as their one
+    parameter and no quantity components: the machinery stage derives their mass and
+    volume from the spec. Facts the part schema has no field for yet stay on adapter-side
+    records, never on a part. These are component height, centre of gravity, electrical
+    and cooling load and other attributes, the room split and fuel load of a machinery
+    plan, and the citadel and bunker figures. The codemod (ticket 11) needs a schema
+    home for each one before it can retire the legacy source.
+16. **Fit validation (2026-10-14, ticket 06).** `validateLoadoutFit` is a pure stage that
+    runs before any derivation and returns `ACCEPTED`, `REJECTED` (findings) or
+    `NOT_EVALUABLE` (data issues); expected failures never throw.
+    - **Order and meaning.** Slot exists, then interface and constraints on the spec
+      resolved at the design month, then `mountCount` bounds, lifecycle, national access
+      and placement. A nested slot's bounds are per installed parent unit, so a mount's
+      `guns` slot `{n,n}` holds `n × mountCount` guns. Findings sort by the SPM-R12 code
+      order, then by an identifier-based path, so input order never matters.
+    - **Codes.** Beyond SPM-R12, three distinct failures get codes: `FIT_UNKNOWN_SLOT`,
+      `FIT_COUNT_BELOW_MINIMUM` (a declared `min`) and `FIT_PLACEMENT`. A constraint a
+      part cannot answer (a calibre on a torpedo) is a data issue, not a pass.
+    - **Readings chosen.** Slot calibre bounds are whole inches compared exactly in
+      micrometres. A mount's calibre is its nested guns'. `massKgMax` is the entry's own
+      part components at their basis multipliers. `sameParts` requires one part in the
+      slot; `mirrors` resolves to the sibling's definition and does not enforce mirrored
+      fill. A `DQ-TORPEDO-001` waiver is honoured only on a `torpedo_launcher` parent, for
+      the named torpedo and the named constraint, and is reported as an applied waiver.
+    - **Stricter wins** (ADR-0089) by checking both: a platform cap violation is
+      `FIT_CONSTRAINT_VIOLATED`, a national cap violation is `FIT_NATION_ACCESS`.
+    - **Side inputs, not schema fields.** The nation's caps and denials, the
+      ammunition-to-gun compatibility facts and the legacy count ranges arrive as typed
+      inputs. Platform lifecycles, entry ids and an unlocked-technology set have no
+      representation yet; `requires` is not evaluated.
+    - **Magazines.** An entry carrying nested ammunition reports `FIT_MAGAZINE_AMBIGUOUS`
+      or `FIT_MAGAZINE_UNDETERMINED` in `unresolved` when its feeding magazine is not
+      unique. Nothing is chosen and no rounds are created (tickets 08 and 11).
+    - **Barrier.** `deriveAfterFit` is the stage-level seam, implemented and tested.
+      `compileDesign` is not wired through it; production enforcement, and the platform
+      availability windows, entry identity and cycle checks and unlocked-technology
+      requirements that the model cannot yet express, are follow-up work owned by
+      ticket 11 (queries in 07). P1 changes no result.
 
 ## Consequences
 

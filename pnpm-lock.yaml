@@ -595,6 +595,9 @@ importers:
       '@bluewave/armament':
         specifier: workspace:*
         version: link:../armament
+      '@bluewave/content-schema':
+        specifier: workspace:*
+        version: link:../content-schema
       '@bluewave/contracts':
         specifier: workspace:*
         version: link:../contracts
@@ -605,9 +608,9 @@ importers:
         specifier: workspace:*
         version: link:../random
     devDependencies:
-      '@bluewave/content-schema':
+      '@bluewave/combat':
         specifier: workspace:*
-        version: link:../content-schema
+        version: link:../combat
       yaml:
         specifier: ^2.9.1
         version: 2.9.1

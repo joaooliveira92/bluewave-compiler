@@ -3,7 +3,7 @@
 **Type:** implementation
 **Status:** open
 **Blocked by:** 04, 05, 06
-**Frontier:** no
+**Frontier:** yes
 **Requirements:** SPM-R22, SPM-R23, SPM-R24 (structural and semantic) · Stories 40, 41, 42, 44
 
 ## What to build
@@ -34,6 +34,9 @@ That report is the evidence for "nothing changed".
 - [ ] The candidate pipeline runs fit validation (06) before derivation. A design with fit
       findings is reported as such and never compared on derived values that weren't
       validated.
+      Ticket 06 closed the barrier at stage level only (`deriveAfterFit`); the harness
+      candidate path must use it and own the reporting of `FIT_MAGAZINE_*` unresolved
+      relationships (deferred from 06).
 - [ ] The structural gate fails when coverage differs. The semantic gate fails on any
       `changed` row, a `reclassified` row off a D18 path or on a number, or an
       `orderingOnly` row on an undeclared path. Each failure has a fixture test.

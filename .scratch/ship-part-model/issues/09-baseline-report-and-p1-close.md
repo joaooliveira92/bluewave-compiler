@@ -25,7 +25,8 @@ later phases rely on are in place.
   - 230 gun placements;
   - 28 torpedo-tube placements;
   - 9 central-battery placements;
-  - 15 national launcher variants;
+  - 17 national launcher variants (the proposal's 15, plus Spain's and the USA's 356 mm
+    variants found by ticket 04);
   - 5 waived launcher records;
   - 9 tube entries affected by `DQ-TORPEDO-001`.
 - The approved-diff mechanism: any intended later change must match an owner-approved

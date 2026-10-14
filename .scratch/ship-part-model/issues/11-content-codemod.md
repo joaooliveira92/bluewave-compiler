@@ -44,6 +44,12 @@ observe are the nine approved central-battery reclassifications.
       arrive in one commit. No intermediate commit has old content with 1.2.0 saves
       refused, or new content with 1.2.0 saves accepted.
 - [ ] Save-load seam tests from ticket 10 pass with the real current version (2.0.0).
+- [ ] `compileDesign` routes loadout derivation through `deriveAfterFit`, so an invalid loadout
+      yields fit findings and no derived metrics in the production pipeline (the barrier
+      criterion of ticket 06, closed at stage level only there). A seam test proves it.
+- [ ] The schema carries what ticket 06 could not evaluate, each with a fit check and test, or
+      a recorded ADR deferral: platform availability windows, loadout-entry identity with
+      duplicate and containment-cycle checks, and unlocked-technology requirements.
 - [ ] `pnpm snap` of the Shipbuilding workspace, started with a 1.2.0 draft, shows the
       default design, a clean console and the preserved draft file.
 - [ ] `pnpm check` is green.

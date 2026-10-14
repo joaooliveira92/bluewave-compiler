@@ -91,3 +91,43 @@ produces today.
 - Handed to ticket 04 (torpedo launchers), 05 (remaining families, incl. ammunition
   parts and `hullSpaceUsageLitre` if content ever authors it) and 06 (fit validation
   over these compatibility slots).
+- 2026-10-13 (review of `2e6b570a`, follow-up): the logic and the 68 byte-identical
+  comparisons held. Findings and fixes:
+  - **Parallel models, not the strict schemas (fixed).** The adapter emitted its own
+    `SlotData`/`PlatformData`/`PartInterface`/`PartQuantity` shapes, with names that
+    shadowed content-schema's. Gun parts carried `familyId`, `resolvedMountType` and an
+    always-present `nation`, and could not satisfy `FlattenedPartSchema` (no `origin`,
+    `revisions` or `provides`). It now emits `FlattenedPart`, `LoadoutEntryData`,
+    `PlatformData` and `SlotTemplateData`, typed by `import type` from content-schema
+    (now a dependency; there is still no runtime import, a test guards that, and
+    ADR-0001 records it). Legacy facts live on adapter side records. The tests decode
+    every part, entry, per-design loadout, template and platform unchanged through the
+    real schemas.
+  - **Availability boundary (fixed).** `availableUntil` was copied from the inclusive
+    `retirementMonth` with no shift. It is now `retirementMonth + 1`, and the round trip
+    back to the resolver subtracts one (`partLifecycle.ts`). There was no observable
+    effect, because no gun content sets a retirement month today. A test retires a French
+    model at 1885-06 and checks that both pipelines accept 1885-06 and block 1885-07.
+  - **Silent non-resolution (fixed).** Unknown models were skipped, a missing ammunition
+    pattern returned `null` with no findings, and a missing mount threw. Every placement
+    now yields exactly one of `resolved` or `unresolved` (`UnresolvedGunPlacement`: design,
+    placement, nation, family, parts, code, sorted BLOCKING codes, message), and unread
+    requests are kept in `GunPartModel.unread`. All 162 unresolved placements are
+    `PART_READ_PATH_NO_FIRST_CLASS_ARMAMENT`: the 11 nations with no authored gun models
+    or ammunition. No France/Germany/UK placement is blocked by ammunition or the resolver.
+  - **Cost was not carried (fixed).** Only mass quantities existed. Following §9.2,
+    `gun_cost` (`gun_kg × cost_per_kg_micro`) is now `PER_PART_UNIT` on the gun and
+    `mount_cost_per_gun` (`mount_cost_micro`) is `PER_CONTAINED_UNIT` on the mount. For
+    all 230 placements, the basis-driven mass and cost equal the legacy component formula.
+  - **Slots and determinism (fixed).** One shared template listed every zone of every
+    hull. Now there is one slot per zone and interface (`<zone>.<interface>`): the
+    templates hold the zones every hull shares, and per-platform slots hold the rest, so
+    no platform offers a zone it lacks. Hull zones are narrowed to the closed zone list,
+    and part, platform and template order is codepoint-sorted and independent of input order.
+  - **Split for cohesion.** `partLifecycle.ts`, `partQuantities.ts`, `partCompatibility.ts`,
+    `gunPartAdapter.ts`, `partReadPath.ts`. The tests are now `partReadPath.test.ts` (23)
+    and `partBoundary.test.ts` (11) and use no non-null assertions.
+  - **Latent legacy off-by-one (reported, not changed).** `armamentModelFor`'s fallback
+    copies a component's exclusive `obsoleteMonth` into the inclusive `retirementMonth`.
+    There is no effect today, because every `obsoleteMonth` is null. Fixing it changes
+    legacy behaviour, so it needs its own approved change.
