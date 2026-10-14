@@ -14,6 +14,7 @@ export type {
   CommandBody,
   CommandEnvelope,
   CreateDivisionCommand,
+  CancelConstructionProjectCommand,
   DeclareBlockadeCommand,
   DeclareWarCommand,
   DissolveDivisionCommand,

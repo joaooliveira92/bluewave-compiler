@@ -94,6 +94,44 @@ export function constructionProgressedEvent(
 }
 
 /**
+ * The cancellation record of a dockyard project (DESIGN-23 section 23; DESIGN-11 settlement contract): the explicit
+ * consumed/refunded/lost/salvageable settlement and the stable reason. Deterministic timestamp from the campaign month.
+ */
+export function constructionProjectCancelledEvent(
+  projectId: string,
+  nationId: string,
+  projectType: string,
+  consumedWork: SafeInt,
+  refundedAmount: SafeInt,
+  lostAmount: SafeInt,
+  salvageableAmount: SafeInt,
+  reason: string,
+  seq: SafeInt,
+  campaignMonth: string,
+): DomainEventEnvelope {
+  return {
+    eventId: `ConstructionProjectCancelled-${projectId}-${String(seq)}`,
+    version: CURRENT_VERSION,
+    aggregateType: "construction",
+    aggregateId: projectId,
+    eventType: "ConstructionProjectCancelled",
+    timestamp: `${campaignMonth}-01T00:00:00.000Z`,
+    body: {
+      kind: "ConstructionProjectCancelled",
+      projectId,
+      nationId,
+      projectType,
+      consumedWork,
+      refundedAmount,
+      lostAmount,
+      salvageableAmount,
+      reason,
+    },
+    sequenceNumber: seq,
+  };
+}
+
+/**
  * The one explicit record of a construction month that was delayed (DESIGN-23 section 7): the project advanced no work
  * and paid no ordinary charge this month. Deterministic timestamp from the campaign month, like every other domain event.
  */

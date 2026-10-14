@@ -10,6 +10,7 @@ import {
   type BreakAllianceCommand,
   type BreakNonAggressionPactCommand,
   type BudgetProjectCommand,
+  type CancelConstructionProjectCommand,
   type CommandBody,
   CommandIdempotencyMap,
   type DeclareBlockadeCommand,
@@ -54,6 +55,8 @@ import {
 import type { MonthContext } from "./monthContext.js";
 import { applyReviseProject } from "./reviseProject.js";
 import { applyStartRebuild } from "./startRebuild.js";
+import { applyCancelConstructionProject } from "./cancelConstructionProject.js";
+import { constructionProjectCancelledEvent } from "./events.js";
 
 // Phase 3: command_collection — process player commands in order, applying each
 // successful command body through the shared command appliers.
@@ -314,6 +317,33 @@ function applyConstructionCommand(ctx: MonthContext, body: CommandBody, commandI
       body as SetAccelerationCommand,
       collector,
     );
+    return;
+  }
+
+  if (body["type"] === "CancelConstructionProject") {
+    const outcome = applyCancelConstructionProject(
+      ctx.currentSnapshot,
+      body as CancelConstructionProjectCommand,
+      collector,
+    );
+    ctx.currentSnapshot = outcome.snapshot;
+    if (outcome.cancelled !== null && outcome.projectType !== null) {
+      const settlement = outcome.cancelled;
+      eventLedger.append(
+        constructionProjectCancelledEvent(
+          (body as CancelConstructionProjectCommand)["projectId"],
+          (body as CancelConstructionProjectCommand)["nationId"],
+          outcome.projectType,
+          settlement.consumedWork,
+          settlement.refundedAmount,
+          settlement.lostAmount,
+          settlement.salvageableAmount,
+          settlement.reason,
+          ctx.nextSeq(),
+          campaignMonth,
+        ),
+      );
+    }
     return;
   }
 

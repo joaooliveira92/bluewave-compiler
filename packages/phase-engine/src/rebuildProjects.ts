@@ -26,7 +26,9 @@ export function rebuildProjectProblems(nation: NationState): string[] {
       problems.push(`rebuild project ${id} names no target ship`);
       continue;
     }
-    if (project["status"] === "COMPLETED") continue;
+    // A terminal REBUILD (COMPLETED or CANCELLED) holds no ship: completion applies the new design, cancellation
+    // releases the ship back to availability (DESIGN-23 section 23), so neither is a live consistency concern.
+    if (project["status"] === "COMPLETED" || project["status"] === "CANCELLED") continue;
     const ship = ships.get(target);
     if (ship === undefined) {
       problems.push(`rebuild project ${id} targets unknown ship ${target}`);

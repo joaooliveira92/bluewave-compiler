@@ -113,6 +113,16 @@ describe("rebuildProjectProblems", () => {
       rebuildProjectProblems(nationWith([], [project({ projectType: "NEW_CONSTRUCTION" })])).join(),
     ).toMatch(/is new construction but names target ship s1/);
   });
+  it("treats a CANCELLED rebuild as terminal: it holds no ship either way", () => {
+    // Cancellation releases the ship (DESIGN-23 section 23), so the released ship is consistent...
+    expect(
+      rebuildProjectProblems(nationWith([ship("s1")], [project({ status: "CANCELLED" })])),
+    ).toEqual([]);
+    // ...and a cancelled rebuild is not judged even while its ship is still unavailable.
+    expect(
+      rebuildProjectProblems(nationWith([unavailable()], [project({ status: "CANCELLED" })])),
+    ).toEqual([]);
+  });
 });
 
 describe("closing validation of rebuild projects", () => {

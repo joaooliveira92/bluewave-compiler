@@ -250,6 +250,46 @@ export const SET_ACCELERATION_COMMAND_DEFINITION: CommandTypeDefinition = {
 
 budgetProjectRegistry.register(SET_ACCELERATION_COMMAND_DEFINITION);
 
+export const CANCEL_CONSTRUCTION_PROJECT_COMMAND_TYPE_ID = "CancelConstructionProject" as const;
+export const CANCEL_CONSTRUCTION_PROJECT_COMMAND_SCHEMA_VERSION = "1.0.0" as const;
+
+/**
+ * The modeled definition of the `CancelConstructionProject` command (DESIGN-23 section 23; DESIGN-11 section 13). Like
+ * halt/resume it is a locked status write with no treasury reservation, so it is not itself cancellable
+ * (`NOT_CANCELLABLE`). The settlement it applies is the project's own work settlement, recorded as the
+ * `ConstructionProjectCancelled` event rather than a command reservation refund (funding is pay-as-you-go).
+ */
+export const CANCEL_CONSTRUCTION_PROJECT_COMMAND_DEFINITION: CommandTypeDefinition = {
+  commandTypeId: CANCEL_CONSTRUCTION_PROJECT_COMMAND_TYPE_ID,
+  commandSchemaVersion: CANCEL_CONSTRUCTION_PROJECT_COMMAND_SCHEMA_VERSION,
+  allowedIssuerClasses: ["PLAYER", "AI"],
+  targetAggregateType: "construction",
+  submissionPhaseId: "command_collection",
+  authorizationPolicyId: "player_nation_self",
+  validationPolicyId: "cancel_construction_project_validation",
+  reservationPolicyId: "none",
+  lockPhaseId: "command_collection_lock",
+  irreversiblePhaseId: "command_collection",
+  resolutionPhaseId: "command_collection_resolution",
+  cancellationPolicyId: "NOT_CANCELLABLE",
+  settlementPolicyId: "construction_cancellation_settlement",
+  resultSchemaId: "cancel_construction_project_result",
+  reasonCodeNamespace: "construction",
+  idempotencyScope: `campaign:${CANCEL_CONSTRUCTION_PROJECT_COMMAND_TYPE_ID}`,
+  owningDesignContractId: "bluewave:cancel-construction-project:v1",
+  handlerImplementationId: "phase-engine/cancel-construction-project-commands/v1",
+  handlerVersion: "1.0.0",
+  testVectorIds: [],
+  contentHash: sha256Hex(
+    canonicalSerialize({
+      commandTypeId: CANCEL_CONSTRUCTION_PROJECT_COMMAND_TYPE_ID,
+      version: CANCEL_CONSTRUCTION_PROJECT_COMMAND_SCHEMA_VERSION,
+    }),
+  ),
+};
+
+budgetProjectRegistry.register(CANCEL_CONSTRUCTION_PROJECT_COMMAND_DEFINITION);
+
 /** Canonical settlement branch id this module walks through on completion. */
 export const BUDGET_COMPLETION_BRANCH_ID: SettlementBranchId = "completion";
 

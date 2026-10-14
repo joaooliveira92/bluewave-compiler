@@ -100,6 +100,39 @@ describe("ShipRebuilt", () => {
   });
 });
 
+describe("ConstructionProjectCancelled", () => {
+  const body = {
+    kind: "ConstructionProjectCancelled",
+    projectId: "con_rebuild",
+    nationId: "GBR",
+    projectType: "REBUILD",
+    consumedWork: 4,
+    refundedAmount: 0,
+    lostAmount: 4,
+    salvageableAmount: 0,
+    reason: "CANCELLATION_WORK_CONSUMED",
+  } as const;
+  const envelope = {
+    eventId: "ConstructionProjectCancelled-con_rebuild-1",
+    version: "0.1.0",
+    aggregateType: "construction",
+    aggregateId: "con_rebuild",
+    eventType: "ConstructionProjectCancelled",
+    timestamp: "1880-02-01T00:00:00.000Z",
+    body,
+    sequenceNumber: SafeInt(1),
+  };
+  it("parses as a domain event body and a full envelope", () => {
+    expect(parseDomainEventBody(body)).toEqual(body);
+    expect(parseDomainEventEnvelope(envelope)["body"]["kind"]).toBe("ConstructionProjectCancelled");
+  });
+  it("rejects a missing reason, a negative amount, and an unknown field", () => {
+    expect(() => parseDomainEventBody({ ...body, reason: "" })).toThrow();
+    expect(() => parseDomainEventBody({ ...body, lostAmount: -1 })).toThrow();
+    expect(() => parseDomainEventBody({ ...body, extra: 1 })).toThrow();
+  });
+});
+
 describe("ExplanationTree", () => {
   it("creates explanation tree with builder", () => {
     const tree = new ExplanationBuilder("treasury_calc", "1.0.0")

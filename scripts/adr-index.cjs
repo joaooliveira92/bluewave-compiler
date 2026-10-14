@@ -40,7 +40,7 @@ const AREAS = [
     name: "Effect adoption",
     blurb:
       "Adopting and vendoring Effect v4: the validator/runtime idiom, the read-only agent reference, and the determinism demotion.",
-    nums: [100, 101, 102, 103, 104, 105, 128, 155],
+    nums: [100, 101, 102, 103, 104, 105, 128, 155, 159],
   },
   {
     name: "Campaign & strategy",
@@ -61,7 +61,7 @@ const AREAS = [
     blurb: "Ship design, classification, construction, repair, and rebuild.",
     nums: [
       13, 63, 64, 66, 67, 70, 74, 76, 77, 78, 80, 83, 85, 88, 116, 129, 130, 131, 132, 135, 137,
-      138, 154, 156, 157,
+      138, 154, 156, 157, 158,
     ],
   },
   {

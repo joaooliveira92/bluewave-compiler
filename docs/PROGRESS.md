@@ -86,6 +86,18 @@ Live roadmap / next-action detail: `.ai/SPRINT-PLAN.md`.
 > mean, so only keels laid 1887-1894 remain "provisional" (honest). Content lock
 > refreshed. Report `.ai/reports/p2-ticket-22-build-time-sourcing.md`. Next:
 > ship-building ticket 28 (rebuild cancellation settlement).
+>
+> **2026-10-14: P-2 frontier ticket 28 (rebuild reachability + cancellation)
+> DONE.** The `RebuildPanel` is now reachable in the live `ShipbuildingWorkspace`
+> (Review → Rebuild tab; design-actions "Rebuild a completed ship…"), closing the
+> ADR-0153 "revision/rebuild has no surface" deferral. A real engine
+> `CancelConstructionProject` command (DESIGN-23 §23; DESIGN-11; **ADR-0158**)
+> cancels a project, settles the work done explicitly (pay-as-you-go: no refund,
+> explicit-zero salvage), releases a rebuild's ship on its old design, records a
+> deterministic `ConstructionProjectCancelled` event, and is surfaced as a
+> "Cancel project" control on the Construction screen. Report
+> `.ai/reports/ship-building-ticket-28-rebuild-cancellation.md`. **Next: ticket 30
+> (sourced-content release gate), then the P-2 acceptance gate.**
 
 ---
 

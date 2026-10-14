@@ -1,7 +1,7 @@
 # Architecture decision records
 
 One ADR per durable decision: `ADR-NNNN-<slug>.md`. New decisions take the
-highest existing number + 1 (the next number is ADR-0158).
+highest existing number + 1 (the next number is ADR-0160).
 Refresh this table from each file's H1 when one is added or re-titled.
 (ADR-0043 was never written; the sequence intentionally continues at 0044.)
 See [DESIGN amendments](AMENDMENTS.md) for which ADRs amend which DESIGN doc.
@@ -41,8 +41,9 @@ Adopting and vendoring Effect v4: the validator/runtime idiom, the read-only age
 | 0103 | [ADR-0103-design-08-determinism-spine-demoted.md](ADR-0103-design-08-determinism-spine-demoted.md) | DESIGN-08 determinism spine demoted | accepted | — |
 | 0104 | [ADR-0104-persistence-effect-beachhead.md](ADR-0104-persistence-effect-beachhead.md) | `persistence` Effect beachhead — Schema save boundary + tagged errors | accepted | — |
 | 0105 | [ADR-0105-content-schema-effect-boundary.md](ADR-0105-content-schema-effect-boundary.md) | `content-schema` Effect Schema boundary — strict excess-key policy | accepted | — |
-| 0128 | [ADR-0128-effect-v4-runtime-wave-not-warranted.md](ADR-0128-effect-v4-runtime-wave-not-warranted.md) | The Effect v4 runtime wave is not warranted — facades stay plain, errors stay runtime-free | accepted | — |
+| 0128 | [ADR-0128-effect-v4-runtime-wave-not-warranted.md](ADR-0128-effect-v4-runtime-wave-not-warranted.md) | The Effect v4 runtime wave is not warranted — facades stay plain, errors stay runtime-free | superseded | ADR-0159 |
 | 0155 | [ADR-0155-per-schema-excess-key-strictness.md](ADR-0155-per-schema-excess-key-strictness.md) | Excess-key strictness is per-schema parity, not one boundary-wide policy constant | accepted | — |
+| 0159 | [ADR-0159-effect-runtime-in-app-surfaces.md](ADR-0159-effect-runtime-in-app-surfaces.md) | The app surfaces adopt the full Effect runtime — desktop main and compiler-cli | accepted | — |
 
 ## Campaign & strategy
 
@@ -97,6 +98,7 @@ Ship design, classification, construction, repair, and rebuild.
 | 0154 | [ADR-0154-ship-part-model.md](ADR-0154-ship-part-model.md) | One part model for ships — platforms declare slots, parts plug in through stable interfaces | accepted | — |
 | 0156 | [ADR-0156-ship-types-as-content.md](ADR-0156-ship-types-as-content.md) | Ship types become content records naming a closed engine behaviour class | accepted | — |
 | 0157 | [ADR-0157-torpedoes-as-parts-and-compiled-torpedo.md](ADR-0157-torpedoes-as-parts-and-compiled-torpedo.md) | Torpedoes become parts, and the compiled torpedo contract | accepted | — |
+| 0158 | [ADR-0158-dockyard-project-cancellation-settlement.md](ADR-0158-dockyard-project-cancellation-settlement.md) | Cancelling a dockyard project — the settlement policy and the rebuild release | accepted | — |
 
 ## National content
 

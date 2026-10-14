@@ -38,6 +38,24 @@ export interface ShipRebuilt {
 }
 
 /**
+ * The explicit record of a cancelled dockyard project (DESIGN-23 section 23; DESIGN-11 settlement contract). Work already
+ * completed and paid is `consumedWork` and is not refunded (`refundedAmount` is 0 in the shipped policy); `lostAmount` is
+ * the value the nation forfeits by stopping, and `salvageableAmount` is the value recoverable from the partial work —
+ * explicit, never silent. `reason` is the stable settlement reason code.
+ */
+export interface ConstructionProjectCancelled {
+  readonly kind: "ConstructionProjectCancelled";
+  readonly projectId: string;
+  readonly nationId: string;
+  readonly projectType: string;
+  readonly consumedWork: SafeInt;
+  readonly refundedAmount: SafeInt;
+  readonly lostAmount: SafeInt;
+  readonly salvageableAmount: SafeInt;
+  readonly reason: Reason;
+}
+
+/**
  * The one explicit record of a delayed construction month (DESIGN-23 section 7): the project advanced no work and
  * paid no ordinary charge this month. `reason` is the stable reason code the resolving contract names
  * (`PROJECT_DELAYED_ZERO_WORK`, or a specific pressure reason such as `ACCELERATION_CAPACITY_PRESSURE_DELAY`).
@@ -87,6 +105,7 @@ export type DomainEventBody =
   | ConstructionProgressed
   | ConstructionDelayed
   | ShipRebuilt
+  | ConstructionProjectCancelled
   | ResearchProgressed
   | BattleInitiated
   | BattleResolved

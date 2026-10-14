@@ -1,9 +1,9 @@
 # 28: REBUILD / CONVERSION projects (what a past-redesign change becomes)
 
 **Type:** implementation (engine milestone)
-**Status:** in progress (28a-28d done; 28e and cancellation settlement open, see ADR-0078)
+**Status:** done (2026-10-14; 28a-28e and cancellation settlement complete)
 **Blocked by:** none (29 resolved)
-**Frontier:** yes
+**Frontier:** no
 
 Spec: `.scratch/ship-building/spec.md` section 15.4 (T3) and AC-8; `docs/rules/construction-repair-and-rebuild.md` (DESIGN-23) sections 1, 17-23.
 
@@ -55,3 +55,31 @@ Tests: `rebuildPackages` (4), phase-engine integration through the real executor
 **28d done: a rebuild completes into the new design.** When a REBUILD project's work is done, the construction phase marks it COMPLETED and the target ship atomically becomes the new design version: new design id and class, the new design's stats (shared derivation with new construction, `shipStatsFromDesign`) and full hit points (the rebuild repairs it), and it is released (availability removed); the old design version stays in the snapshot (section 22). The transition is a new `ShipRebuilt` domain event (`events` package: type, zod schema, exports) with project, nation, ship and both design ids. If the new design is missing the ship is still released unchanged (never stuck unavailable) and `REBUILD_TARGET_MISSING` is reported; no ship is ever spawned by a rebuild.
 Proof: through the real executor, a rebuild started with `StartRebuild` is funded month by month by the appropriation phase, stays unavailable on its old design while under way, completes, and the ship ends on the new design, available, with both design versions on record (`revise-project.test.ts` life cycle). Tests: events (ShipRebuilt, 2), rebuild-projects (completion: new stats, event, release, not-finished, missing design, deterministic), life cycle. events 27, phase-engine 24 files / 242.
 Open: 28e (desktop bridge and the Drawing Board "Rebuild this ship" entry with the validator's report) and cancellation with settlement (section 23).
+
+### 2026-10-14 orchestrator (28e + cancellation settlement — ticket closed)
+
+**28e done.** The `RebuildPanel` (validator report + start-rebuild) previously lived only in the
+unreferenced `screens/construction/drawing-board/DrawingBoard.tsx` (ADR-0153 removed that host, so
+revision/rebuild had no surface). It is now reachable in the live `ShipbuildingWorkspace`: a third
+Review tab (`findings` / `rebuild` / `finish`) renders it with the workspace's own draft, content and
+`editCount`, and the design-actions menu gains "Rebuild a completed ship…". Captured with `pnpm snap`
+(Review→Rebuild renders "Rebuild a ship"; console clean).
+
+**Cancellation with settlement done (DESIGN-23 §23; DESIGN-11; ADR-0158).** New engine
+`CancelConstructionProject` command: validated at issue time (`packages/commands`), applied in
+`command_collection` (`packages/phase-engine/src/cancelConstructionProject.ts`). It moves the project
+to `CANCELLED`, settles the work already done explicitly with no new constant — pay-as-you-go:
+`consumedWork` = `paidWork`, `refundedAmount` = 0, `lostAmount` = `paidWork`, `salvageableAmount` = 0
+(the §26 scrapping subsystem is unimplemented, so no fabricated salvage) — releases a `REBUILD`'s
+target ship from **this** project's unavailability (old design kept; no ship spawned), and records a
+deterministic `ConstructionProjectCancelled` event. `rebuildProjectProblems` now treats a `CANCELLED`
+rebuild as terminal. A "Cancel project" control on the Construction screen's "Under construction"
+card queues the command through the shared seam. Refused: a terminal project, a project that is not
+the nation's, and a foreign-contract project (its cancellation is a DESIGN-16 contract outcome).
+
+Tests: phase-engine `cancel-construction-project` (10) + `rebuild-projects` (13); commands (4);
+events (2 files); desktop `constructionStatusCommands` queued-path, `useConstructionScreen`,
+`ProjectsCard`, `responseMappers`, `campaignBridge`, `ShipbuildingWorkspace`. Gate:
+`.ai/reports/ship-building-ticket-28-rebuild-cancellation.md` (preflight 37/37; typecheck 40/40;
+format/lint/lint:effect clean; test:run 292 files/2017 excluding the unrelated `content-codemod`
+timeout flake; e2e 30; goldens 11/11 unchanged). **Ticket closed; next frontier is ticket 30.**

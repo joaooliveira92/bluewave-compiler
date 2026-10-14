@@ -2,7 +2,7 @@
 
 > **Canonical status:** Normative design specification.
 > **Stable document ID:** `DESIGN-23`
-> **Amended by:** ADR-0064, ADR-0077, ADR-0078, ADR-0080, ADR-0083.
+> **Amended by:** ADR-0064, ADR-0077, ADR-0078, ADR-0080, ADR-0083, ADR-0158.
 > **Requirement language:** `MUST`, `MUST NOT`, `SHOULD`, and `MAY` are normative. Project authorization, batching, progress, acceleration, delay, latent defects, combined dockyard work, rebuild validation, scrapping, salvage, treaty disposal, and persistence MUST use the explicit contracts, values, predicates, ordering, and failure behavior defined here. Runtime inference and silent fallback behavior are prohibited.
 
 ## 1. Unified Dockyard Project Types

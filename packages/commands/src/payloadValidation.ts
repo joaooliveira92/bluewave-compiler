@@ -87,6 +87,8 @@ export function validatePayloadRules(
   if (envelope.body.type === "ResumeConstruction")
     return validateDockyardStatusCommand(envelope, snapshot, "ResumeConstruction");
   if (envelope.body.type === "SetAcceleration") return validateSetAcceleration(envelope, snapshot);
+  if (envelope.body.type === "CancelConstructionProject")
+    return validateCancelConstructionProject(envelope, snapshot);
   if (envelope.body.type === "OrderConstruction")
     return validateOrderConstruction(envelope, snapshot);
   if (envelope.body.type === "AuthorizeDockExpansion")
@@ -223,6 +225,40 @@ function validateSetAcceleration(
 const CONSTRUCTION_BATCH_MIN_QUANTITY = 1;
 const CONSTRUCTION_BATCH_MAX_QUANTITY = 12;
 const CONSTRUCTION_BATCH_LIMIT_EXCEEDED = "CONSTRUCTION_BATCH_LIMIT_EXCEEDED";
+
+/**
+ * Issue-time rules for `CancelConstructionProject` (DESIGN-23 section 23; DESIGN-11 settlement contract): the project
+ * must exist, belong to the issuing nation, and not be terminal; a cancelled project receives no further work. A
+ * foreign-contract project's cancellation is a contract outcome (DESIGN-16), so it is refused here with the same stable
+ * reason the other domestic construction commands use. The settlement itself is applied when the month runs the command.
+ */
+function validateCancelConstructionProject(
+  envelope: CommandEnvelope<CommandBody>,
+  snapshot: CampaignSnapshot,
+): LifecycleStepResult {
+  const body = envelope.body as Extract<CommandBody, { type: "CancelConstructionProject" }>;
+  const reject = (code: string, message: string): LifecycleStepResult =>
+    rejectValidation(envelope, snapshot, code, message);
+  const nation = snapshot.nations.get(body.nationId);
+  if (!nation) return reject("INVALID_NATION_ID", `Nation ${body.nationId} not found`);
+  const project = nation.constructionProjects.find((p) => p.id === body.projectId);
+  if (!project)
+    return reject(
+      DOCKYARD_PROJECT_REJECTION,
+      `Project ${body.projectId} is not ${body.nationId}'s`,
+    );
+  if (isTerminalConstructionProjectStatus(project.status))
+    return reject(
+      DOCKYARD_STATUS_TRANSITION_REJECTION,
+      `Project ${body.projectId} is ${project.status} and cannot be cancelled`,
+    );
+  if (project.foreignContractId !== undefined)
+    return reject(
+      FOREIGN_CONTRACT_FUNDED_BY_SCHEDULE,
+      `Project ${body.projectId} is a foreign contract order; its cancellation is a contract outcome`,
+    );
+  return { ok: true };
+}
 
 /**
  * Issue-time rules for `OrderConstruction` (DESIGN-23 sections 3-5, SB3-R11..R14): the nation must exist, the design

@@ -19,6 +19,7 @@ export type CommandBody =
   | HaltConstructionCommand
   | ResumeConstructionCommand
   | SetAccelerationCommand
+  | CancelConstructionProjectCommand
   | SetResearchPriorityCommand
   | SetBudgetAllocationCommand
   | MoveFleetCommand
@@ -119,6 +120,20 @@ export interface SetAccelerationCommand {
   nationId: string;
   projectId: string;
   accelerated: boolean;
+}
+/**
+ * Cancels a dockyard project and settles the work already done (DESIGN-23 section 23; DESIGN-11 settlement contract).
+ * Cancelling stops future work and releases future capacity; work already completed (and paid) is consumed and is not
+ * refunded, and no physical work is silently restored. A `REBUILD`'s target ship is released from its project
+ * unavailability (custody resolved), keeping its old compiled design version; no ship is ever spawned. The cancellation
+ * record is a `ConstructionProjectCancelled` domain event carrying the explicit consumed/refunded/lost/salvageable
+ * settlement. A terminal project, a project that is not the nation's, or a foreign-contract project (whose cancellation
+ * is a contract outcome) is refused and changes nothing.
+ */
+export interface CancelConstructionProjectCommand {
+  type: "CancelConstructionProject";
+  nationId: string;
+  projectId: string;
 }
 export interface SetResearchPriorityCommand {
   type: "SetResearchPriority";

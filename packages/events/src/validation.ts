@@ -74,6 +74,18 @@ export const ShipRebuiltSchema = Schema.Struct({
   toDesignVersionId: nonEmptyString,
 });
 
+export const ConstructionProjectCancelledSchema = Schema.Struct({
+  kind: Schema.Literal("ConstructionProjectCancelled"),
+  projectId: nonEmptyString,
+  nationId: nonEmptyString,
+  projectType: nonEmptyString,
+  consumedWork: nonNegativeSafeInt,
+  refundedAmount: nonNegativeSafeInt,
+  lostAmount: nonNegativeSafeInt,
+  salvageableAmount: nonNegativeSafeInt,
+  reason: nonEmptyString,
+});
+
 export const ResearchProgressedSchema = Schema.Struct({
   kind: Schema.Literal("ResearchProgressed"),
   nationId: nonEmptyString,
@@ -111,6 +123,7 @@ export const DomainEventBodySchema = Schema.Union([
   ConstructionProgressedSchema,
   ConstructionDelayedSchema,
   ShipRebuiltSchema,
+  ConstructionProjectCancelledSchema,
   ResearchProgressedSchema,
   BattleInitiatedSchema,
   BattleResolvedSchema,
