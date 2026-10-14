@@ -23,7 +23,12 @@ import type { StarterDesign } from "./shipTypeRoster.js";
 import type { DesignDraft } from "./compileShared.js";
 import type { CompiledPartModel, ReferenceDesignLoadoutData } from "@bluewave/content-schema";
 import { buildProductionPartModel } from "./compileProduction.js";
-import { platformSlots } from "./partCompatibility.js";
+import type { DraftCompileContent } from "./compileDraft.js";
+import {
+  buildCompatibilitySlots,
+  platformSlots,
+  type CompatibilityModel,
+} from "./partCompatibility.js";
 import { rebuildDraft } from "./partCatalogueReaders.js";
 
 /** A raw reference-design entry as authored in `reference-designs.yaml` (its `starterFor` is optional). */
@@ -112,6 +117,12 @@ export interface ShipBuildingContent {
    * part from `partIndex.byId`; a parts-less pack leaves it absent and combat fails closed.
    */
   readonly partModel?: CompiledPartModel;
+  /**
+   * The forward-adapter content for the production parts barrier (ticket 17a), present when the
+   * pack carries first-class armament. A player draft is compiled through the parts, never the
+   * legacy catalogue, from exactly the content this pack validated.
+   */
+  readonly draftCompileContent?: DraftCompileContent;
 }
 
 /** Technology is available once its year has begun; month ids are YYYY-MM. */
@@ -180,6 +191,31 @@ export function buildShipBuildingContent(data: ShipBuildingData): ShipBuildingCo
     data.balance.environment.yardWorkPerTonneMonth,
   );
   const profiles = data.navalProfiles ?? [];
+  // The forward adapter (ticket 17a) reads the same compatibility slots the pack compiled; a pack
+  // without a compiled part model still derives them from its hull forms, as the read path does.
+  const compatibility: CompatibilityModel =
+    data.partModel !== undefined
+      ? { slotTemplates: data.partModel.slotTemplates, platforms: data.partModel.platforms }
+      : buildCompatibilitySlots({ hullForms: data.hullForms });
+  // A launcher's bore is the structured diameter of the torpedo it loads; the compiled torpedo
+  // parts are the authority (the codemod read the same model ids).
+  const torpedoDiameterUm = (torpedoModelId: string): number | undefined => {
+    const part = data.partModel?.partIndex.byId[torpedoModelId];
+    if (part === undefined || part.family !== "torpedo") return undefined;
+    return part.spec.diameterUm;
+  };
+  const draftCompileContent: DraftCompileContent | undefined =
+    data.armament === undefined
+      ? undefined
+      : {
+          components: data.components,
+          plants: data.plants,
+          navalProfiles: profiles,
+          armament: data.armament,
+          armour: ship.armour,
+          compatibility,
+          torpedoDiameterUm,
+        };
   // The authoritative source of reference designs is the parts loadouts when the pack carries
   // them; the legacy `referenceDesigns` array remains the equivalence-harness baseline.
   const referenceDesigns =
@@ -236,6 +272,7 @@ export function buildShipBuildingContent(data: ShipBuildingData): ShipBuildingCo
     navalProfiles: profiles,
     armament: data.armament ?? null,
     ...(data.partModel === undefined ? {} : { partModel: data.partModel }),
+    ...(draftCompileContent === undefined ? {} : { draftCompileContent }),
     navalProfileFor: (nationId, month) => resolveNavalProfile(profiles, nationId, month),
     starterDesigns: referenceDesigns
       .filter((r): r is RawReferenceDesign & { starterFor: string } => r.starterFor !== undefined)

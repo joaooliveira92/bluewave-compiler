@@ -1,16 +1,19 @@
 import { isShipOperational } from "@bluewave/campaign";
 import {
   classifyRevision,
-  compileDesign,
+  compileDraftFromParts,
   draftChangeKinds,
   HULL_TYPE_FOR_SHIP_TYPE,
   progressFromWork,
   rebuildFactsOf,
+  toLegacyCompileView,
   validateDraftShape,
   validateRebuild,
   yardDemandOf,
   type DesignDraft,
+  type DraftCompileResult,
   type Finding,
+  type LegacyCompileView,
 } from "@bluewave/ship-design";
 import type { BridgeResult } from "../../shared/bridge-contract.js";
 import type {
@@ -73,11 +76,33 @@ export async function submitDesignCommand(
   }
   const draft = payload.draft as unknown as DesignDraft;
   const monthId = `${record.month.year}-${String(record.month.month).padStart(2, "0")}`;
-  let compiled;
+  const base = slug(payload.className);
+  const turn = Number(record.state.snapshot.turnNumber);
+  const designVersionId = `des_${record.playerSlotId.toLowerCase()}_${base}_t${turn}`.slice(0, 64);
+  const designFamilyId = `fam_${record.playerSlotId.toLowerCase()}_${base}`.slice(0, 64);
+  // The player's design is compiled through the parts barrier (ticket 17a), from the content the
+  // pack validated; the legacy catalogue is no longer a compile path.
+  const content = loadShipBuildingContent();
+  const partsContent = content.draftCompileContent;
+  if (partsContent === undefined) {
+    return {
+      outcome: "rejected",
+      reason: "DESIGN_REJECTED",
+      diagnostics: ["The ship-building content carries no parts to compile a design from"],
+    };
+  }
+  const owned = { ...draft, nationId: record.playerSlotId };
+  let compiledView: LegacyCompileView;
   try {
-    compiled = compileDesign(
-      { ...draft, nationId: record.playerSlotId },
-      loadShipBuildingContent().environmentFor(monthId).ctx,
+    compiledView = toLegacyCompileView(
+      compileDraftFromParts({
+        designId: designVersionId,
+        draft: owned,
+        month: monthId,
+        content: partsContent,
+        ctx: content.environmentFor(monthId).ctx,
+        nation: { nationId: record.playerSlotId },
+      }),
     );
   } catch (e) {
     return {
@@ -86,19 +111,16 @@ export async function submitDesignCommand(
       diagnostics: [e instanceof Error ? e.message : String(e)],
     };
   }
-  if (!compiled.valid) {
+  if (!compiledView.valid) {
     return {
       outcome: "rejected",
       reason: "DESIGN_REJECTED",
-      diagnostics: compiled.findings
+      diagnostics: compiledView.findings
         .filter((f) => f.severity === "BLOCKING")
         .map((f) => `${f.what} ${f.why}`),
     };
   }
-  const base = slug(payload.className);
-  const turn = Number(record.state.snapshot.turnNumber);
-  const designVersionId = `des_${record.playerSlotId.toLowerCase()}_${base}_t${turn}`.slice(0, 64);
-  const designFamilyId = `fam_${record.playerSlotId.toLowerCase()}_${base}`.slice(0, 64);
+  const compiled = compiledView.compiled;
   // The hull type is the ship type's own (domain mapping); there is no fallback label, so a type the ruleset cannot
   // map is refused rather than filed as something else (ADR-0088).
   const hullType = (HULL_TYPE_FOR_SHIP_TYPE as Readonly<Record<string, string | undefined>>)[
@@ -122,10 +144,8 @@ export async function submitDesignCommand(
     };
   }
   // The study the engine will open for it, from the same rules, so the player sees its months and cost now (ADR-0085).
-  const content = loadShipBuildingContent();
   let study: DesignStudyPreview | undefined;
   if (content.study !== null) {
-    const owned = { ...draft, nationId: record.playerSlotId };
     const planned = planDesignStudy(
       snapshot,
       record.playerSlotId,
@@ -265,9 +285,25 @@ export async function reviseProjectCommand(
     };
   const draft = { ...(payload.draft as unknown as DesignDraft), nationId: record.playerSlotId };
   const monthId = `${record.month.year}-${String(record.month.month).padStart(2, "0")}`;
-  let compiled;
+  const partsContent = content.draftCompileContent;
+  if (partsContent === undefined)
+    return {
+      outcome: "rejected",
+      reason: "REVISION_REJECTED",
+      diagnostics: ["The ship-building content carries no parts to compile a design from"],
+    };
+  let compiledView: LegacyCompileView;
   try {
-    compiled = compileDesign(draft, content.environmentFor(monthId).ctx);
+    compiledView = toLegacyCompileView(
+      compileDraftFromParts({
+        designId: found.design.designVersionId,
+        draft,
+        month: monthId,
+        content: partsContent,
+        ctx: content.environmentFor(monthId).ctx,
+        nation: { nationId: record.playerSlotId },
+      }),
+    );
   } catch (e) {
     return {
       outcome: "rejected",
@@ -275,11 +311,11 @@ export async function reviseProjectCommand(
       diagnostics: [e instanceof Error ? e.message : String(e)],
     };
   }
-  if (!compiled.valid)
+  if (!compiledView.valid)
     return {
       outcome: "rejected",
       reason: "REVISION_REJECTED",
-      diagnostics: compiled.findings
+      diagnostics: compiledView.findings
         .filter((f) => f.severity === "BLOCKING")
         .map((f) => `${f.what} ${f.why}`),
     };
@@ -479,11 +515,32 @@ function rebuildCheck(
   const draft = { ...(draftIn as unknown as DesignDraft), nationId: record.playerSlotId };
   const month = monthIdOf(record);
   const env = content.environmentFor(month);
-  let compiled;
-  let current;
+  const partsContent = content.draftCompileContent;
+  if (partsContent === undefined)
+    return {
+      outcome: "rejected",
+      reason: "REBUILD_REJECTED",
+      diagnostics: ["The ship-building content carries no parts to compile a design from"],
+    };
+  let compiledResult: DraftCompileResult;
+  let currentResult: DraftCompileResult;
   try {
-    compiled = compileDesign(draft, env.ctx);
-    current = compileDesign(found.draft, env.ctx);
+    compiledResult = compileDraftFromParts({
+      designId: found.design.designVersionId,
+      draft,
+      month,
+      content: partsContent,
+      ctx: env.ctx,
+      nation: { nationId: draft.nationId },
+    });
+    currentResult = compileDraftFromParts({
+      designId: found.design.designVersionId,
+      draft: found.draft,
+      month,
+      content: partsContent,
+      ctx: env.ctx,
+      nation: { nationId: found.draft.nationId },
+    });
   } catch (e) {
     return {
       outcome: "rejected",
@@ -494,6 +551,42 @@ function rebuildCheck(
   const categories = new Map(content.components.map((c) => [c.id, c.category]));
   const changesNothing =
     draftChangeKinds(found.draft, draft, (id) => categories.get(id)).length === 0;
+  const bulgeProtectionGainBp = rebuildKind === "BULGE" ? authoredBulgeProtectionGainBp() : null;
+  const blockingProblems = (result: DraftCompileResult): string[] =>
+    toLegacyCompileView(result)
+      .findings.filter((f) => f.severity === "BLOCKING")
+      .map((f) => `${f.what} ${f.why}`);
+  // The retained-hull comparison needs both designs' derived facts, so each must pass the barrier.
+  // A draft that does not is a normal "not allowed", never a bridge rejection: the panel renders a
+  // `success` view's `designProblems`, and an issue-less rejection would leave it stuck on "Checking…".
+  if (currentResult.status !== "ACCEPTED" || compiledResult.status !== "ACCEPTED") {
+    const designProblems = [
+      ...(currentResult.status === "ACCEPTED"
+        ? []
+        : [
+            "The ship's stored design no longer compiles; the content that shipped with the campaign has changed.",
+            ...blockingProblems(currentResult),
+          ]),
+      ...(compiledResult.status === "ACCEPTED" ? [] : blockingProblems(compiledResult)),
+    ];
+    return {
+      outcome: "success",
+      value: {
+        view: {
+          legal: false,
+          findings: [],
+          designProblems,
+          changesNothing,
+          measures: null,
+          bulgeProtectionGainBp,
+        },
+        draft,
+      },
+      diagnostics: [],
+    };
+  }
+  const compiled = compiledResult.compiled;
+  const current = currentResult.compiled;
   const designProblems = compiled.valid
     ? []
     : compiled.findings.filter((f) => f.severity === "BLOCKING").map((f) => `${f.what} ${f.why}`);
@@ -524,7 +617,7 @@ function rebuildCheck(
     designProblems,
     changesNothing,
     measures: report.measures,
-    bulgeProtectionGainBp: rebuildKind === "BULGE" ? authoredBulgeProtectionGainBp() : null,
+    bulgeProtectionGainBp,
   };
   return { outcome: "success", value: { view, draft }, diagnostics: [] };
 }

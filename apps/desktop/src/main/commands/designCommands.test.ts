@@ -250,7 +250,10 @@ describe("submitDesignCommand (ADR-0066)", () => {
     };
     const r = await submit({ draft: modern });
     expect(r).toMatchObject({ outcome: "rejected", reason: "DESIGN_REJECTED" });
-    if (r.outcome === "rejected") expect(r.diagnostics.join(" ")).toMatch(/not available/i);
+    // The parts barrier gates the plant's lifecycle technology against the context's unlocked set
+    // (the legacy `compileDesign` gate): the 1880 campaign lacks the water-tube plant's technology.
+    if (r.outcome === "rejected")
+      expect(r.diagnostics.join(" ")).toMatch(/requires technology .*not unlocked/i);
   });
 
   it("rejects malformed payloads at the boundary and bad drafts by shape", async () => {
@@ -591,11 +594,35 @@ describe("rebuilding a ship through the bridge (ADR-0078)", () => {
     expect(r).toMatchObject({ outcome: "success", value: { legal: false, changesNothing: true } });
   });
 
+  // A change that fails the parts barrier: the water-tube plant's technology is locked in 1880, so
+  // the changed draft is not buildable. The check must return a view, never a bridge rejection that
+  // would leave the panel stuck on "Checking…".
+  const notBuildable = {
+    ...cruiser,
+    machinery: { ...cruiser.machinery, plantId: "triple_expansion_watertube" },
+  };
+
+  it("returns a not-allowed view (not a bridge rejection) when the changed draft fails the barrier", async () => {
+    const { shipId } = await builtShip();
+    const r = await check(shipId, notBuildable);
+    expect(r.outcome).toBe("success");
+    if (r.outcome !== "success") return;
+    const view = r.value as { legal: boolean; designProblems: string[]; measures: unknown };
+    expect(view.legal).toBe(false);
+    expect(view.designProblems.length).toBeGreaterThan(0);
+    expect(view.measures).toBeNull();
+  });
+
   // INC-13 (SB3-R26): the manual's armament-change rules run in the live check, not only in the engine.
   const illegalSwap = {
     ...cruiser,
     placements: cruiser.placements.map((p) =>
-      p.instanceId === "mg_fwd" ? { ...p, componentId: "gun_rml_7in_7ton" } : p,
+      p.instanceId === "mg_fwd"
+        ? // The nordenfelt's 1,000 rounds are outside the 7-inch gun's 40..200 range; the barrier
+          // (SPM-R12) would reject the swap for that alone, so the swap carries a valid loadout to
+          // exercise the armament-change rule.
+          { ...p, componentId: "gun_rml_7in_7ton", params: { barrels: 1, rounds: 100 } }
+        : p,
     ),
   };
 

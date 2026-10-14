@@ -60,6 +60,9 @@ and completes the retirement.
 
 - [ ] Production compiles designs through the parts barrier; no production caller of
       `compileDesign(draft, ctx.catalogue)` remains (grep/no-reader gate).
+      **17a is a partial step only**: it cuts over the three desktop design-command call sites
+      (see the deferral note below); the remaining production callers and the grep/no-reader gate
+      itself land in 17a-2/17b/17c/17d.
 - [ ] Every symbol in §3 has no remaining reader; a grep/no-reader check is recorded.
 - [ ] Decoding content that still uses a removed field (`upgradePath`) fails strictly.
 - [ ] The equivalence harness runs against the frozen committed baseline (no legacy
@@ -73,7 +76,7 @@ and completes the retirement.
 
 | Slice | Delivers | Acceptance |
 | --- | --- | --- |
-| **17a** Production barrier wiring | `compileDesignFromLoadout` runs on the desktop design commands and every production `compileDesign(draft, …)` caller; the legacy catalogue is still present but unused for compile. Round-trip test: the same draft compiles identically from its loadout. | AC 1 |
+| **17a** Production barrier wiring | `compileDesignFromLoadout` runs on the three desktop design commands; the legacy catalogue is still present but unused for that compile. Round-trip test: the same draft compiles identically from its loadout. | AC 1 (desktop surface only) |
 | **17b** Designer reads parts | The Shipbuilding workspace and shared design-workspace layer take their catalogue/facts from the parts (or a parts-derived DTO). Snapshot/aria proof. | AC 1, 6 |
 | **17c** Retire the legacy formats | `ComponentDef` guns, `componentVariants`, profile `gunModels`, `upgradePath`, the P1 read-path adapters and the armament adapter deleted; content lock + goldens re-pinned via an approved diff. | AC 2, 3, 5 |
 | **17d** Freeze the baseline | Legacy baseline pipeline removed; equivalence harness runs against the frozen committed report; `@bluewave/content-codemod` deleted. | AC 4 |
@@ -88,3 +91,29 @@ remaining retirement and is the frontier.
   completed in place.
 - `plantPartAdapter.ts` / `armourPartAdapter.ts` / `partCatalogueReaders.ts` are already
   production (the inverse readers) and stay.
+
+### Deferred to 17a-2/17b/17c/17d: the remaining `compileDesign` callers
+
+17a routes the **three desktop design-command call sites** through the parts barrier
+(`compileDraftFromParts`, `packages/ship-design/src/compileDraft.ts`): `submitDesignCommand`,
+`reviseProjectCommand` and `rebuildCheck`. Those are the only call sites this ticket cuts over, so
+17a satisfies AC1 for that surface only. Every other production caller of the legacy
+`compileDesign(draft, ctx)` remains, mapped to its owning slice:
+
+- `packages/phase-engine/src/{reviseProject,rebuildClassification,designStudies,aiProcurement,orderEligibility,commands,startRebuild}.ts` → **17a-2**. They compile from the command drafts the engine applies and their results feed the authoritative campaign hashes, so moving them is a separate, hash-affecting slice whose golden moves are re-pinned as an SPM-R25 approved diff.
+- `apps/desktop/src/renderer/components/design-workspace/panels/hull-plan/auto-place.ts:35,46` and `apps/desktop/src/renderer/components/design-workspace/useDrawingBoard.ts:142` (the latter through `ai.ts` `generateCandidates`) → **17b** (the designer reads parts, not `ComponentDef`).
+- `packages/ship-design/src/workshop.ts:105`, `edits.ts:170-172`, `suggest.ts:107`, `ai.ts:228` → **17b** (the board's derived view; the edit, suggest and AI-candidate paths).
+- `packages/ship-design/src/refit.ts:656,669,700`, `report.ts:33`, `nationCompleteness.ts:193`, `equivalenceCandidate.ts:405` → **17c/17d** (the refit, report and content-completeness read paths; the equivalence candidate retires with the frozen baseline in 17d).
+
+The AC1 grep/no-reader gate ("no production caller of `compileDesign(draft, ctx.catalogue)`") is
+authored in **17c/17d**, once those callers are gone; it cannot be met while this list is non-empty.
+Until then the legacy catalogue remains live outside the desktop design commands.
+
+### Known limitation: a pack without first-class armament no longer compiles drafts
+
+`ShipBuildingContent.draftCompileContent` is built only when the pack carries an `armament`
+section (`shipBuildingContent.ts`). A parts-less pack therefore has no `draftCompileContent`, and
+`submitDesignCommand`/`reviseProjectCommand`/`rebuildCheck` refuse with "The ship-building content
+carries no parts to compile a design from" where the legacy compile had a compatibility path. There
+is exactly one shipped production pack (`content/production/1880`) and it carries `armament`, so no
+shipped scenario regresses; the compatibility path is retired formally in 17c.

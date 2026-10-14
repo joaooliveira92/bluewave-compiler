@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vite-plus/test";
 import { hashWithContext } from "@bluewave/deterministic";
+import { compileDraftFromParts } from "@bluewave/ship-design";
 
 import { readContentArtifact } from "./contentArtifact.js";
 import { resolveGeneratedContentDir } from "./contentPack.js";
@@ -40,6 +41,26 @@ describe("ship-building runtime content (ADR-0093 Step 3, ADR-0123)", () => {
       hashWithContext(manifest.bodyHash, "ship-building-content"),
     );
     expect(armamentContentHash()).toBe(hashWithContext(manifest.bodyHash, "armament-content"));
+  });
+
+  it("round-trips a shipped reference design through the production parts barrier", () => {
+    const content = loadShipBuildingContent();
+    const parts = content.draftCompileContent;
+    expect(parts).toBeDefined();
+    expect(content.starterDesigns.length).toBeGreaterThan(0);
+    if (parts === undefined) return;
+    const design = content.starterDesigns[0]!;
+    // The wiring under test is the production one: the `partModel`-derived compatibility slots and a
+    // `torpedoDiameterUm` that reads the compiled torpedo parts, both built by `buildShipBuildingContent`.
+    const result = compileDraftFromParts({
+      designId: design.id,
+      draft: design.draft,
+      month: design.month,
+      content: parts,
+      ctx: content.environmentFor(design.month, design.draft.nationId).ctx,
+      nation: { nationId: design.draft.nationId },
+    });
+    expect(result.status, design.id).toBe("ACCEPTED");
   });
 
   it("reads no raw ship-building or reference-design YAML in the main process", () => {
