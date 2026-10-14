@@ -13,7 +13,7 @@ ADR-0105 (strict boundary decode) and [RULES.md](../../RULES.md).
 ## Context
 
 `RULES.md` distils the binding authorities into rules every change must satisfy.
-The audit behind [the compliance spec](../../.scratch/rules-compliance/spec.md)
+The audit behind [the compliance spec](../../.scratch/archive/rules-compliance/spec.md)
 found that the machine-checked rules held, but six rules were only *partly*
 obeyed and most were **not machine-checked at all**: an untagged-error family, a
 cast-trusted boundary, an ambient filesystem read inside a compiler stage, a raw

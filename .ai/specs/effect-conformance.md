@@ -1,6 +1,6 @@
 # Index — Effect conformance
 
-Pointer: `.scratch/effect-conformance/spec.md`
+Pointer (archived): `.scratch/archive/effect-conformance/spec.md`
 
 Close the residue of the Effect-conformance audit: pin
 `discoverShipBuildingFiles` order-independence; complete ADR-0100's policy of
@@ -11,9 +11,9 @@ to `Result.isFailure`. The audit's Blocker/Major findings (the false "closed
 gap) are already applied and gated in tickets 01–14. Governance only — goldens
 byte-identical; no runtime wave (ADR-0128).
 
-- **Triage:** `ready-for-agent` — ready for slicing.
-- **Status:** sliced — 4 frontier-ordered tickets at
-  `.scratch/effect-conformance/issues/` (`INC-1`..`INC-4`), all unblocked.
+- **Triage:** archived — all tickets resolved.
+- **Status:** archived (2026-10-13) — all tickets resolved; files moved to
+  `.scratch/archive/effect-conformance/` (`INC-1`..`INC-4` and tickets 01–14).
 - **Grounds:** ADR-0100, ADR-0106, ADR-0109, ADR-0128, ADR-0150, ADR-0151,
   ADR-0152, ADR-0155; the findings register in
-  `.scratch/effect-conformance/issues/11-assemble-conformance-plan.md`.
+  `.scratch/archive/effect-conformance/issues/11-assemble-conformance-plan.md`.

@@ -20,7 +20,7 @@ them as **warnings**, so `pnpm lint:effect` exits 0 and a new ambient read can l
 without failing CI. A quality that can only decay, with nothing to stop it, is
 exactly the class ADR-0106 freezes with a ratchet gate.
 
-The audit behind [the RULES.md compliance spec](../../.scratch/rules-compliance/spec.md)
+The audit behind [the RULES.md compliance spec](../../.scratch/archive/rules-compliance/spec.md)
 found the decay had already happened once: the command lifecycle's
 `transitionRecord` helper stamped `new Date().toISOString()` into a record it then
 hashed. Every real consumer worked around it, so it stayed safe only by

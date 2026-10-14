@@ -6,6 +6,6 @@ This directory is a pointer index only, matching the repo convention
 ## Active
 
 - **desktop-battle-outcomes** — DESKTOP tactical battle-outcome surfacing
-  (B-6 follow-up). Frontier of `.scratch/desktop-feature-gate/`. Read-only over
+  (B-6 follow-up). Frontier of `.scratch/archive/desktop-feature-gate/`. Read-only over
   the engine; surfaces `wars.battles[].result` (pre→post resolved-set delta,
   ADR-0028) in the turn report. [spec](../scratch/desktop-battle-outcomes/spec.md)
