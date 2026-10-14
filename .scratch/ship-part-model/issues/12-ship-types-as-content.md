@@ -1,9 +1,9 @@
 # 12: Ship types as content (P3)
 
 **Type:** implementation
-**Status:** claimed
+**Status:** resolved
 **Blocked by:** 11
-**Frontier:** yes
+**Frontier:** no
 **Requirements:** SPM-R8, SPM-R11 (ship types in index), SPM-R12 (`TYPE_REQUIRES_*`), SPM-R26 (P3 gate) · Stories 13, 14
 
 ## What to build
@@ -43,6 +43,26 @@ DESIGN-22 rules rather than changing them) and recorded in ADR-0156.
 | --- | --- | --- |
 | **12a** Schema, registry content and index | `ShipTypeRecordSchema` with a closed `engineClass` enum and a closed `classification` predicate vocabulary in `@bluewave/content-schema`; the 14 records authored at `content/production/1880/ship-building/ship-types.yaml` from today's code; declared in `pack.json`, carried through validate/flatten into the part artifact and `PartIndex.shipTypes`; strict-decode tests (unknown engine class / predicate key / category / role / era fails). Additive: classification still reads the existing code until 12b. | AC 1 (decode half) |
 | **12b** Classification from content | Classification reads the compiled ship-type registry and its closed predicates; `TYPE_REQUIRES_*` fit findings; equivalence P3 report with zero `changed`; content lock refresh; ship-type e2e and campaign goldens unchanged. | AC 1–4 |
+
+## Resolution (2026-10-14)
+
+Resolved in two commits. `ae320320` (12a) adds the strict `shipTypes` content
+collection, the 14 authored records mirroring `shipTypeData.ts`, and
+`PartIndex.shipTypes`. `e4097b22` (12b) makes classification/availability/roster
+read the compiled registry through `shipTypeRegistry` and adds the closed
+`TYPE_REQUIRES_*` fit findings from each type's `classification.requires`.
+
+- AC 1: unknown engine class / predicate key / constraint key / interface / role /
+  category / era / torpedo policy fail strict decode (`content-schema/test/ship-types.test.ts`).
+- AC 2: `pnpm check:equivalence` byte-identical (sha `ebd0ddb6…`, zero `changed`);
+  the report now exercises the content registry via the harness context.
+- AC 3: `TYPE_REQUIRES_*` proven at the fit stage for a requirement naming a real
+  dotted platform slot (`ship-design/test/partFit.test.ts`).
+- AC 4: `pnpm check:golden` unchanged; the ship-type e2e passes.
+
+`pnpm check` green. Deferred (recorded above): the in-app type selector still
+reads the code registry; nested `mountCountMin` scaling; `UNEVALUABLE`→violation
+mapping; a registry-omits-a-type diagnostic.
 
 ## Deferred (review 12b)
 
