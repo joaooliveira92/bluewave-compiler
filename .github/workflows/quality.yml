@@ -78,6 +78,8 @@ jobs:
       - name: Performance tripwire (month advance)
         run: pnpm --filter @bluewave/desktop exec cross-env BLUEWAVE_PERF=1 vp test run src/main/perf/monthAdvance.perf.test.ts
       - run: pnpm test:run
+      # Ship-part equivalence report byte-identical across two fresh processes (SPM-R24).
+      - run: pnpm check:equivalence
       # The long simulation suites (36-month regression, AI procurement) are
       # excluded from the default per-package run and executed here in isolation
       # with bounded vitest workers, so parallel turbo load cannot flake a

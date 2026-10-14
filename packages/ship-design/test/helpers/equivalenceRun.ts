@@ -98,5 +98,10 @@ export function runEquivalence(
     comparisons,
     baselinePipeline: { id: "legacy-compile", contentHash },
     candidatePipeline: { id: "parts-read-path", contentHash },
+    launchers: environment.models.launchers.parts.map((p) => ({
+      id: p.id,
+      variant: p.origin.prototype !== undefined,
+      waived: p.legacyExceptions !== undefined,
+    })),
   });
 }

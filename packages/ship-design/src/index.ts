@@ -75,3 +75,4 @@ export * from "./nationalConstruction.js";
 export * from "./fleetProcurement.js";
 export * from "./nationalResearch.js";
 export * from "./nationCompleteness.js";
+export * from "./approvedDiffs.js";

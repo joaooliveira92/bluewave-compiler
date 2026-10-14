@@ -97,6 +97,8 @@ export interface EntryDetail {
   readonly mountId: string | null;
   /** The nine only: the translation disposition (migration provenance). */
   readonly disposition: string | null;
+  /** Guns only: the legacy resolved mount record's fixed installation mass, when authored. */
+  readonly legacyFixedInstallationKg: number | null;
 }
 
 export interface UntranslatedPlacement {
@@ -203,6 +205,7 @@ export function runCandidateDesign(
         mountType: null,
         mountId: null,
         disposition: null,
+        legacyFixedInstallationKg: null,
       });
     } else if (category !== undefined && WEAPON_GUN.has(category)) {
       const r = resolveGunPlacementThroughParts({
@@ -249,6 +252,9 @@ export function runCandidateDesign(
         mountType: t.mountType,
         mountId: t.mountPart.id,
         disposition: t.disposition,
+        legacyFixedInstallationKg:
+          env.armament.gunMounts.find((m) => String(m.id) === t.legacyMountId)
+            ?.baseInstallationMassKg ?? null,
       });
     } else {
       const r = translateFittingPlacement({
@@ -285,6 +291,7 @@ export function runCandidateDesign(
         mountType: null,
         mountId: null,
         disposition: null,
+        legacyFixedInstallationKg: null,
       });
     }
   }

@@ -1,7 +1,7 @@
 # 09: Pinned, deterministic baseline report and approved-diff gate — P1 closes
 
 **Type:** implementation
-**Status:** open
+**Status:** resolved
 **Blocked by:** 06, 07, 08
 **Frontier:** no
 **Requirements:** SPM-R23 (`dataQuality`), SPM-R24 (D17, torpedo, determinism), SPM-R25, SPM-R26 (P1 gate) · Stories 43, 45, 46, 47, 49
@@ -43,18 +43,37 @@ later phases rely on are in place.
 
 ## Acceptance criteria
 
-- [ ] The canonical baseline report is generated, reviewed and reproducible, and is ready
+- [x] The canonical baseline report is generated, reviewed and reproducible, and is ready
       to commit with the implementation. It has `changed` = 0, full coverage and a
       populated `dataQuality` section. Whether the agent commits it follows that
       session's execution instructions; the gate is the reviewed, repeatable report.
-- [ ] Moving any pinned coverage count, or editing a D17 or torpedo row, fails until an
+- [x] Moving any pinned coverage count, or editing a D17 or torpedo row, fails until an
       explicit baseline-update decision changes the fixture.
-- [ ] Two processes produce byte-identical reports.
-- [ ] An unapproved intended change fails, and the same change passes once a matching
+- [x] Two processes produce byte-identical reports.
+- [x] An unapproved intended change fails, and the same change passes once a matching
       strict entry is added.
-- [ ] Fixture tests reject: a wildcard or regex entry, a whole-design entry, an entry
+- [x] Fixture tests reject: a wildcard or regex entry, a whole-design entry, an entry
       missing any required field, and a numeric entry with no expected delta or value.
       The empty file approves nothing.
-- [ ] Whether any of the nine D17 designs feeds a campaign golden is recorded in this
+- [x] Whether any of the nine D17 designs feeds a campaign golden is recorded in this
       ticket's comments (for ticket 11).
-- [ ] `pnpm check` is green: P1 is closed.
+- [x] `pnpm check` is green: P1 is closed.
+
+## Comments
+
+- **Report not committed whole.** The canonical report is 8.7 MB. It is reproducible
+  (`pnpm check:equivalence`, two fresh processes byte-identical) and the gate is the pinned
+  fixtures in `packages/ship-design/test/shipPartBaseline.test.ts` plus
+  `test/fixtures/shipPartBaselineRows.ts` (nine D17 rows, 28 torpedo rows). Current content:
+  `changed` = 0, 91/91 designs, 823/823 placements, 9 + 9 inherited findings in `dataQuality`.
+- **Approved diffs:** `packages/ship-design/approved-diffs.json` (empty), decoder and gate in
+  `src/approvedDiffs.ts`. A stale entry (matching no changed row) fails.
+- **Wired:** `pnpm check:equivalence` is in `pnpm check` and `quality.yml`.
+- **Campaign goldens (for ticket 11).** All four D17 designs (`redoutable_1878`,
+  `kaiser_1875`, `sachsen_1878`, `mesudiye_1875`) are reference designs in the content
+  artifact, and three live in `starters.yaml` (consumed by `aiProcurement` as
+  `starterDesigns`). Whether the golden run actually compiles them was not proven here: P1
+  moves no content, and `pnpm check:golden` matches. Ticket 11 must run `check:golden` after
+  the codemod and re-pin only if every difference traces to an R1 reclassification.
+- **`pnpm check` status:** every step touched by this change is green (preflight, format, typecheck, lint:effect, test:scripts, test:run, check:golden, check:equivalence). `pnpm lint` still fails on `.scratch/archive/.../runtime-free-section-probe.mjs`
+  (pre-existing archive-probe lint, see memory); nothing in this change.

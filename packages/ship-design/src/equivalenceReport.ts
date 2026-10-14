@@ -91,6 +91,38 @@ export const PINNED_COVERAGE: Coverage = {
   fittingPlacements: 565,
 };
 
+/** Pinned data-quality inventory of the reference content (ticket 09). */
+export interface DataQualityInventory {
+  readonly centralBatteryPlacements: number;
+  readonly launcherVariants: number;
+  readonly waivedLauncherRecords: number;
+  readonly torpedoEntriesAffected: number;
+}
+
+export const PINNED_DATA_QUALITY: DataQualityInventory = {
+  centralBatteryPlacements: 9,
+  launcherVariants: 17,
+  waivedLauncherRecords: 5,
+  torpedoEntriesAffected: 9,
+};
+
+/** An inherited data-quality finding: reported, never counted as a difference. */
+export interface InheritedFinding {
+  readonly code: "DQ-TORPEDO-001" | "DQ-ARMAMENT-001";
+  readonly design: string;
+  readonly entry: string;
+  readonly detail: string;
+  readonly status: "inherited";
+}
+
+/** The launcher records the report inventories (a subset of the launcher part model). */
+export interface LauncherRecord {
+  readonly id: string;
+  /** True for a national variant (it has a prototype), false for a base launcher. */
+  readonly variant: boolean;
+  readonly waived: boolean;
+}
+
 export interface DesignFitReport {
   readonly status: FitStatus | "NOT_TRANSLATED";
   readonly findingCodes: readonly string[];
@@ -147,6 +179,12 @@ export interface EquivalenceReport {
       readonly path: string;
       readonly candidates: readonly string[];
     }[];
+    /** Inherited `DQ-TORPEDO-001` and `DQ-ARMAMENT-001` findings, never differences. */
+    readonly inherited: readonly InheritedFinding[];
+    readonly inventory: {
+      readonly pinned: DataQualityInventory;
+      readonly observed: DataQualityInventory;
+    };
   };
 }
 
@@ -301,6 +339,8 @@ export function buildEquivalenceReport(input: {
   readonly baselinePipeline: { readonly id: string; readonly contentHash: string };
   readonly candidatePipeline: { readonly id: string; readonly contentHash: string };
   readonly tolerance?: ToleranceManifest;
+  /** The launcher records, for the variant and waiver inventory. */
+  readonly launchers?: readonly LauncherRecord[];
 }): EquivalenceReport {
   const tolerance = input.tolerance ?? TOLERANCE_MANIFEST;
   const sorted = [...input.comparisons].sort((a, b) => compareCodePoints(a.design.id, b.design.id));
@@ -319,6 +359,10 @@ export function buildEquivalenceReport(input: {
   };
   const candidateCoverage = { ...baselineCoverage };
 
+  const inherited: InheritedFinding[] = [];
+  const waivedLauncher = new Map(
+    (input.launchers ?? []).filter((l) => l.waived).map((l) => [l.id, l]),
+  );
   const designs: DesignReport[] = sorted.map((cmp): DesignReport => {
     const id = cmp.design.id;
     const { candidate } = cmp;
@@ -355,6 +399,27 @@ export function buildEquivalenceReport(input: {
     for (const u of candidate.unresolvedGuns) {
       unresolvedGuns.push({ design: id, placement: u.instanceId, code: u.code });
     }
+    for (const e of candidate.entries) {
+      const waived = e.kind === "tube" ? e.parts.find((p) => waivedLauncher.has(p)) : undefined;
+      if (waived !== undefined) {
+        inherited.push({
+          code: "DQ-TORPEDO-001",
+          design: id,
+          entry: e.instanceId,
+          detail: `launcher ${waived} (${e.legacyComponentId})`,
+          status: "inherited",
+        });
+      }
+      if (e.disposition === "RECLASSIFIED_AS_CENTRAL_BATTERY") {
+        inherited.push({
+          code: "DQ-ARMAMENT-001",
+          design: id,
+          entry: e.instanceId,
+          detail: `legacy ${String(e.legacyMountType)} → ${String(e.mountType)}`,
+          status: "inherited",
+        });
+      }
+    }
     summaryDesigns[fitReport.status] = (summaryDesigns[fitReport.status] ?? 0) + 1;
 
     const compared = candidate.compiled !== null && cmp.candidateMetrics !== null;
@@ -383,6 +448,16 @@ export function buildEquivalenceReport(input: {
       waivers,
       unresolvedGunPlacements: unresolvedGuns,
       unresolvedMagazineRelationships: magazines,
+      inherited,
+      inventory: {
+        pinned: PINNED_DATA_QUALITY,
+        observed: {
+          centralBatteryPlacements: inherited.filter((f) => f.code === "DQ-ARMAMENT-001").length,
+          launcherVariants: (input.launchers ?? []).filter((l) => l.variant).length,
+          waivedLauncherRecords: waivedLauncher.size,
+          torpedoEntriesAffected: inherited.filter((f) => f.code === "DQ-TORPEDO-001").length,
+        },
+      },
     },
   };
 }
@@ -426,6 +501,17 @@ export function structuralGate(report: EquivalenceReport): GateFailure[] {
         code: "COVERAGE_NOT_PINNED",
         path: `coverage.${key}`,
         message: `${key}: ${baseline[key]} compared, ${pinned[key]} pinned`,
+      });
+    }
+  }
+  const { pinned: dqPinned, observed: dqObserved } = report.dataQuality.inventory;
+  for (const key of Object.keys(dqPinned) as (keyof DataQualityInventory)[]) {
+    if (dqObserved[key] !== dqPinned[key]) {
+      failures.push({
+        gate: "structural",
+        code: "DATA_QUALITY_NOT_PINNED",
+        path: `dataQuality.inventory.${key}`,
+        message: `${key}: ${dqObserved[key]} observed, ${dqPinned[key]} pinned`,
       });
     }
   }
@@ -511,6 +597,32 @@ export function semanticGate(report: EquivalenceReport): GateFailure[] {
           `entries[${e.instanceId}]`,
           `mountCount ${e.mountCount} ≠ legacy tubes ${String(e.legacyUnits)}`,
         );
+      }
+      if (e.disposition === "RECLASSIFIED_AS_CENTRAL_BATTERY") {
+        const fixed = e.quantities.find(
+          (q) => q.kind === "massKg" && q.basis === "PER_LOADOUT_ENTRY" && q.scope === "mount",
+        );
+        const where = `entries[${e.instanceId}]`;
+        if (e.mountCount !== 1 || e.gunsPerMount !== e.legacyUnits) {
+          fail(
+            "D17_BARREL_EQUALITY",
+            d.designId,
+            where,
+            `mountCount ${e.mountCount} × gunsPerMount ${String(e.gunsPerMount)} ≠ legacy barrels ${String(e.legacyUnits)}`,
+          );
+        }
+        if (
+          fixed === undefined ||
+          e.legacyFixedInstallationKg === null ||
+          fixed.contribution !== e.legacyFixedInstallationKg
+        ) {
+          fail(
+            "D17_FIXED_INSTALLATION",
+            d.designId,
+            where,
+            `translated PER_LOADOUT_ENTRY installation ${String(fixed?.contribution)} ≠ legacy ${String(e.legacyFixedInstallationKg)}`,
+          );
+        }
       }
       if (e.kind === "gun" && e.containedUnits !== e.legacyUnits) {
         fail(
