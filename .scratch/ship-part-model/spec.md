@@ -12,7 +12,7 @@ that means the implementation tickets, once sliced by `to-tickets`, carry
 P6 (visual alignment, which includes ship-visualization INC-4) waits on the owner's review
 of the exact visual-trait definitions.
 
-**Status:** sliced into 16 tickets at `issues/` (01–06 are resolved and 07 and 08 are the frontier; P1 = 01–09; 2.0.0 is implemented in 10 and activated atomically in 11, P2 = 10–11, P3 = 12, P4 = 13, P5 = 14–15, P6 = 16, gated on D16).
+**Status:** sliced into 17 tickets at `issues/` (01–15 are resolved; 17 is the frontier — the P5-completion cut-over — and 16 waits on D16's owner review; P1 = 01–09; 2.0.0 is implemented in 10 and activated atomically in 11, P2 = 10–11, P3 = 12, P4 = 13, P5 = 14–15 + 17, P6 = 16, gated on D16). Ticket 15 landed only the no-reader part of P5 (the armament adapter); ticket 17 completes the production cut-over that P5's "no reader left" gate needs (D-11).
 
 **Source of truth:** the approved design proposal [`proposal.md`](proposal.md)
 (revision 4.1) and its decision log D1–D19, invariants I-1–I-27, safeguards S1–S8 and

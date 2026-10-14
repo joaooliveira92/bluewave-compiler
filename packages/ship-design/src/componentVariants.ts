@@ -9,12 +9,7 @@
  * national model); it never widens the global component set, so global classification stays authoritative.
  */
 import type { ComponentDef } from "./component.js";
-import type {
-  AmmunitionPattern,
-  GunModelDef,
-  MountType,
-  NationNavalProfile,
-} from "./nationProfile.js";
+import type { AmmunitionPattern, GunModelDef, NationNavalProfile } from "./nationProfile.js";
 
 const monthIndex = (m: string): number => Number(m.slice(0, 4)) * 12 + (Number(m.slice(5, 7)) - 1);
 
@@ -198,11 +193,6 @@ export function catalogueForNation(
   }
   out.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
   return { catalogue: out, appliedModels, unavailable };
-}
-
-/** Mount types a nation's gun model for a family supports, or an empty list when it has no model. */
-export function mountsForGun(profile: NationNavalProfile, familyId: string): readonly MountType[] {
-  return profile.gunModels.filter((g) => g.familyId === familyId).flatMap((g) => g.mounts);
 }
 
 /**

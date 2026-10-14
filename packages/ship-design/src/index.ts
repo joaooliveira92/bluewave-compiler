@@ -51,7 +51,6 @@ export * from "./shipTypeEnvelope.js";
 export * from "./nationProfile.js";
 export * from "./naming.js";
 export * from "./componentVariants.js";
-export * from "./armamentAdapter.js";
 export * from "./armamentContent.js";
 export * from "./armamentCompile.js";
 export * from "./gunPartAdapter.js";
