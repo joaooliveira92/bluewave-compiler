@@ -1,9 +1,9 @@
 # 22: Replace ESTIMATE and Wikipedia-only rows in the build-time table (release blocker)
 
 **Type:** task
-**Status:** open
+**Status:** resolved
 **Blocked by:** none
-**Frontier:** yes
+**Frontier:** no
 
 Source: ticket 20 review. In `content/production/1880/ship-building/balance.yaml`, `buildMonthsByDisplacementT` has unsourced ESTIMATE points at 300, 3,000, 9,000 and 20,000 t, and a Wikipedia-only point at 12,000 t whose completion date conflicts with Brassey 1901 (Cressy delivered Oct 1900 vs Wikipedia 28 May 1901). Verify against Conway's, Brassey 1902 or navweaps, add destroyer and torpedo-boat sources, record machine-readable provenance per point, and drop the "provisional" label in the Drawing Board forecast once no ESTIMATE rows remain. Release blocker.
 
@@ -28,3 +28,27 @@ Commands: `cd packages/ship-design && npx vp test run` -> 29 files, 280 passed; 
 `docs/research/ship-building-content-sourcing.md`). Remaining: the 390 t destroyer point is SECONDARY (Brassey's 18-month standard with a
 Wikipedia displacement), so builds below 5,600 t stay "provisional". Kent class bounded at 40-48 months, not a point. Left open for a
 primary destroyer displacement (e.g. Brassey's annual ship tables).
+
+### 2026-10-14 orchestrator — RESOLVED (P-2 frontier ticket 22)
+
+Every point that gates the "provisional" label is now VERIFIED against Brassey's Naval Annual.
+
+- **Low displacement point 390 t -> 330 t, SECONDARY -> VERIFIED.** Brassey 1901's own torpedo-boat flotilla table gives
+  Whiting 330 t (p. 373) and Bat 326 t (p. 372) — the 390 t figure was Jane's-via-Wikipedia and matches no 30-knotter in the
+  volume. The 18-month duration stays Brassey 1901 p. 264 (Whiting 14, Bat 16, p. 263). Research:
+  `docs/research/ship-building-build-times-destroyer-displacement.md`.
+- **1886 era point SECONDARY -> VERIFIED.** The `buildTimeEraBp` factor gates the same "provisional" label
+  (`buildTimeIsProvisional` checks both tables). Trafalgar laid 18 Jan 1886 and Nile 8 Apr 1886 (Brassey 1886 p. 413), 11,940 t
+  (p. 185), Nile commissioned 30 Jun 1891 (Brassey 1892 p. 65), Trafalgar completed FY 1889-90 (Brassey 1891 p. 89): factor ~1.83,
+  shipped 18,000 bp. Research: `docs/research/ship-building-build-times-era-multiplier-sourcing.md`.
+- **1890 era point stays SECONDARY by design** — a derived ~43-month class mean, not a per-ship primary duration (Brassey calls
+  Royal Sovereign's own 32 months "not normal"). Its source now cites the primary window/duration rather than Wikipedia.
+
+Net effect: the 1880 scenario (keel ≤ 1886, any displacement) is no longer provisional; only keels laid 1887-1894 stay
+provisional (1890 SECONDARY), which is honest.
+
+Tests: `packages/ship-design/test/construction.test.ts` (provenance/label) and
+`apps/desktop/.../DrawingBoard.test.tsx` (UI label) updated. Content lock refreshed
+(`content/production/1880/content-lock.json`, deliberate content change, CAH-LOCK). Validation report:
+`.ai/reports/p2-ticket-22-build-time-sourcing.md`; gate evidence: preflight 37/37, typecheck 40/40, golden 11/11, cross-process
+byte-identical, equivalence byte-identical, balance reports ok, ship-design 1300 tests, desktop construction 236 tests.

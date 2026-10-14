@@ -76,6 +76,16 @@ Live roadmap / next-action detail: `.ai/SPRINT-PLAN.md`.
 > settlement), 30, then a P-2 acceptance gate. This is recorded here as the next
 > release-critical work; it is **not** started by the migration hardening.
 > Migration evidence: `.ai/reports/effect-v4-hardening.md`.
+>
+> **2026-10-14: P-2 frontier ticket 22 (build-time sourcing) RESOLVED.** The
+> Drawing Board's "provisional" build-time label is gated on both the
+> displacement table and the era table. Both previously-unsourced points are now
+> VERIFIED against Brassey's Naval Annual: the low displacement point moved
+> 390→330 t (Whiting, Brassey 1901 pp. 372-373) and the 1886 era point is sourced
+> (Brassey 1886/1891/1892). The 1890 era factor stays a derived SECONDARY class
+> mean, so only keels laid 1887-1894 remain "provisional" (honest). Content lock
+> refreshed. Report `.ai/reports/p2-ticket-22-build-time-sourcing.md`. Next:
+> ship-building ticket 28 (rebuild cancellation settlement).
 
 ---
 

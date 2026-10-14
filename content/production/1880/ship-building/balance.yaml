@@ -380,8 +380,9 @@ construction:
   # displacement are VERIFIED. Full source notes: docs/research/ship-building-build-times.md.
   #  Brassey's Naval Annual 1901 = archive.org id brassey-s-naval-annual-1901 (OCR text read in full for the pages cited);
   #  1902 = brasseysnavala1902brasuoft; 1908 = navalannual1908; 1910 = navalannual1910; 1907 = brassey-s-naval-annual-1907.
-  #   Torpedo-boat destroyer ~390 t: Whiting completed in 14 months and Bat in 16 (Brassey 1901 p. 263); the same page-264 passage
-  #     sets 18 months as the most a destroyer should take. Wikipedia gives Whiting laid 13 Apr 1896, completed Jun 1897 (14).
+  #   Torpedo-boat destroyer ~330 t: Whiting completed in 14 months and Bat in 16 (Brassey 1901 p. 263); the same page-264 passage
+  #     sets 18 months as the most a destroyer should take. Whiting 330 t and Bat 326 t are from the torpedo-boat flotilla table,
+  #     pp. 373 and 372 (the earlier Wikipedia 390 t figure matches no 30-knotter in Brassey and is not used).
   #   Second-class cruiser (Hermes/Highflyer, 5,600 t): "about two years and a half" from keel to Fleet Reserve (Brassey 1901
   #     p. 262); commissioned Oct and 7 Dec 1899. The 5,600 t displacement is not stated in the volumes read: SECONDARY.
   #   First-class protected cruiser (Diadem, 11,000 t per Brassey 1901 p. 10): laid 23 Jan 1896, pennant 19 Jul 1898, "two years
@@ -406,15 +407,15 @@ construction:
   # The efficient record (22-24 months) is reached through efficientIndustryBp (24/36 = 6,667 bp, rounded to 6,700).
   buildMonthsByDisplacementT:
     points:
-      - [390, 18]
+      - [330, 18]
       - [5600, 30]
       - [11000, 30]
       - [12000, 31]
       - [12950, 35]
       - [14900, 36]
   buildMonthsProvenance:
-    - status: SECONDARY
-      source: "Brassey's Naval Annual 1901 p. 264 (18 months the most a destroyer should take; Bat 16, Whiting 14 are the records, p. 263); the ~390 t displacement is from Wikipedia, not Brassey"
+    - status: VERIFIED
+      source: "Brassey's Naval Annual 1901 p. 264 (18 months the most a destroyer should take; Whiting 14 months, Bat 16, p. 263); Whiting 330 t and Bat 326 t from the torpedo-boat flotilla table, pp. 373 and 372"
     - status: VERIFIED
       source: "Brassey's Naval Annual 1901 p. 262 (Hermes and Highflyer about 2.5 years); 5,600 t from Brassey 1898 p. 12 (three new second-class cruisers of 5600 tons)"
     - status: VERIFIED
@@ -427,8 +428,8 @@ construction:
       source: "Brassey's Naval Annual 1901 pp. 258-259 (Canopus class 35-39 months; Majestic class over three years each)"
   # Era multiplier (ADR-0080): year the keel is laid -> bp on the table above, which is the 1894-1900 standard. Each factor is
   # the class's keel-to-completion months over the table's months at its displacement. Clamped: before 1886 uses 1886.
-  #   1886 Trafalgar class 11,940 t: Nile 8 Apr 1886 - 10 Jul 1891 (63), Trafalgar 18 Jan 1886 - 1890 (48-59); vs 31 -> ~1.8.
-  #   1890 Royal Sovereign class 14,150 t, laid 1889-91: 32, 50, 52, 45, 38, 42, 37, 48 months (mean 43); vs 36 -> 1.22.
+  #   1886 Trafalgar class 11,940 t: Nile 8 Apr 1886 - commissioned 30 Jun 1891 (62.7), Trafalgar 18 Jan 1886 - completed FY 1889-90 (~50); vs ~31 -> ~1.83 (18,000 bp).
+  #   1890 Royal Sovereign class 14,150 t, laid 1889-90: Royal Sovereign 30 Sep 1889 - 31 May 1892 (32, Brassey "not normal"); class completed 1892-94, mean ~43; vs 36 -> ~1.22.
   #   1905 Lord Nelson 34, King Edward VII class 32-36, ~16,500 t; vs 36 (table end) -> 34/36.
   #   1908 Bellerophon class 28 months or less, 18,600 t; vs 36 -> 28/36.
   buildTimeEraBp:
@@ -440,10 +441,10 @@ construction:
       - [1905, 9400]
       - [1908, 7800]
   buildTimeEraProvenance:
+    - status: VERIFIED
+      source: "Brassey's Naval Annual 1886 p. 413 (Trafalgar laid 18 Jan 1886, Nile 8 Apr 1886) and p. 185 (displacement 11,940 t); Nile commissioned 30 Jun 1891 (Brassey 1892 p. 65); Trafalgar completed FY 1889-90 (Brassey 1891 p. 89)"
     - status: SECONDARY
-      source: "Trafalgar-class battleship (Wikipedia): Nile laid 8 Apr 1886, completed 10 Jul 1891; Trafalgar laid 18 Jan 1886, completed 1890; 11,940 t designed"
-    - status: SECONDARY
-      source: "Royal Sovereign-class battleship (Wikipedia): eight ships laid Jul 1889 - Feb 1891, completed May 1892 - Jun 1894; 14,150 t"
+      source: "Brassey's Naval Annual 1891 p. 414 (Royal Sovereign laid 30 Sep 1889) and p. 119 (14,150 t); Brassey 1892 p. 2 (Royal Sovereign commissioned 31 May 1892, 32 months, 'cannot be considered as normal'); the ~43-month class mean behind 12,200 bp is a derived representative figure, not a per-ship primary duration"
     - status: VERIFIED
       source: "Brassey's Naval Annual 1901 pp. 258-259 (Majestic class over three years each; Canopus 35 months): the table's own standard"
     - status: VERIFIED

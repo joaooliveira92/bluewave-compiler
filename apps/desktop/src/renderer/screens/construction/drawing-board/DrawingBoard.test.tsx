@@ -271,10 +271,16 @@ describe("DrawingBoard", () => {
       within(region("Cost and construction forecast")).getByText("Build time").nextElementSibling!
         .textContent!;
     render(<DrawingBoard />);
-    // the small default hull sits on the SECONDARY 390 t row
+    // ticket 22 sourced the low (330 t) displacement point and the 1886 era point, so the default hull is no longer provisional
+    expect(text()).toContain("historical build time");
+    expect(text()).not.toMatch(/provisional/i);
+    // A keel laid 1887-1894 is still bracketed by the 1890 era point, a derived (SECONDARY) class mean.
+    chooseOption("Starting design", "Torpedo cruiser (1880, CL)");
+    chooseOption("Technology as of", "1890-01");
     expect(text()).toMatch(/historical build time.*provisional/);
+    // A Majestic-size 1895 hull is bracketed by VERIFIED displacement and era points.
     chooseOption("Starting design", "Majestic-like battleship (1895)");
-    // Majestic-size hull is bracketed by VERIFIED Cressy / Canopus points
+    chooseOption("Technology as of", "1895-06");
     expect(text()).toContain("historical build time");
     expect(text()).not.toMatch(/provisional/i);
   });

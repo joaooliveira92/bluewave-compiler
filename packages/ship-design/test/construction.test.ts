@@ -200,7 +200,8 @@ describe("historical build time by displacement (ADR-0067 section 5)", () => {
   const kg = (t: number) => t * 1000;
   it("hits the table points exactly and clamps outside the table", () => {
     const months = (t: number) => historicalBuildMonths(kg(t), earlyConstruction);
-    expect(months(390)).toBe(18); // Brassey 1901 p. 264 standard (Bat 16 / Whiting 14 are records)
+    expect(months(330)).toBe(18); // Brassey 1901 p. 264 standard (Whiting 14 / Bat 16 are records; 330 t Whiting, ticket 22)
+    expect(months(390)).toBe(18);
     expect(months(11_000)).toBe(30); // Diadem, Brassey 1901 p. 262
     expect(months(12_950)).toBe(35); // Canopus, Brassey 1901
     expect(months(12_000)).toBe(31); // Cressy, laid Oct 1898, commissioned May 1901
@@ -266,9 +267,12 @@ describe("historical build time by displacement (ADR-0067 section 5)", () => {
       earlyConstruction.buildMonthsByDisplacementT.points.length,
     );
     for (const p of earlyConstruction.buildMonthsProvenance) {
-      expect(["VERIFIED", "SECONDARY"]).toContain(p.status);
+      expect(p.status).toBe("VERIFIED");
       expect(p.source.length).toBeGreaterThan(20);
     }
+    const low = earlyConstruction.buildMonthsByDisplacementT.points[0]![0];
+    expect(low).toBe(330); // ticket 22: Whiting 330 t, Brassey 1901 p. 373
+    expect(earlyConstruction.buildMonthsProvenance[0]!.source).toContain("330 t");
     const cressy = earlyConstruction.buildMonthsByDisplacementT.points.findIndex(
       ([t]) => t === 12_000,
     );
@@ -277,21 +281,33 @@ describe("historical build time by displacement (ADR-0067 section 5)", () => {
   });
   it("is provisional while a bracketing point is not VERIFIED (exact hit, between, clamped)", () => {
     const pts = earlyConstruction.buildMonthsByDisplacementT.points;
-    const sec = earlyConstruction.buildMonthsProvenance.findIndex((p) => p.status !== "VERIFIED");
-    expect(sec).toBeGreaterThanOrEqual(0);
-    const t = (i: number) => pts[i]![0] * 1000;
-    expect(buildTimeIsProvisional(t(sec), earlyConstruction)).toBe(true); // exact hit
-    expect(buildTimeIsProvisional(t(sec) - 1000, earlyConstruction)).toBe(true); // just below, bracket includes it
-    expect(buildTimeIsProvisional(t(sec) + 1000, earlyConstruction)).toBe(true); // just above
+    // Ticket 22 sourced the low end (330 t Whiting), so every displacement point is now VERIFIED.
+    expect(earlyConstruction.buildMonthsProvenance.every((p) => p.status === "VERIFIED")).toBe(
+      true,
+    );
+    expect(buildTimeIsProvisional(1_000, earlyConstruction)).toBe(false); // clamped onto the VERIFIED 330 t end
     expect(buildTimeIsProvisional(12_500_000, earlyConstruction)).toBe(false); // Cressy..Canopus, both VERIFIED
-    expect(buildTimeIsProvisional(1_000, earlyConstruction)).toBe(true); // clamped onto the SECONDARY 390 t end
     expect(buildTimeIsProvisional(90_000_000, earlyConstruction)).toBe(false); // clamped on a VERIFIED end
+    // The mechanism still reports provisional for an unsourced point: demote one in a copy.
+    const sec = 2;
+    const demoted = {
+      ...earlyConstruction,
+      buildMonthsProvenance: earlyConstruction.buildMonthsProvenance.map((p, i) =>
+        i === sec ? { ...p, status: "SECONDARY" as const } : p,
+      ),
+    };
+    const t = (i: number) => pts[i]![0] * 1000;
+    expect(buildTimeIsProvisional(t(sec), demoted)).toBe(true); // exact hit
+    expect(buildTimeIsProvisional(t(sec) - 1000, demoted)).toBe(true); // just below, bracket includes it
+    expect(buildTimeIsProvisional(t(sec) + 1000, demoted)).toBe(true); // just above
+    expect(buildTimeIsProvisional(12_500_000, demoted)).toBe(false); // Cressy..Canopus, both still VERIFIED
   });
   it("is provisional while the era points bracketing the month are not VERIFIED", () => {
     const verifiedHull = 12_500_000; // Cressy..Canopus
     expect(buildTimeIsProvisional(verifiedHull, earlyConstruction, "1897-01")).toBe(false);
     expect(buildTimeIsProvisional(verifiedHull, earlyConstruction, "1906-01")).toBe(false);
-    expect(buildTimeIsProvisional(verifiedHull, earlyConstruction, "1880-01")).toBe(true); // clamped onto 1886
+    expect(buildTimeIsProvisional(verifiedHull, earlyConstruction, "1880-01")).toBe(false); // clamped onto VERIFIED 1886
+    expect(buildTimeIsProvisional(verifiedHull, earlyConstruction, "1888-01")).toBe(true); // 1886 VERIFIED .. 1890 SECONDARY
     expect(buildTimeIsProvisional(verifiedHull, earlyConstruction, "1892-01")).toBe(true); // 1890..1895
     expect(() =>
       buildTimeIsProvisional(verifiedHull, { ...earlyConstruction, buildTimeEraProvenance: [] }),
