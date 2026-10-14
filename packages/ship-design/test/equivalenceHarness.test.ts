@@ -91,9 +91,19 @@ describe("equivalence harness over current content (ticket 08)", () => {
     }
   });
 
-  it("reports unresolved magazine relationships and keeps data quality separate", () => {
+  it("keeps data quality separate with independent armament, magazine and waiver counts", () => {
+    // Three independent counts, verified 2026-10-14 (ticket 11c): 162 unresolved armament or
+    // gun placements, zero unresolved FIT_MAGAZINE_* relationships, zero applied waivers.
+    // Earlier reporting labelled the 162 as magazine relationships; that was wrong, and this
+    // test pins each count separately so the classification cannot drift behind a zero-diff.
     expect(report.dataQuality.unresolvedGunPlacements).toHaveLength(162);
-    expect(Array.isArray(report.dataQuality.unresolvedMagazineRelationships)).toBe(true);
+    expect(
+      report.dataQuality.unresolvedGunPlacements.every(
+        (u) => u.code === "PART_READ_PATH_NO_FIRST_CLASS_ARMAMENT",
+      ),
+    ).toBe(true);
+    expect(report.dataQuality.unresolvedMagazineRelationships).toEqual([]);
+    expect(report.dataQuality.waivers).toEqual([]);
   });
 
   it(`is byte-identical across runs (EQUIVALENCE_REPORT_SHA256 ${reportSha})`, () => {

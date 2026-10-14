@@ -393,6 +393,25 @@ importers:
         specifier: workspace:*
         version: link:../../vendor/effect
 
+  packages/content-codemod:
+    dependencies:
+      '@bluewave/content-schema':
+        specifier: workspace:*
+        version: link:../content-schema
+      '@bluewave/deterministic':
+        specifier: workspace:*
+        version: link:../deterministic
+      '@bluewave/ship-design':
+        specifier: workspace:*
+        version: link:../ship-design
+      yaml:
+        specifier: ^2.9.1
+        version: 2.9.1
+    devDependencies:
+      '@bluewave/combat':
+        specifier: workspace:*
+        version: link:../combat
+
   packages/content-compiler:
     dependencies:
       '@bluewave/content-schema':

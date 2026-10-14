@@ -202,6 +202,12 @@ export const GATE_SETS = {
       needs: ["content-lock"],
       args: ["scripts/verify-content-gate.mjs"],
     },
+    {
+      id: "codemod-determinism",
+      label: "codemod determinism + idempotency",
+      needs: ["git-state"],
+      args: ["scripts/verify-codemod-determinism.mjs"],
+    },
   ],
 };
 

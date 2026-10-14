@@ -249,6 +249,25 @@ The 1880 content has 91 reference designs with 823 placements (230 gun placement
     - **Deferred.** Production activation and content rewrite are tickets 11c (codemod) and
       11d (activation); this decision changes no production content, save or compatibility
       version, and no result (equivalence `changed` stays 0).
+20. **Staged content codemod (2026-10-14, ticket 11c).** `@bluewave/content-codemod` is a
+    deterministic, staged-only writer over the 11b schema and builders. It plans the whole
+    output tree in memory (parts, platforms, slot templates, one `DesignLoadout` per design)
+    and publishes it atomically to an explicit staging directory; it never rewrites
+    production content and changes no compatibility or save version. The writer refuses
+    unsafe, ambiguous or protected output paths, detects destination collisions, fails with
+    typed path-specific diagnostics for unsupported or incomplete input, and emits a
+    `manifest.json` (schema, source identity, generated paths, record counts, per-file and
+    tree hashes). A run is a pure function of its source: byte-identical across processes and
+    input orders, and a fixed point — re-migrating a staged tree changes nothing.
+    - **Data-quality classification, verified and corrected (2026-10-14).** The three counts
+      are independent: **162 unresolved armament/gun placements** (all
+      `PART_READ_PATH_NO_FIRST_CLASS_ARMAMENT`, the documented compatibility path), **zero
+      unresolved `FIT_MAGAZINE_*` relationships**, and **zero applied waivers**. Earlier
+      reporting had mislabelled the 162 as magazine relationships; the equivalence harness
+      test now pins each count separately, so the classification cannot drift behind a
+      zero-difference result.
+    - **Deferred.** Production activation, the pipeline switch and the save bump remain 11d;
+      this decision stages content only.
 
 ## Consequences
 

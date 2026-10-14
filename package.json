@@ -23,6 +23,7 @@
     "check:golden-repin": "node scripts/verify-golden-repin.mjs",
     "check:determinism": "node scripts/verify-cross-process-determinism.cjs",
     "check:equivalence": "node scripts/verify-equivalence-determinism.mjs",
+    "check:codemod": "node scripts/verify-codemod-determinism.mjs",
     "check:commit-msgs": "node scripts/check-commit-msgs.cjs",
     "content:check": "pnpm --filter @bluewave/compiler-cli build && node apps/compiler-cli/dist/main.js content:check --manifest content/production/1880/pack.json --content-dir content/production/1880",
     "content:build": "pnpm --filter @bluewave/compiler-cli build && node apps/compiler-cli/dist/main.js content:build --manifest content/production/1880/pack.json --content-dir content/production/1880 --output-dir content/generated/1880",

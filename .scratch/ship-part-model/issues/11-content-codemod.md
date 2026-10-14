@@ -106,3 +106,27 @@ violate the single-change rule (AC 5).
   cross-process determinism script now proves both the report and the catalogue byte-identical.
 - **Deferred to 11c/11d:** the codemod writer and production pipeline activation. No production
   content, save version or compatibility version changes here.
+
+### 11c (2026-10-14) — implemented
+
+- **Data-quality classification verified and corrected.** Three independent counts: **162
+  unresolved armament/gun placements** (all `PART_READ_PATH_NO_FIRST_CLASS_ARMAMENT`, the
+  documented compatibility path), **0 unresolved `FIT_MAGAZINE_*` relationships**, **0 applied
+  waivers**. Earlier reporting mislabelled the 162 as magazine relationships;
+  `equivalenceHarness.test.ts` now pins each count separately so the classification cannot
+  drift behind a zero-difference equivalence result.
+- `@bluewave/content-codemod` (new package, developer tooling): `planFromLegacy` /
+  `planFromStaged` (pure), `loadLegacySource` / `readStagedSource` (I/O boundary) and
+  `publishMigration` (atomic, temp-cleaned, collision- and path-safe). Emits
+  `parts/<family>.yaml`, `platforms.yaml`, `slot-templates.yaml`, `designs/<nation>.yaml` and
+  `manifest.json` (`ship-part-content-migration/1`: schema, source identity, file paths,
+  record counts and per-file/tree hashes).
+- Deterministic: 306 parts, 91 designs, 823 placements (230 gun / 28 tube / 565 fitting);
+  byte-identical across runs, fresh processes and input order; source → staged → staged is a
+  fixed point; every generated record strictly decodes from the emitted bytes; typed,
+  path-specific failures for incomplete or unsupported input; no production content, save
+  version or compatibility version changes.
+- Tests: `packages/content-codemod/test/{codemod,publish,determinism,equivalence}.test.ts`
+  (29 tests) plus `scripts/verify-codemod-determinism.mjs` (wired into `pnpm preflight`).
+- **Deferred to 11d:** production activation, the pipeline switch, the save bump, the
+  changelog, the equivalence/golden re-pin record and the snap.

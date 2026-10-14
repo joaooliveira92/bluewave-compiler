@@ -8,6 +8,7 @@
     { "path": "packages/ship-design" },
     { "path": "packages/content-schema" },
     { "path": "packages/content-compiler" },
+    { "path": "packages/content-codemod" },
     { "path": "packages/campaign" },
     { "path": "packages/campaign-engine" },
     { "path": "packages/random" },
