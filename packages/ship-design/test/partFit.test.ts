@@ -124,7 +124,20 @@ const torpedo = (id: string, diameterUm: number) =>
     family: "torpedo",
     provides: "torpedo",
     lifecycle: lifecycle(),
-    spec: { diameterUm, massKg: 300, warheadKg: 20, speedSettingsMilliKnots: [20000] },
+    spec: {
+      diameterUm,
+      massKg: 300,
+      warheadType: "WET_GUNCOTTON",
+      warheadExplosiveMassKg: 20,
+      warheadExplosiveEquivalentMassKg: 20,
+      propulsionType: "COMPRESSED_AIR",
+      speedSettings: [{ settingId: "s1", speedMilliKnots: 20_000, rangeM: 550 }],
+      minimumArmingDistanceM: 25,
+      reliabilityBp: 88_000,
+      guidanceCapability: "none",
+      launchTypes: ["ABOVE_WATER_TRAINABLE"],
+      tubeHitHazardPolicy: "ORDINARY",
+    },
   });
 
 const plant = (id: string, min: number, max: number) =>

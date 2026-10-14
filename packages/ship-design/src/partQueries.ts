@@ -51,7 +51,7 @@ function findPart(catalogue: PartCatalogue, id: string): FlattenedPart | undefin
 }
 
 /** The revision in force at `month`: the last `from` not after it, or `"base"`. */
-function revisionAt(part: FlattenedPart, month: string): string {
+export function revisionAt(part: FlattenedPart, month: string): string {
   let revision = "base";
   for (const r of part.revisions) {
     if (r.from > month) break;

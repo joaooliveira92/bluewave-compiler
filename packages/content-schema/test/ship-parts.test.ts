@@ -86,8 +86,27 @@ const PARTS = {
     provides: "torpedo",
     name: "Whitehead 14-inch",
     lifecycle: { availableFrom: "1880-01" },
-    spec: { diameterUm: 356_000, massKg: 300, warheadKg: 12, speedSettingsMilliKnots: [24_000] },
-    revisions: [{ from: "1884-01", spec: { warheadKg: 26 }, provenance }],
+    spec: {
+      diameterUm: 356_000,
+      massKg: 300,
+      warheadType: "WET_GUNCOTTON",
+      warheadExplosiveMassKg: 12,
+      warheadExplosiveEquivalentMassKg: 12,
+      propulsionType: "COMPRESSED_AIR",
+      speedSettings: [{ settingId: "s1", speedMilliKnots: 25_000, rangeM: 550 }],
+      minimumArmingDistanceM: 25,
+      reliabilityBp: 88_000,
+      guidanceCapability: "none",
+      launchTypes: ["ABOVE_WATER_FIXED", "ABOVE_WATER_TRAINABLE", "UNDERWATER_FIXED"],
+      tubeHitHazardPolicy: "ORDINARY",
+    },
+    revisions: [
+      {
+        from: "1884-01",
+        spec: { warheadExplosiveMassKg: 26, warheadExplosiveEquivalentMassKg: 26 },
+        provenance,
+      },
+    ],
     provenance,
   },
   propulsion_plant: {
@@ -552,13 +571,11 @@ describe("a variant writes its spec as a delta over its prototype", () => {
   it("a standalone part missing a required spec field fails at that field", () => {
     const { result, errors } = diagnose(
       PartSchema,
-      { ...PARTS.torpedo, spec: { diameterUm: 356_000, massKg: 300, warheadKg: 12 } },
+      { ...PARTS.torpedo, spec: { diameterUm: 356_000, massKg: 300 } },
       FILE,
     );
     expect(result).toBeUndefined();
-    expect(errors.map((error) => error.message).join("\n")).toContain(
-      "Part.spec.speedSettingsMilliKnots:",
-    );
+    expect(errors.map((error) => error.message).join("\n")).toContain("Part.spec.warheadType:");
     expect(errors.every((error) => error.sourceLocation?.path === FILE)).toBe(true);
   });
 
@@ -567,7 +584,7 @@ describe("a variant writes its spec as a delta over its prototype", () => {
       ...PARTS.torpedo,
       id: "whitehead_14in_de",
       extends: "whitehead_14in",
-      spec: { warheadKg: 20 },
+      spec: { warheadExplosiveMassKg: 20 },
     });
   });
 
@@ -582,13 +599,22 @@ describe("a variant writes its spec as a delta over its prototype", () => {
 });
 
 describe("resolvePartRevision applies dated deltas cumulatively", () => {
+  const baseSpec = PARTS.torpedo.spec;
   const flattened = {
     ...PARTS.torpedo,
-    spec: { diameterUm: 356_000, massKg: 300, warheadKg: 12, speedSettingsMilliKnots: [24_000] },
+    spec: { ...baseSpec, warheadExplosiveMassKg: 12, warheadExplosiveEquivalentMassKg: 12 },
     quantities: [],
     revisions: [
-      { from: "1884-01", spec: { warheadKg: 26 }, provenance },
-      { from: "1888-06", spec: { speedSettingsMilliKnots: [27_000] }, provenance },
+      {
+        from: "1884-01",
+        spec: { warheadExplosiveMassKg: 26, warheadExplosiveEquivalentMassKg: 26 },
+        provenance,
+      },
+      {
+        from: "1888-06",
+        spec: { speedSettings: [{ settingId: "s2", speedMilliKnots: 27_000, rangeM: 600 }] },
+        provenance,
+      },
     ],
     origin: { sourceFile: "ship-building/parts/torpedoes.yaml" },
   };
@@ -598,13 +624,16 @@ describe("resolvePartRevision applies dated deltas cumulatively", () => {
   });
 
   it.each([
-    ["1883-12", "base", 12, [24_000]],
-    ["1884-01", "1884-01", 26, [24_000]],
-    ["1890-01", "1888-06", 26, [27_000]],
+    ["1883-12", "base", 12, [{ settingId: "s1", speedMilliKnots: 25_000, rangeM: 550 }]],
+    ["1884-01", "1884-01", 26, [{ settingId: "s1", speedMilliKnots: 25_000, rangeM: 550 }]],
+    ["1890-01", "1888-06", 26, [{ settingId: "s2", speedMilliKnots: 27_000, rangeM: 600 }]],
   ])("at %s the effective revision is %s", (month, revision, warheadKg, speeds) => {
     const decoded = decodeStrict(FlattenedPartSchema, flattened);
     const resolved = resolvePartRevision(decoded, month);
     expect(resolved.revision).toBe(revision);
-    expect(resolved.spec).toMatchObject({ warheadKg, speedSettingsMilliKnots: speeds });
+    expect(resolved.spec).toMatchObject({
+      warheadExplosiveMassKg: warheadKg,
+      speedSettings: speeds,
+    });
   });
 });

@@ -34,6 +34,7 @@ import type {
   NationNavalProfile,
   PropulsionPlant,
   RawReferenceDesign,
+  TorpedoModelSource,
 } from "@bluewave/ship-design";
 import { fromYaml } from "./yaml.js";
 import { migrationFailure } from "./failure.js";
@@ -45,6 +46,8 @@ export interface LoadOptions {
   readonly contentDir: string;
   /** The structured torpedo diameter (µm) per torpedo model; supplied by the caller. */
   readonly torpedoDiameterUm: (torpedoModelId: string) => number | undefined;
+  /** Every torpedo model the buildable catalogue references; supplied by the caller. */
+  readonly torpedoModels: readonly TorpedoModelSource[];
 }
 
 const yamlFiles = (dir: string): string[] => {
@@ -168,6 +171,7 @@ export function loadLegacySource(options: LoadOptions): MigrationResult<LegacySo
         designs,
         tagVocabulary: PART_TAGS,
         torpedoDiameterUm: options.torpedoDiameterUm,
+        torpedoModels: options.torpedoModels,
         sourceFiles: reader.files,
       },
     };

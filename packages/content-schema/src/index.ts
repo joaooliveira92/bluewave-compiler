@@ -228,6 +228,9 @@ export type {
   ShipTypeRequirement,
   SlotData,
   SlotTemplateData,
+  TorpedoPropulsionType,
+  TorpedoTubeHitHazardPolicy,
+  TorpedoWarheadType,
 } from "./ship-parts.js";
 export {
   ACCOUNTING_QUANTITY_KINDS,
@@ -285,6 +288,10 @@ export {
   SlotSchema,
   SlotTemplateSchema,
   TORPEDO_POLICIES,
+  TORPEDO_PROPULSION_TYPES,
+  TORPEDO_TUBE_HIT_HAZARD_POLICIES,
+  TORPEDO_WARHEAD_TYPES,
+  TorpedoSpeedSettingSchema,
   WAIVABLE_CONSTRAINTS,
   resolvePartRevision,
 } from "./ship-parts.js";

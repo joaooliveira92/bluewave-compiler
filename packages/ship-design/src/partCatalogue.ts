@@ -44,6 +44,7 @@ import type { NationNavalProfile } from "./nationProfile.js";
 import { buildPlantPartModel } from "./plantPartAdapter.js";
 import { isAffineIssue, readAffine } from "./partCatalogueFormulas.js";
 import { navalProfileFile, buildLauncherPartModel } from "./torpedoPartAdapter.js";
+import { buildTorpedoPartModel, type TorpedoModelSource } from "./torpedoPartBuilder.js";
 import { num } from "./compileShared.js";
 
 // ---------------------------------------------------------------------------
@@ -258,6 +259,8 @@ export interface SourceCatalogue {
   readonly tagVocabulary: readonly string[];
   /** The structured diameter of a torpedo model, in µm, or `undefined` when it has none. */
   readonly torpedoDiameterUm: (torpedoModelId: string) => number | undefined;
+  /** Every torpedo model the buildable catalogue references (ticket 13a, SPM-R17). */
+  readonly torpedoModels: readonly TorpedoModelSource[];
 }
 
 export interface PartCatalogueInventory {
@@ -1135,6 +1138,17 @@ export function buildPartCatalogue(source: SourceCatalogue): BuiltPartCatalogue 
       `launchers.${part.id}`,
     );
   }
+
+  // ---- Torpedoes (SPM-R17) ----------------------------------------------------------------
+  const torpedoes = buildTorpedoPartModel({ models: source.torpedoModels });
+  for (const u of torpedoes.unread) {
+    failures.push({
+      code: "PARTCAT_SOURCE_NOT_READ",
+      path: `torpedoes.${u.id}`,
+      message: `${u.code}: ${u.message}`,
+    });
+  }
+  for (const part of torpedoes.parts) add(part, `torpedoes.${part.id}`);
 
   const fittings = buildFittingPartModel({ components });
   for (const u of fittings.unread) {

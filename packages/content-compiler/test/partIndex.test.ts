@@ -37,12 +37,25 @@ const PROTOTYPE = `parts:
     provides: torpedo
     name: "Whitehead 14-inch"
     lifecycle: { availableFrom: "1880-01" }
-    spec: { diameterUm: 356000, massKg: 300, warheadKg: 12, speedSettingsMilliKnots: [24000] }
+    spec:
+      diameterUm: 356000
+      massKg: 300
+      warheadType: WET_GUNCOTTON
+      warheadExplosiveMassKg: 12
+      warheadExplosiveEquivalentMassKg: 12
+      propulsionType: COMPRESSED_AIR
+      speedSettings:
+        - { settingId: "cruise", speedMilliKnots: 24000, rangeM: 550 }
+      minimumArmingDistanceM: 25
+      reliabilityBp: 88000
+      guidanceCapability: none
+      launchTypes: [ABOVE_WATER_TRAINABLE]
+      tubeHitHazardPolicy: ORDINARY
     quantities:
       - { id: torpedo_mass, kind: massKg, value: 300, basis: PER_PART_UNIT }
       - { id: torpedo_cost, kind: costMicro, value: 50000000, basis: PER_PART_UNIT }
     revisions:
-      - { from: "1884-01", spec: { warheadKg: 26 }, provenance: ${PROVENANCE} }
+      - { from: "1884-01", spec: { warheadExplosiveMassKg: 26, warheadExplosiveEquivalentMassKg: 26 }, provenance: ${PROVENANCE} }
     provenance: ${PROVENANCE}
 `;
 
@@ -60,10 +73,30 @@ const VARIANT = `parts:
     quantities:
       - { id: torpedo_cost, kind: costMicro, value: 45000000, basis: PER_PART_UNIT }
     revisions:
-      - { from: "1889-07", spec: { speedSettingsMilliKnots: [26000, 22000] }, provenance: { sourceStatus: VERIFIED, confidence: MEDIUM, kind: historical_fact, sources: [{ title: "speeds" }] } }
-      - { from: "1885-03", spec: { warheadKg: 30 }, provenance: { sourceStatus: VERIFIED, confidence: LOW, kind: historical_fact, sources: [{ title: "warhead" }] } }
+      - { from: "1889-07", spec: { speedSettings: [{ settingId: "fast", speedMilliKnots: 26000, rangeM: 550 }, { settingId: "slow", speedMilliKnots: 22000, rangeM: 900 }] }, provenance: { sourceStatus: VERIFIED, confidence: MEDIUM, kind: historical_fact, sources: [{ title: "speeds" }] } }
+      - { from: "1885-03", spec: { warheadExplosiveMassKg: 30, warheadExplosiveEquivalentMassKg: 30 }, provenance: { sourceStatus: VERIFIED, confidence: LOW, kind: historical_fact, sources: [{ title: "warhead" }] } }
     provenance: ${PROVENANCE}
 `;
+
+const TORPEDO_SPEC = {
+  diameterUm: 356000,
+  massKg: 300,
+  warheadType: "WET_GUNCOTTON",
+  warheadExplosiveMassKg: 12,
+  warheadExplosiveEquivalentMassKg: 12,
+  propulsionType: "COMPRESSED_AIR",
+  speedSettings: [{ settingId: "cruise", speedMilliKnots: 24000, rangeM: 550 }],
+  minimumArmingDistanceM: 25,
+  reliabilityBp: 88000,
+  guidanceCapability: "none",
+  launchTypes: ["ABOVE_WATER_TRAINABLE"],
+  tubeHitHazardPolicy: "ORDINARY",
+};
+
+const torpedoSpec = (over: Record<string, unknown> = {}): Record<string, unknown> => ({
+  ...TORPEDO_SPEC,
+  ...over,
+});
 
 function handWorked(fixture: Fixture, extra: Partial<CompilerInput> = {}): CompilerInput {
   return baseInput(fixture, {
@@ -83,20 +116,28 @@ function withFixture<T>(body: (fixture: Fixture) => T): T {
 
 describe("a prototype, a variant and two revisions flatten to hand-worked values", () => {
   it.each([
-    [
-      "1884-12",
-      "base",
-      { diameterUm: 356000, massKg: 305, warheadKg: 12, speedSettingsMilliKnots: [24000] },
-    ],
+    ["1884-12", "base", torpedoSpec({ massKg: 305 })],
     [
       "1887-01",
       "1885-03",
-      { diameterUm: 356000, massKg: 305, warheadKg: 30, speedSettingsMilliKnots: [24000] },
+      torpedoSpec({
+        massKg: 305,
+        warheadExplosiveMassKg: 30,
+        warheadExplosiveEquivalentMassKg: 30,
+      }),
     ],
     [
       "1890-01",
       "1889-07",
-      { diameterUm: 356000, massKg: 305, warheadKg: 30, speedSettingsMilliKnots: [26000, 22000] },
+      torpedoSpec({
+        massKg: 305,
+        warheadExplosiveMassKg: 30,
+        warheadExplosiveEquivalentMassKg: 30,
+        speedSettings: [
+          { settingId: "fast", speedMilliKnots: 26000, rangeM: 550 },
+          { settingId: "slow", speedMilliKnots: 22000, rangeM: 900 },
+        ],
+      }),
     ],
   ])("at %s the variant resolves to revision %s", (month, revision, spec) => {
     withFixture((fixture) => {
@@ -139,7 +180,19 @@ describe("a prototype, a variant and two revisions flatten to hand-worked values
         prototype: {
           id: "whitehead_14in",
           sourceFile: PROTOTYPE_FILE,
-          inheritedSpec: ["diameterUm", "speedSettingsMilliKnots", "warheadKg"],
+          inheritedSpec: [
+            "diameterUm",
+            "guidanceCapability",
+            "launchTypes",
+            "minimumArmingDistanceM",
+            "propulsionType",
+            "reliabilityBp",
+            "speedSettings",
+            "tubeHitHazardPolicy",
+            "warheadExplosiveEquivalentMassKg",
+            "warheadExplosiveMassKg",
+            "warheadType",
+          ],
           inheritedQuantities: ["torpedo_mass"],
         },
       });
@@ -154,7 +207,20 @@ describe("a prototype, a variant and two revisions flatten to hand-worked values
     provides: torpedo
     name: "Whitehead 18-inch"
     lifecycle: { availableFrom: "1890-01", supersedes: [whitehead_14in_fiume, whitehead_14in] }
-    spec: { diameterUm: 457000, massKg: 560, warheadKg: 90, speedSettingsMilliKnots: [29000] }
+    spec:
+      diameterUm: 457000
+      massKg: 560
+      warheadType: WET_GUNCOTTON
+      warheadExplosiveMassKg: 90
+      warheadExplosiveEquivalentMassKg: 90
+      propulsionType: COMPRESSED_AIR
+      speedSettings:
+        - { settingId: "cruise", speedMilliKnots: 29000, rangeM: 730 }
+      minimumArmingDistanceM: 25
+      reliabilityBp: 90000
+      guidanceCapability: none
+      launchTypes: [ABOVE_WATER_TRAINABLE]
+      tubeHitHazardPolicy: ORDINARY
     provenance: ${PROVENANCE}
   - id: dry_funnel
     family: fitting
@@ -313,7 +379,7 @@ function part(id: string, overrides: Record<string, unknown> = {}): Record<strin
     provides: "torpedo",
     name: id,
     lifecycle: { availableFrom: "1880-01" },
-    spec: { diameterUm: 356000, massKg: 300, warheadKg: 12, speedSettingsMilliKnots: [24000] },
+    spec: { ...TORPEDO_SPEC },
     quantities: [{ id: "torpedo_mass", kind: "massKg", value: 300, basis: "PER_PART_UNIT" }],
     provenance,
     ...overrides,
@@ -426,8 +492,8 @@ describe("the flatten stage fails with a structured diagnostic", () => {
       [
         part("a", {
           revisions: [
-            { from: "1884-01", spec: { warheadKg: 26 }, provenance },
-            { from: "1884-01", spec: { warheadKg: 27 }, provenance },
+            { from: "1884-01", spec: { warheadExplosiveMassKg: 26 }, provenance },
+            { from: "1884-01", spec: { warheadExplosiveMassKg: 27 }, provenance },
           ],
         }),
       ],

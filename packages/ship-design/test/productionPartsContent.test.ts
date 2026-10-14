@@ -24,7 +24,12 @@ import {
 } from "@bluewave/content-schema";
 import { canonicalSerialize } from "@bluewave/deterministic";
 import { describe, expect, it } from "vite-plus/test";
-import { buildProductionPartModel, compileDesign, compileDesignFromLoadout } from "../src/index.js";
+import {
+  buildProductionPartModel,
+  compileDesign,
+  compileDesignFromLoadout,
+  compileTorpedo,
+} from "../src/index.js";
 import { nationalContext, readReferenceDesignEntries } from "./helpers/earlyContext.js";
 
 const root = join(import.meta.dirname, "..", "..", "..", "content", "production", "1880");
@@ -65,14 +70,49 @@ const model = buildProductionPartModel({ parts, slotTemplates, platforms });
 const legacyById = new Map(readReferenceDesignEntries().map((d) => [d.id, d] as const));
 
 describe("production parts content → compile (ticket 11d)", () => {
-  it("carries the staged plan: 306 parts, 11 slot templates, 5 platforms, 91 loadouts", () => {
-    expect(parts).toHaveLength(306);
+  it("carries the staged plan: 314 parts, 11 slot templates, 5 platforms, 91 loadouts", () => {
+    expect(parts).toHaveLength(314);
     expect(slotTemplates).toHaveLength(11);
     expect(platforms).toHaveLength(5);
     expect(loadouts).toHaveLength(91);
     for (const loadout of loadouts) {
       expect(legacyById.has(loadout.id), loadout.id).toBe(true);
     }
+  });
+
+  it("carries the eight torpedo parts and resolves the DQ-TORPEDO-001 forPart cross-references", () => {
+    const torpedoes = parts.filter((p) => p.family === "torpedo");
+    expect(torpedoes.map((p) => p.id)).toEqual([
+      "ger_533mm_g7a_1934",
+      "ger_533mm_g7e_1936",
+      "jpn_61cm_type93_1935",
+      "rn_21in_mk_iv_1916",
+      "rn_21in_mk_viii_1927",
+      "usn_21in_mk14_1931",
+      "whitehead_14in_1886",
+      "whitehead_18in_1894",
+    ]);
+    const byId = new Map(parts.map((p) => [p.id, p] as const));
+    let waivers = 0;
+    for (const launcher of parts.filter((p) => p.family === "torpedo_launcher")) {
+      for (const exception of launcher.legacyExceptions ?? []) {
+        waivers += 1;
+        expect(byId.get(exception.forPart)?.family, exception.forPart).toBe("torpedo");
+      }
+    }
+    expect(waivers).toBe(5);
+    expect(byId.get("whitehead_14in_1886")?.revisions.map((r) => r.from)).toEqual(["1884-01"]);
+  });
+
+  it("seam: production content → torpedo part → CompiledTorpedo for the 1884 Whitehead", () => {
+    const whitehead = parts.find((p) => p.id === "whitehead_14in_1886");
+    expect(whitehead).toBeDefined();
+    const before = compileTorpedo(whitehead!, "1883-12");
+    const after = compileTorpedo(whitehead!, "1884-01");
+    expect(before.ok && before.value.warheadExplosiveEquivalentMassKg).toBe(12);
+    expect(after.ok && after.value.revision).toBe("1884-01");
+    expect(after.ok && after.value.warheadExplosiveEquivalentMassKg).toBe(27);
+    expect(after.ok && after.value.partId).toBe("whitehead_14in_1886");
   });
 
   it("compiles every activated design through the barrier and matches the legacy compile", () => {

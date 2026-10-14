@@ -152,6 +152,7 @@ function catalogueSource(source: LegacySource): SourceCatalogue {
     profiles: source.profiles,
     tagVocabulary: source.tagVocabulary,
     torpedoDiameterUm: source.torpedoDiameterUm,
+    torpedoModels: source.torpedoModels,
   };
 }
 

@@ -65,6 +65,8 @@ export * from "./partQueries.js";
 export * from "./partQuantities.js";
 export * from "./partReadPath.js";
 export * from "./torpedoPartAdapter.js";
+export * from "./torpedoPartBuilder.js";
+export * from "./compileTorpedo.js";
 export * from "./equivalenceCandidate.js";
 export * from "./equivalenceMetrics.js";
 export * from "./equivalenceReport.js";

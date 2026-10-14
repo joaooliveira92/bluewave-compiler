@@ -21,6 +21,7 @@ import type {
   NationNavalProfile,
   PropulsionPlant,
   RawReferenceDesign,
+  TorpedoModelSource,
 } from "@bluewave/ship-design";
 
 /** One source file read, with its content hash — the source identity of a migration. */
@@ -43,6 +44,8 @@ export interface LegacySource {
   readonly tagVocabulary: readonly string[];
   /** The structured diameter of a torpedo model in µm, or `undefined` when it has none. */
   readonly torpedoDiameterUm: (torpedoModelId: string) => number | undefined;
+  /** Every torpedo model the buildable catalogue references (ticket 13a, SPM-R17). */
+  readonly torpedoModels: readonly TorpedoModelSource[];
   readonly sourceFiles: readonly SourceFileRef[];
 }
 

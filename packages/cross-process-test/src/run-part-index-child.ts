@@ -45,7 +45,19 @@ const PARTS = `parts:
     provides: torpedo
     name: "Whitehead 18-inch"
     lifecycle: { availableFrom: "1890-01", supersedes: [whitehead_14in_fiume, whitehead_14in] }
-    spec: { diameterUm: 457000, massKg: 560, warheadKg: 90, speedSettingsMilliKnots: [29000] }
+    spec:
+      diameterUm: 457000
+      massKg: 560
+      warheadType: WET_GUNCOTTON
+      warheadExplosiveMassKg: 90
+      warheadExplosiveEquivalentMassKg: 90
+      propulsionType: COMPRESSED_AIR
+      speedSettings: [{ settingId: "s1", speedMilliKnots: 29000, rangeM: 730 }]
+      minimumArmingDistanceM: 25
+      reliabilityBp: 90000
+      guidanceCapability: none
+      launchTypes: [ABOVE_WATER_TRAINABLE]
+      tubeHitHazardPolicy: ORDINARY
     provenance: ${PROVENANCE}
   - id: whitehead_14in_fiume
     family: torpedo
@@ -55,15 +67,27 @@ const PARTS = `parts:
     lifecycle: { availableFrom: "1881-01" }
     spec: { massKg: 305 }
     revisions:
-      - { from: "1889-07", spec: { speedSettingsMilliKnots: [26000, 22000] }, provenance: ${PROVENANCE} }
-      - { from: "1885-03", spec: { warheadKg: 30 }, provenance: ${PROVENANCE} }
+      - { from: "1889-07", spec: { speedSettings: [{ settingId: "s2", speedMilliKnots: 26000, rangeM: 550 }, { settingId: "s3", speedMilliKnots: 22000, rangeM: 900 }] }, provenance: ${PROVENANCE} }
+      - { from: "1885-03", spec: { warheadExplosiveMassKg: 30, warheadExplosiveEquivalentMassKg: 30 }, provenance: ${PROVENANCE} }
     provenance: ${PROVENANCE}
   - id: whitehead_14in
     family: torpedo
     provides: torpedo
     name: "Whitehead 14-inch"
     lifecycle: { availableFrom: "1880-01" }
-    spec: { diameterUm: 356000, massKg: 300, warheadKg: 12, speedSettingsMilliKnots: [24000] }
+    spec:
+      diameterUm: 356000
+      massKg: 300
+      warheadType: WET_GUNCOTTON
+      warheadExplosiveMassKg: 12
+      warheadExplosiveEquivalentMassKg: 12
+      propulsionType: COMPRESSED_AIR
+      speedSettings: [{ settingId: "s4", speedMilliKnots: 24000, rangeM: 550 }]
+      minimumArmingDistanceM: 25
+      reliabilityBp: 88000
+      guidanceCapability: none
+      launchTypes: [ABOVE_WATER_TRAINABLE]
+      tubeHitHazardPolicy: ORDINARY
     quantities: [{ id: torpedo_mass, kind: massKg, value: 300, basis: PER_PART_UNIT }]
     provenance: ${PROVENANCE}
 `;

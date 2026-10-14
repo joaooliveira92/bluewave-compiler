@@ -184,6 +184,15 @@ const int = Schema.Finite.check(Schema.isInt());
 const nonNegativeInt = Schema.Finite.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(0));
 const positiveInt = Schema.Finite.check(Schema.isInt(), Schema.isGreaterThan(0));
 const bp = Schema.Finite.check(Schema.isInt(), Schema.isBetween({ minimum: 0, maximum: 10_000 }));
+/**
+ * A per-100,000 basis-point value. The combat torpedo model expresses reliability on this
+ * scale (`TORPEDO_RELIABILITY_SCALE`), so the part stores the same magnitude rather than a
+ * rescaled one; the field name carries the meaning (SPM-R17).
+ */
+const per100k = Schema.Finite.check(
+  Schema.isInt(),
+  Schema.isBetween({ minimum: 0, maximum: 100_000 }),
+);
 const permille = Schema.Finite.check(
   Schema.isInt(),
   Schema.isBetween({ minimum: 0, maximum: 1000 }),
@@ -659,12 +668,77 @@ const AmmunitionSpecFields = {
   rateOfFireModifierBp: Schema.optional(nonNegativeInt),
 };
 
+/**
+ * The closed torpedo warhead type set (SPM-R17). Mirrors `@bluewave/combat`'s
+ * `TORPEDO_WARHEAD_TYPES`; content-schema stays dependency-free of the engine.
+ */
+export const TORPEDO_WARHEAD_TYPES = [
+  "WET_GUNCOTTON",
+  "TNT",
+  "TORPEX",
+  "TPX",
+  "HBX",
+  "HEXANITE",
+  "TYPE_97",
+] as const;
+
+/** The closed torpedo propulsion type set (SPM-R17); mirrors `TORPEDO_PROPULSION_TYPES`. */
+export const TORPEDO_PROPULSION_TYPES = [
+  "COMPRESSED_AIR",
+  "WET_HEATER",
+  "ELECTRIC",
+  "OXYGEN",
+] as const;
+
+/** The closed tube-hit hazard policy set; mirrors `@bluewave/combat`'s `TUBE_HIT_HAZARD_POLICIES`. */
+export const TORPEDO_TUBE_HIT_HAZARD_POLICIES = ["ORDINARY", "OXYGEN", "ELECTRIC"] as const;
+
+export type TorpedoWarheadType = (typeof TORPEDO_WARHEAD_TYPES)[number];
+export type TorpedoPropulsionType = (typeof TORPEDO_PROPULSION_TYPES)[number];
+export type TorpedoTubeHitHazardPolicy = (typeof TORPEDO_TUBE_HIT_HAZARD_POLICIES)[number];
+/** One ordered speed/range setting: the run a torpedo makes at one speed (SPM-R17). */
+export const TorpedoSpeedSettingSchema = Schema.Struct({
+  /**
+   * The authored setting id combat selects by (`35kn`, `t2_30kn`, `26_5kn`); not derivable
+   * from speed+range (two models ship the same speed at different ranges). Engine setting
+   * ids may start with a digit, so this is the looser lower-snake analogue of `stableId`.
+   */
+  settingId: Schema.String.check(
+    Schema.isPattern(/^[a-z0-9][a-z0-9_]*$/, { message: "must be lower snake_case" }),
+  ),
+  /** Speed in thousandths of a knot (`speedKnotsBp` of the combat model). */
+  speedMilliKnots: positiveInt,
+  /** Maximum run at this setting, metres. */
+  rangeM: positiveInt,
+});
+
+/**
+ * The torpedo part's engineering spec (SPM-R17): the values combat must read from the part.
+ * Field names and magnitudes track the authoritative combat `TorpedoModelDefinition` so the
+ * compiled torpedo is representation-preserving. `launchTypes` is the set of DESIGN-40 §2
+ * mount types the torpedo may be launched from.
+ */
 const TorpedoSpecFields = {
   diameterUm: positiveInt,
   massKg: positiveInt,
-  warheadKg: nonNegativeInt,
-  speedSettingsMilliKnots: nonEmptyArray(positiveInt),
-  reliabilityBp: Schema.optional(bp),
+  warheadType: Schema.Literals(TORPEDO_WARHEAD_TYPES),
+  /** Physical explosive charge, kg. */
+  warheadExplosiveMassKg: nonNegativeInt,
+  /** TNT-equivalent charge, kg — the authoritative value combat damages with. */
+  warheadExplosiveEquivalentMassKg: nonNegativeInt,
+  propulsionType: Schema.Literals(TORPEDO_PROPULSION_TYPES),
+  speedSettings: nonEmptyArray(TorpedoSpeedSettingSchema),
+  minimumArmingDistanceM: nonNegativeInt,
+  /** Reliability per 100,000 (`per100k`), matching the combat model's `reliabilityBp`. */
+  reliabilityBp: per100k,
+  /** Stable authored depth/steering capability id (`none`, `gyro`, …). */
+  guidanceCapability: stableId,
+  /** DESIGN-40 §2 mount types this torpedo may be fired from (combat's launcher-family set). */
+  launchTypes: nonEmptyArray(Schema.Literals(TORPEDO_MOUNT_TYPE_VALUES)),
+  /** Tube-hit hazard policy; derived from `propulsionType` in combat but carried explicitly. */
+  tubeHitHazardPolicy: Schema.Literals(TORPEDO_TUBE_HIT_HAZARD_POLICIES),
+  /** Per-model oxygen wake-visibility modifier, bp; present exactly for an `OXYGEN` torpedo. */
+  oxygenWakeVisibilityModifierBp: Schema.optional(bp),
 };
 
 const TorpedoLauncherSpecFields = {

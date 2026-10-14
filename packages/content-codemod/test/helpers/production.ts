@@ -12,6 +12,7 @@ import {
   shipBalance,
   plants,
 } from "../../../ship-design/test/helpers/earlyContext.js";
+import { torpedoModels } from "../../../ship-design/test/helpers/torpedoModels.js";
 import type { LegacySource } from "../../src/types.js";
 
 export { armamentContent, components, hullRecords, navalProfiles, shipBalance, plants };
@@ -32,6 +33,8 @@ export const torpedoDiameterUm = (id: string): number | undefined => {
   return model === undefined ? undefined : model.diameterMm * 1000;
 };
 
+export { torpedoModels };
+
 /** The in-memory legacy source (the same content the equivalence harness compiles). */
 export const legacySource: LegacySource = {
   components,
@@ -43,5 +46,6 @@ export const legacySource: LegacySource = {
   designs: readReferenceDesignEntries(),
   tagVocabulary: PART_TAGS,
   torpedoDiameterUm,
+  torpedoModels,
   sourceFiles: [],
 };

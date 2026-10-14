@@ -45,8 +45,16 @@ const q = (id: string, kind: string, value: number, basis: string) => ({ id, kin
 const torpedoSpec = (diameterUm: number, warheadKg: number) => ({
   diameterUm,
   massKg: 300,
-  warheadKg,
-  speedSettingsMilliKnots: [24000],
+  warheadType: "WET_GUNCOTTON" as const,
+  warheadExplosiveMassKg: warheadKg,
+  warheadExplosiveEquivalentMassKg: warheadKg,
+  propulsionType: "COMPRESSED_AIR" as const,
+  speedSettings: [{ settingId: "s1", speedMilliKnots: 24000, rangeM: 550 }],
+  minimumArmingDistanceM: 25,
+  reliabilityBp: 88000,
+  guidanceCapability: "none",
+  launchTypes: ["ABOVE_WATER_TRAINABLE" as const],
+  tubeHitHazardPolicy: "ORDINARY" as const,
 });
 
 // The 1884 Whitehead re-rating (12 kg -> 26 kg warhead), then two successors.
@@ -57,7 +65,13 @@ const WHITEHEAD = part({
   lifecycle: { availableFrom: "1880-01", availableUntil: "1890-01" },
   spec: torpedoSpec(355_600, 12),
   quantities: [q("torpedo_mass", "massKg", 300, "PER_PART_UNIT")],
-  revisions: [{ from: "1884-01", spec: { warheadKg: 26 }, provenance: PROVENANCE }],
+  revisions: [
+    {
+      from: "1884-01",
+      spec: { warheadExplosiveMassKg: 26, warheadExplosiveEquivalentMassKg: 26 },
+      provenance: PROVENANCE,
+    },
+  ],
 });
 const MK2 = part({
   id: "whitehead_mk2",
@@ -190,9 +204,9 @@ describe("resolvePart", () => {
     const before = resolvePart(catalogue(), "whitehead_14in", "1883-12");
     const after = resolvePart(catalogue(), "whitehead_14in", "1884-01");
     expect(before).toMatchObject({ revision: "base", status: "AVAILABLE" });
-    expect(before?.spec["warheadKg"]).toBe(12);
+    expect(before?.spec["warheadExplosiveMassKg"]).toBe(12);
     expect(after).toMatchObject({ revision: "1884-01", status: "AVAILABLE" });
-    expect(after?.spec["warheadKg"]).toBe(26);
+    expect(after?.spec["warheadExplosiveMassKg"]).toBe(26);
   });
 
   it("reports lifecycle status and successors", () => {

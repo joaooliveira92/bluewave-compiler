@@ -38,7 +38,7 @@ const categoryOf = (id: string) => components.find((c) => c.id === id)?.category
 
 describe("content codemod planner (ticket 11c)", () => {
   it("migrates the whole catalogue and every design", () => {
-    expect(planned.manifest.records.parts).toBe(306);
+    expect(planned.manifest.records.parts).toBe(314);
     expect(planned.manifest.records.designs).toBe(91);
     expect(planned.manifest.records.placements).toBe(823);
     expect(planned.manifest.records.gunPlacements).toBe(230);
@@ -48,8 +48,30 @@ describe("content codemod planner (ticket 11c)", () => {
       (a, b) => a + b,
       0,
     );
-    expect(familyTotal).toBe(306);
+    expect(familyTotal).toBe(314);
+    expect(planned.manifest.records.partsByFamily.torpedo).toBe(8);
     expect(planned.designs).toHaveLength(91);
+  });
+
+  it("generates the eight torpedo parts, including the 1884 Whitehead revision", () => {
+    const file = planned.files.find((f) => f.path === "parts/torpedo.yaml");
+    expect(file).toBeDefined();
+    const records = (fromYaml(file!.content) as { parts: unknown[] }).parts.map((record) =>
+      decodeStrict(FlattenedPartSchema, record),
+    );
+    expect(records.map((r) => r.id)).toEqual([
+      "ger_533mm_g7a_1934",
+      "ger_533mm_g7e_1936",
+      "jpn_61cm_type93_1935",
+      "rn_21in_mk_iv_1916",
+      "rn_21in_mk_viii_1927",
+      "usn_21in_mk14_1931",
+      "whitehead_14in_1886",
+      "whitehead_18in_1894",
+    ]);
+    const whitehead = records.find((r) => r.id === "whitehead_14in_1886")!;
+    expect(whitehead.family).toBe("torpedo");
+    expect(whitehead.revisions.map((r) => r.from)).toEqual(["1884-01"]);
   });
 
   it("records the three independent data-quality counts, unmixed", () => {

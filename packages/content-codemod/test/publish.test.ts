@@ -11,7 +11,12 @@ import {
   readStagedSource,
   validateStagingDir,
 } from "../src/index.js";
-import { contentDir, legacySource, torpedoDiameterUm } from "./helpers/production.js";
+import {
+  contentDir,
+  legacySource,
+  torpedoDiameterUm,
+  torpedoModels,
+} from "./helpers/production.js";
 import { hashDir, listFiles, makeTempRoot, removeDir } from "./helpers/temp.js";
 
 const repoRoot = join(import.meta.dirname, "..", "..", "..");
@@ -50,7 +55,7 @@ describe("content codemod publisher (ticket 11c)", () => {
     const read = readStagedSource(stagingDir);
     expect(read.ok).toBe(true);
     if (!read.ok) return;
-    expect(read.value.parts).toHaveLength(306);
+    expect(read.value.parts).toHaveLength(314);
     expect(read.value.designs).toHaveLength(91);
     for (const file of listFiles(stagingDir).filter((f) => f.startsWith("parts/"))) {
       const raw = fromYaml(readFileSync(join(stagingDir, file), "utf8"));
@@ -164,7 +169,7 @@ describe("content codemod publisher (ticket 11c)", () => {
   });
 
   it("loads the same content from disk as the in-memory source", () => {
-    const loaded = loadLegacySource({ contentDir, torpedoDiameterUm });
+    const loaded = loadLegacySource({ contentDir, torpedoDiameterUm, torpedoModels });
     expect(loaded.ok).toBe(true);
     if (!loaded.ok) return;
     // 91 designs, 45 components, and a populated source identity.

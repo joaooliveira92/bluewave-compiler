@@ -36,6 +36,7 @@ import {
   shipBalance,
 } from "./helpers/earlyContext.js";
 import { compatibility, designs, present, resolveRow } from "./helpers/gunReadPath.js";
+import { torpedoModels } from "./helpers/torpedoModels.js";
 
 const torpedoDiameterUm = (id: string): number | undefined => {
   const model = SHIPPED_TORPEDO_MODELS.find((m) => String(m.torpedoModelId) === id);
@@ -50,6 +51,7 @@ const source: SourceCatalogue = {
   profiles: navalProfiles,
   tagVocabulary: PART_TAGS,
   torpedoDiameterUm,
+  torpedoModels,
 };
 
 const built: BuiltPartCatalogue = buildPartCatalogue(source);
