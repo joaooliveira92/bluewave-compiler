@@ -33,12 +33,17 @@ this ticket, nothing on the refit / design-compile / production compatibility pa
   `environmentFor` from `data.partModel`). A touched component resolves to its part through a
   deterministic index (a part carrying the id, else a gun family's `standard_<family>` model,
   else a variant's prototype); the part's interface must be in the kind's `allowedInterfaces`
-  (`REFIT_KIND_MISMATCH`) and the placement's zone slot must exist, accept the interface and
-  pass `evaluateConstraints` at the refit month (`REFIT_SLOT_REJECTED`, new BLOCKING id, no
-  central registration). Supersession is never consulted. Without a part model the interface
-  falls back to the legacy category map, which now matches the part-model result for guns
-  (`MAIN_GUN`/`SECONDARY_GUN`/`DUAL_PURPOSE_GUN`/`AA_WEAPON` → `gun`, `MOUNT` → `gun_mount`).
-- **Deferral — `balance.yaml` `refit:` rename (owner: orchestrator / content change).** The
+  (`REFIT_KIND_MISMATCH`, checked for both removals and additions). Slot acceptance and
+  constraints apply to **incoming added parts only** (`plan.add`): the placement's zone slot must
+  exist, accept the interface and pass `evaluateConstraints` at the refit month
+  (`REFIT_SLOT_REJECTED`, new BLOCKING id, no central registration). A removal empties a slot and
+  is never judged against the slot's incoming acceptance, so it never emits `REFIT_SLOT_REJECTED`
+  for the part taken out. Supersession is never consulted. Without a part model the interface
+  falls back to the legacy category map, which matches the part-model result only for the
+  categories covered by `LEGACY_INTERFACE_BY_CATEGORY` (e.g. the `gun`-providing categories and
+  `MOUNT` → `gun_mount`), not universally for every gun or category. `evaluateRefit` has no
+  production caller yet; wiring it into the refit flows is part of the phased plan.
+- **Deferral — `balance.yaml` `refit:` rename (owner: orchestrator / content change, D-10).** The
   authored `content/production/1880/ship-building/balance.yaml` `refit.rules.*.allowedCategories`
   was not renamed to `allowedInterfaces`. The whole `refit` section is carried **verbatim** into
   the content artifact (`balance: Schema.Unknown`), so the rename would move the content lock
@@ -46,11 +51,13 @@ this ticket, nothing on the refit / design-compile / production compatibility pa
   no-hash-change rule. The section has **no decoded reader**: the production `RefitBalance` is
   never built from YAML, and the desktop reads only `refit.bulgeProtectionGainBp` narrowly
   (`designCommands.ts`). Rename it only alongside an approved content-lock + golden re-pin.
-- **Deferral — gun/mount slot gap (owner: P7 authored mount slots).** A gun placement resolves
-  to its `gun` part, but the platform slot it fills is the mount's, which a legacy placement
-  does not name; only zone-slot interfaces (`<zone>.<interface>`) get a constraint check. The
-  kind check still covers guns (`gun`/`gun_mount`). Replace this when slots are authored per
-  hull form (P7).
+  Recorded in `docs/DEFERRALS.md` D-10.
+- **Deferral — gun/mount slot gap and REARMAMENT gun modelling (owner: P7 authored mount slots).**
+  A gun placement resolves to its `gun` part, but the platform slot it fills is the mount's, which
+  a legacy placement does not name; the gun path therefore receives the kind/interface validation
+  only and does not pass through the generalized slot/constraint interface check. Gun
+  slot/constraint modelling for the primary REARMAMENT case (and slots authored per hull form)
+  remains deferred to P7.
 - **AVIATION_CONVERSION (deferred, owner: future aviation-parts work / P7).** `interfaces/1`
   has no aircraft-facility token (I-21), so `AVIATION_CONVERSION.allowedInterfaces` is empty and
   an aviation-facility touch is rejected with `REFIT_KIND_MISMATCH` (pinned by test) rather than

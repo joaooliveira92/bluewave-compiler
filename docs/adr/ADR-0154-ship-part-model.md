@@ -326,23 +326,29 @@ The 1880 content has 91 reference designs with 823 placements (230 gun placement
     only for one the same slot accepts and whose constraints pass at the refit month; supersession
     never implies compatibility (I-7). `RefitKindRule.allowedCategories` becomes
     `allowedInterfaces: PartInterface[]`, and the kind check reads the touched part's provided
-    interface (a gun placement resolves to its `gun` part; the legacy fallback maps categories to
-    the same interface, so the two paths agree). `evaluateRefit` additionally evaluates the
-    platform's zone slot (`<zone>.<interface>`, `platformSlots` + `compatibilitySlotId`) with
-    `evaluateConstraints`, emitting BLOCKING `REFIT_SLOT_REJECTED`; it reads the compiled part
-    model from the new optional `ShipContext.partModel` (attached by `environmentFor`). A new
-    gate, `scripts/verify-no-upgradepath-refit-readers.mjs` (in `pnpm preflight`), fails if the
+    interface, for both removals and additions (a gun placement resolves to its `gun` part; the
+    legacy category fallback matches the part-model result only for the categories listed in
+    `LEGACY_INTERFACE_BY_CATEGORY`, not universally for every gun or category).
+    `evaluateRefit` additionally evaluates the platform's zone slot for **incoming added parts
+    only** (`<zone>.<interface>`, `platformSlots` + `compatibilitySlotId`, applied over `plan.add`)
+    with `evaluateConstraints`, emitting BLOCKING `REFIT_SLOT_REJECTED`; emptying a slot on
+    removal is never judged against the slot's incoming acceptance, so a removal never emits
+    `REFIT_SLOT_REJECTED` for the part taken out. It reads the compiled part model from the new
+    optional `ShipContext.partModel` (attached by `environmentFor`). A new gate,
+    `scripts/verify-no-upgradepath-refit-readers.mjs` (in `pnpm preflight`), fails if the
     refit/design-compile/production-compatibility modules read `upgradePath` or decide
-    compatibility from `supersedes`.
+    compatibility from `supersedes`. `evaluateRefit` has no production caller yet: wiring it into
+    the refit flows is part of the phased plan, not this ticket.
     - **Deferred, recorded.** `interfaces/1` has no aviation token, so
       `AVIATION_CONVERSION.allowedInterfaces` is empty and an aviation-facility refit is rejected
       with `REFIT_KIND_MISMATCH` rather than silently allowed (D-9; the interface and its parts
-      land with the aviation work at P7). A legacy gun placement resolves to the `gun` part, whose
-      filling mount slot it does not name, so only zone-slot interfaces get a constraint check
-      (authored mount slots are P7). The authored `balance.yaml` `refit:` section keeps
-      `allowedCategories`: it has no decoded reader (the desktop reads only
-      `bulgeProtectionGainBp`), and renaming it moves the content-lock and golden content hashes;
-      it is renamed together with that re-pin, not here.
+      land with the aviation work at P7). The gun path receives the kind/interface validation only:
+      a legacy gun placement resolves to the `gun` part, whose filling mount slot it does not name,
+      so the generalized slot/constraint interface check is not applied to it (authored mount slots,
+      and gun slot/constraint modelling for the primary REARMAMENT case, are P7). The authored
+      `balance.yaml` `refit:` section keeps `allowedCategories`: it has no decoded reader (the
+      desktop reads only `bulgeProtectionGainBp`), and renaming it would move the content-lock and
+      golden content hashes, so it is renamed together with that re-pin, not here (D-10).
     - **No reader removal here.** The remaining `upgradePath` readers — the `partCatalogue`
       read-path migration to `supersedes`, `component.ts` `lintCatalogue`, and the content
       compiler's legacy validation — belong to the P1 read path that ticket 15 (P5) deletes with

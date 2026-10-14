@@ -17,6 +17,7 @@ import {
 } from "@bluewave/content-schema";
 import { describe, expect, it } from "vite-plus/test";
 import {
+  SEVERITY_ORDER,
   evaluateRefit,
   validateLoadoutFit,
   type ComponentDef,
@@ -228,9 +229,13 @@ const addSensor = (componentId: string): RefitPlan => ({
   add: [{ instanceId: "new_sensor", componentId, zoneId: "SUPERSTRUCTURE", stationPermille: 520 }],
 });
 
-const run = (plan: RefitPlan, ctx: ShipContext = refitCtx): ReturnType<typeof evaluateRefit> =>
+const run = (
+  plan: RefitPlan,
+  ctx: ShipContext = refitCtx,
+  ship: ShipState = sensorShip,
+): ReturnType<typeof evaluateRefit> =>
   evaluateRefit(
-    sensorShip,
+    ship,
     plan,
     ctx,
     refitBalance,
@@ -242,6 +247,8 @@ const run = (plan: RefitPlan, ctx: ShipContext = refitCtx): ReturnType<typeof ev
 const ids = (r: ReturnType<typeof run>) => r.findings.map((f) => f.id);
 const mismatchCount = (r: ReturnType<typeof run>) =>
   r.findings.filter((f) => f.id === "REFIT_KIND_MISMATCH").length;
+const slotRejectionCount = (r: ReturnType<typeof run>) =>
+  r.findings.filter((f) => f.id === "REFIT_SLOT_REJECTED").length;
 
 describe("refit slot acceptance against the compiled part model (SPM-R18)", () => {
   it("rejects a successor the slot's constraint rejects, and blocks the refit", () => {
@@ -339,6 +346,112 @@ describe("AVIATION_CONVERSION (deferred: no aircraft-facility interface yet)", (
       const r = run(plan, ctx);
       expect(ids(r)).toContain("REFIT_KIND_MISMATCH");
       expect(r.legal).toBe(false);
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Part 5: slot acceptance and constraints apply to incoming additions only
+//
+// A removal empties a slot; the part being removed was accepted when the ship
+// was built and is no longer a candidate for the slot, so removing it must not
+// be judged against the slot's incoming-part acceptance or constraints. The
+// fixture installs a part the slot would reject as an *incoming* part (its mass
+// exceeds the slot's `massKgMax`), so the removal-only case fails if the slot
+// check is run over removals. It is deliberately constrained content, not a
+// reliance on the production catalogue's absence of constraints.
+// ---------------------------------------------------------------------------
+
+describe("slot acceptance applies to incoming additions only (ticket 14 follow-up)", () => {
+  // The ship's rangefinder slot is occupied by the given part, installed out-of-band as if
+  // grandfathered from build time: `sensor_next` (50 t) violates `superstructure.sensor`'s
+  // `massKgMax: 40_000`, which is exactly what an incoming part would be rejected for.
+  const installedSensorShip = (componentId: string): ShipState => ({
+    ...sensorShip,
+    design: {
+      ...draft,
+      placements: draft.placements.map((p) => (p.instanceId === "rf" ? { ...p, componentId } : p)),
+    },
+  });
+
+  const removeSensor: RefitPlan = {
+    kind: "SENSOR_FC_UPDATE",
+    removeInstanceIds: ["rf"],
+    add: [],
+  };
+
+  it("does not emit REFIT_SLOT_REJECTED when only removing an installed part the slot would reject", () => {
+    const r = run(removeSensor, refitCtx, installedSensorShip("sensor_next"));
+    expect(ids(r)).not.toContain("REFIT_SLOT_REJECTED");
+    expect(r.legal).toBe(true);
+  });
+
+  it("still emits blocking REFIT_SLOT_REJECTED for an incompatible incoming part in that slot", () => {
+    const r = run(addSensor("sensor_next"));
+    expect(slotRejectionCount(r)).toBe(1);
+    expect(r.legal).toBe(false);
+  });
+
+  it("ignores the removed part when a mixed plan is valid: removal-heavy, addition-accepted", () => {
+    const plan: RefitPlan = {
+      kind: "SENSOR_FC_UPDATE",
+      removeInstanceIds: ["rf"],
+      add: [
+        {
+          instanceId: "new_sensor",
+          componentId: "sensor_old",
+          zoneId: "SUPERSTRUCTURE",
+          stationPermille: 520,
+        },
+      ],
+    };
+    const r = run(plan, refitCtx, installedSensorShip("sensor_next"));
+    expect(ids(r)).not.toContain("REFIT_SLOT_REJECTED");
+    expect(r.legal).toBe(true);
+  });
+
+  it("validates the addition while ignoring the removed part: a mixed plan rejects only the addition", () => {
+    const plan: RefitPlan = {
+      kind: "SENSOR_FC_UPDATE",
+      removeInstanceIds: ["rf"],
+      add: [
+        {
+          instanceId: "new_sensor",
+          componentId: "sensor_next",
+          zoneId: "SUPERSTRUCTURE",
+          stationPermille: 520,
+        },
+      ],
+    };
+    // Removing the heavy part must not add a second rejection: exactly the incoming part is judged.
+    const r = run(plan, refitCtx, installedSensorShip("sensor_next"));
+    expect(slotRejectionCount(r)).toBe(1);
+    expect(r.legal).toBe(false);
+  });
+
+  it("keeps diagnostic ordering deterministic across repeated mixed evaluations", () => {
+    const plan: RefitPlan = {
+      kind: "SENSOR_FC_UPDATE",
+      removeInstanceIds: ["rf"],
+      add: [
+        {
+          instanceId: "new_sensor",
+          componentId: "sensor_next",
+          zoneId: "SUPERSTRUCTURE",
+          stationPermille: 520,
+        },
+      ],
+    };
+    const first = run(plan, refitCtx, installedSensorShip("sensor_next"));
+    const second = run(plan, refitCtx, installedSensorShip("sensor_next"));
+    expect(ids(first)).toEqual(ids(second));
+    // `sortFindings` order: severity rank, then id, then evidence formula id.
+    const rank = (s: string) => SEVERITY_ORDER.indexOf(s as (typeof SEVERITY_ORDER)[number]);
+    const keys = first.findings.map((x) => [rank(x.severity), x.id, x.evidence.formulaId] as const);
+    const le = (a: (typeof keys)[number], b: (typeof keys)[number]): boolean =>
+      a[0] !== b[0] ? a[0] < b[0] : a[1] !== b[1] ? a[1] < b[1] : a[2] <= b[2];
+    for (let i = 1; i < keys.length; i++) {
+      expect(le(keys[i - 1]!, keys[i]!)).toBe(true);
     }
   });
 });

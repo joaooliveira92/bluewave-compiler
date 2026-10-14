@@ -479,12 +479,14 @@ export function evaluateRefit(
       );
     }
   }
-  // SPM-R18: a touched part is legal only if the same slot accepts it and its constraints pass at
-  // the refit month. Supersession is never consulted (I-7). `REFIT_KIND_MISMATCH` (above) covers an
-  // interface outside the kind; `REFIT_SLOT_REJECTED` (new id) covers a slot rejection. Evaluated
-  // only where the compiled part model is present; guns resolve to their `gun` part, whose filling
-  // mount slot a legacy placement does not name (P7 authored mount slots), so only zone-slot
-  // interfaces get a constraint check.
+  // SPM-R18: an incoming added part is legal only if the same slot accepts it and its constraints
+  // pass at the refit month. Supersession is never consulted (I-7). `REFIT_KIND_MISMATCH` (above)
+  // covers an interface outside the kind, for both removals and additions; slot acceptance and
+  // constraints apply only to incoming `plan.add` parts, so emptying a slot never emits
+  // `REFIT_SLOT_REJECTED` for the part being removed (the slot it vacates is not a candidate
+  // acceptor). Evaluated only where the compiled part model is present; guns resolve to their `gun`
+  // part, whose filling mount slot a legacy placement does not name (P7 authored mount slots), so
+  // only zone-slot interfaces get a constraint check.
   const partModel = ctx.partModel;
   if (partModel !== undefined) {
     const compatibility: CompatibilityModel = {
@@ -495,7 +497,7 @@ export function evaluateRefit(
     if (slots !== null) {
       const slot = (iface: CompatibilityInterface, zoneId: PlacementSpec["zoneId"]) =>
         slots.find((s) => s.id === compatibilitySlotId(zoneId, iface));
-      for (const placement of touched) {
+      for (const placement of plan.add) {
         const part = partIndex.get(placement.componentId);
         if (part === undefined || !isCompatibilityInterface(part.provides)) continue;
         const target = slot(part.provides, placement.zoneId);
