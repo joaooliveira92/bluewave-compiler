@@ -1,9 +1,9 @@
 # 03: Gun and mount read path over today's content (P1 tracer)
 
 **Type:** implementation
-**Status:** open
+**Status:** resolved
 **Blocked by:** 02
-**Frontier:** yes
+**Frontier:** no
 **Requirements:** SPM-R3, SPM-R6, SPM-R13, SPM-R14, SPM-R16, SPM-R19, SPM-R20 (gun rows, in memory only) · Stories 1, 25, 26, 33, 36
 
 ## What to build
@@ -44,3 +44,50 @@ produces today.
 - [ ] No calculation infers a basis from the family; a test with a deliberately unusual
       basis proves it.
 - [ ] Production content, saves, visual YAML and every golden are unchanged.
+
+## Comments
+
+- 2026-10-13: Implemented. `packages/ship-design/src/partReadPath.ts` adds the P1 gun
+  slice, and `test/partReadPath.test.ts` (7 tests) covers it.
+  - **Adapter (SPM-R19).** `buildGunPartModel` reads today's gun families and national
+    models/variants through `armamentModelFor` as `gun` parts; `buildGunMountPart`
+    reads the legacy resolved mount as a `gun_mount` part; `buildCompatibilitySlots`
+    reads hull forms as **platforms** with one compatibility **slot per zone** accepting
+    `gun_mount`, and each mount part carries its own `guns` slot (count =
+    `gunsPerMount`). These are intermediate in-memory shapes mirroring SPM-R1/R3; the
+    strict `@bluewave/content-schema` part schemas land with authored content in P2.
+  - **Translation (SPM-R20, §9.2).** One placement → one mount loadout entry in its zone
+    slot with a nested `guns` entry: single-gun types → `mountCount: n`,
+    `gunsPerMount: 1`; turret/barbette 1–2 → `mountCount: 1`, `gunsPerMount: barrels`;
+    the nine ≥3-barrel central-battery placements → a canonical
+    `<family>_central_battery_<n>` battery assembly (`mountType: BROADSIDE_BATTERY`),
+    masses and arc copied from the legacy resolved mount, legacy type + disposition in
+    migration provenance only.
+  - **Derivations (SPM-R13/R14).** `basisMultiplier`/`quantityLines` are pure over the
+    declared basis and the entry counts (1, `mountCount`, `mountCount × gunsPerMount`);
+    a nested entry's part units equal its parent's contained units; a deliberately
+    unusual basis proves no inference from the family.
+  - **Resolver (SPM-R16).** `resolveGunPlacementThroughParts` rebuilds the armament
+    inputs from the parts and feeds the existing `resolveArmament`, so `ResolvedArmament`
+    and the compiled weapon contract are byte-identical to the legacy path for every
+    placement except the D17 identity paths. Test: all 230 gun placements across 91
+    designs translate, `mountCount × gunsPerMount = legacy barrels` everywhere, and the
+    68 placements whose legacy path resolves are byte-identical except the D17
+    `mountType`/`mountId`.
+  - **Deviation (recorded).** The ticket's "230 placements byte-identical, nine D17
+    exceptions" is literally satisfied, but only 68 placements (france/germany/uk, the
+    nations with first-class armament content) produce a `ResolvedArmament` in the legacy
+    compile; the other 162 use the documented compatibility path and produce none, so
+    the read path mirrors that (`useFirstClassArmament`) and emits none. Only six of the
+    nine D17 placements resolve (the three Mesudiye/Ottoman entries fall on the
+    compatibility path) — the translation still reclassifies all nine.
+  - Additive: no production content, save, visual YAML or golden change (the read path
+    is not wired into the production pipeline). Two-axis review returned no hard
+    violations; fixes taken — the platform/slot adapter the ticket's *What to build*
+    names, the test's unnecessary cast and hand-rolled `gunKey`, and sort comparators.
+    Judgement calls kept: bare `Error` (package precedent) and the omitted
+    `hullSpaceUsageLitre` on the mount round-trip (absent from SPM-R1 and from today's
+    mounts).
+- Handed to ticket 04 (torpedo launchers), 05 (remaining families, incl. ammunition
+  parts and `hullSpaceUsageLitre` if content ever authors it) and 06 (fit validation
+  over these compatibility slots).

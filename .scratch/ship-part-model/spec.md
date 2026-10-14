@@ -12,7 +12,7 @@ that means the implementation tickets, once sliced by `to-tickets`, carry
 P6 (visual alignment, which includes ship-visualization INC-4) waits on the owner's review
 of the exact visual-trait definitions.
 
-**Status:** sliced into 16 tickets at `issues/` (02 is resolved and 03 is the frontier; P1 = 01–09; 2.0.0 is implemented in 10 and activated atomically in 11, P2 = 10–11, P3 = 12, P4 = 13, P5 = 14–15, P6 = 16, gated on D16).
+**Status:** sliced into 16 tickets at `issues/` (02 and 03 are resolved and 04–06 are the frontier; P1 = 01–09; 2.0.0 is implemented in 10 and activated atomically in 11, P2 = 10–11, P3 = 12, P4 = 13, P5 = 14–15, P6 = 16, gated on D16).
 
 **Source of truth:** the approved design proposal [`proposal.md`](proposal.md)
 (revision 4.1) and its decision log D1–D19, invariants I-1–I-27, safeguards S1–S8 and
