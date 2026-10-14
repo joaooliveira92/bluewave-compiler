@@ -13,15 +13,25 @@ export { COMPATIBILITY_MISMATCH_CODE } from "./errors.js";
 // migration engine ships; ADR-0113 section 5 documented rejection).
 export const CURRENT_COMPATIBILITY_VERSION = "1.2.0";
 
+// ship-part-model P2 (ticket 10, SPM-R21): the design data model changes shape
+// at 2.0.0. The declaration is defined here but NOT current: ticket 11 flips
+// CURRENT_COMPATIBILITY_VERSION to this value in the same change that switches
+// content and pipeline. Until then it is only injected by tests.
+export const PART_MODEL_COMPATIBILITY_VERSION = "2.0.0";
+
 export class CompatibilityChecker {
-  static check(saveVersion: string, diagnostics: DiagnosticCollector): boolean {
-    if (saveVersion !== CURRENT_COMPATIBILITY_VERSION) {
+  static check(
+    saveVersion: string,
+    diagnostics: DiagnosticCollector,
+    currentVersion: string = CURRENT_COMPATIBILITY_VERSION,
+  ): boolean {
+    if (saveVersion !== currentVersion) {
       // The tagged error is the typed vocabulary; `toDiagnostic()` projects it
       // onto the identical `Diagnostic` the collector already accepted, so the
       // collector-based public surface and its output are unchanged.
       diagnostics.add(
         new PersistenceCompatibilityMismatchError({
-          message: `Save compatibility version "${saveVersion}" does not match current engine version "${CURRENT_COMPATIBILITY_VERSION}"`,
+          message: `Save compatibility version "${saveVersion}" does not match current engine version "${currentVersion}"`,
           stage: "persistence.load",
           remediation: "Use a compatible save file or migrate the save data.",
         }).toDiagnostic(),

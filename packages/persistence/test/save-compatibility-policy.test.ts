@@ -16,6 +16,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test";
 import {
   COMPATIBILITY_MISMATCH_CODE,
   CURRENT_COMPATIBILITY_VERSION,
+  PART_MODEL_COMPATIBILITY_VERSION,
 } from "../src/compatibility.js";
 import { CORRUPT_SAVE_CODE } from "../src/errors.js";
 import { SaveStore } from "../src/store.js";
@@ -146,4 +147,24 @@ describe("save-compatibility policy (ADR-0113)", () => {
       expect(diagnostics.errors.some((d) => d.code === CORRUPT_SAVE_CODE)).toBe(false);
     },
   );
+
+  it("declares 2.0.0 without making it current (ticket 11 activates it)", () => {
+    expect(PART_MODEL_COMPATIBILITY_VERSION).toBe("2.0.0");
+    expect(CURRENT_COMPATIBILITY_VERSION).not.toBe(PART_MODEL_COMPATIBILITY_VERSION);
+  });
+
+  it("refuses a 1.2.0 campaign when 2.0.0 is injected as current, leaving the file byte-identical", () => {
+    store.save(createFixtureState(), tmpDir);
+    const campaignPath = join(tmpDir, store.getActiveSaveId(tmpDir)!, "campaign.json");
+    const before = readFileSync(campaignPath);
+
+    const diagnostics = new DiagnosticCollector();
+    const loaded = new SaveStore(PART_MODEL_COMPATIBILITY_VERSION).load(tmpDir, diagnostics);
+
+    expect(loaded).toBeNull();
+    expect(diagnostics.errors.map((d) => d.code)).toEqual([COMPATIBILITY_MISMATCH_CODE]);
+    expect(diagnostics.errors[0]!.message).toContain('"1.2.0"');
+    expect(diagnostics.errors[0]!.message).toContain(PART_MODEL_COMPATIBILITY_VERSION);
+    expect(readFileSync(campaignPath).equals(before)).toBe(true);
+  });
 });

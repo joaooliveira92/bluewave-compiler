@@ -1,5 +1,6 @@
 import { existsSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { CURRENT_COMPATIBILITY_VERSION } from "@bluewave/persistence";
 import { decodeLog, PersistenceError } from "@bluewave/ship-design";
 import { Result, Schema } from "effect";
 import type { BridgeResult } from "../shared/bridge-contract.js";
@@ -26,7 +27,12 @@ const StoredSchema = Schema.Struct({
   savedAt: Schema.String,
   presetId: Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(200)),
   log: Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(MAX_LOG_CHARS)),
+  /** Absent in drafts written before the 2.0.0 gate; those were written under 1.2.0. */
+  compatibilityVersion: Schema.optional(Schema.String),
 });
+
+/** Version a draft without a stamp was written under (ship-part-model ticket 10). */
+const LEGACY_DRAFT_COMPATIBILITY_VERSION = "1.2.0";
 
 function sessionMissing(sessionId: string) {
   return {
@@ -37,12 +43,22 @@ function sessionMissing(sessionId: string) {
 }
 
 /** Tolerant read: a missing, unreadable or malformed file is "no draft", never a crash. */
-export function loadDrawingBoardDraft(saveDir: string): DrawingBoardDraftRecord | null {
+export function loadDrawingBoardDraft(
+  saveDir: string,
+  currentVersion: string = CURRENT_COMPATIBILITY_VERSION,
+): DrawingBoardDraftRecord | null {
   const path = join(saveDir, DRAWING_BOARD_DRAFT_FILENAME);
   if (!existsSync(path)) return null;
   try {
     const parsed = Schema.decodeUnknownResult(StoredSchema)(JSON.parse(readFileSync(path, "utf8")));
     if (Result.isFailure(parsed)) return null;
+    const draftVersion = parsed.success.compatibilityVersion ?? LEGACY_DRAFT_COMPATIBILITY_VERSION;
+    if (draftVersion !== currentVersion) {
+      // Not restored: the workspace starts from the default design. The old draft is
+      // preserved under its version suffix before any new save could overwrite it.
+      renameSync(path, `${path}.${draftVersion}`);
+      return null;
+    }
     decodeLog(parsed.success.log);
     return {
       presetId: parsed.success.presetId,
@@ -92,6 +108,7 @@ export async function writeDrawingBoardDraft(
     savedAt: now().toISOString(),
     presetId: payload.draft.presetId,
     log: payload.draft.log,
+    compatibilityVersion: CURRENT_COMPATIBILITY_VERSION,
   };
   const tmp = `${path}.tmp`;
   try {

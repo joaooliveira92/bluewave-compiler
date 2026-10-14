@@ -1,11 +1,11 @@
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { encodeLog, newLog, pushEdit } from "@bluewave/ship-design";
 import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test";
 import { dispatchCampaignCommand } from "./campaignBridge.js";
 import { clearCampaignSessionsForTest, registerCampaignSession } from "./campaignSessions.js";
-import { DRAWING_BOARD_DRAFT_FILENAME } from "./drawingBoardDraft.js";
+import { DRAWING_BOARD_DRAFT_FILENAME, loadDrawingBoardDraft } from "./drawingBoardDraft.js";
 import { readReferenceDesigns } from "./referenceDesigns.js";
 
 const reference = readReferenceDesigns().find((d) => d.id === "torpedo_cruiser_1880")!;
@@ -69,5 +69,24 @@ describe("Drawing Board draft sidecar", () => {
     expect((await dispatchCampaignCommand("readDrawingBoardDraft", "nobody")).outcome).toBe(
       "error",
     );
+  });
+
+  it("does not restore a draft from another compatibility version, and preserves it renamed", async () => {
+    await dispatchCampaignCommand("writeDrawingBoardDraft", {
+      sessionId: "s",
+      draft: { presetId: reference.id, log },
+    });
+    const path = join(saveDir, DRAWING_BOARD_DRAFT_FILENAME);
+    const before = readFileSync(path, "utf8");
+
+    expect(loadDrawingBoardDraft(saveDir, "2.0.0")).toBeNull();
+    expect(existsSync(path)).toBe(false);
+    expect(readFileSync(`${path}.1.2.0`, "utf8")).toBe(before);
+  });
+
+  it("treats an unstamped legacy draft as written under 1.2.0", () => {
+    const stored = { schema: "drawing_board_draft_v1", savedAt: "x", presetId: reference.id, log };
+    writeFileSync(join(saveDir, DRAWING_BOARD_DRAFT_FILENAME), JSON.stringify(stored));
+    expect(loadDrawingBoardDraft(saveDir)).toMatchObject({ presetId: reference.id });
   });
 });

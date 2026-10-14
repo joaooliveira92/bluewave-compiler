@@ -2,6 +2,7 @@ export {
   CompatibilityChecker,
   CompatibilityError,
   CURRENT_COMPATIBILITY_VERSION,
+  PART_MODEL_COMPATIBILITY_VERSION,
 } from "./compatibility.js";
 export {
   CANCELLED_CODE,

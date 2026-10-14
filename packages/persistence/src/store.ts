@@ -13,7 +13,7 @@ import type { CampaignState } from "@bluewave/campaign";
 import { canonicalSerialize, sha256Hex, verifyEnvelope } from "@bluewave/deterministic";
 import type { DiagnosticCollector } from "@bluewave/diagnostics";
 import { Result, Schema } from "effect";
-import { CompatibilityChecker } from "./compatibility.js";
+import { CompatibilityChecker, CURRENT_COMPATIBILITY_VERSION } from "./compatibility.js";
 import {
   CANCELLED_CODE,
   CORRUPT_SAVE_CODE,
@@ -96,6 +96,14 @@ export type MonthInputLoad =
 const MONTH_INPUT_FILE = "month-input.json";
 
 export class SaveStore {
+  /**
+   * `currentCompatibilityVersion` defaults to the active release constant; tests
+   * inject another to exercise the refusal path (ship-part-model ticket 10).
+   */
+  constructor(
+    private readonly currentCompatibilityVersion: string = CURRENT_COMPATIBILITY_VERSION,
+  ) {}
+
   save(
     state: CampaignState,
     saveDir: string,
@@ -404,7 +412,11 @@ export class SaveStore {
     }
 
     if (
-      !CompatibilityChecker.check(headerResult.success.snapshot.compatibilityVersion, diagnostics)
+      !CompatibilityChecker.check(
+        headerResult.success.snapshot.compatibilityVersion,
+        diagnostics,
+        this.currentCompatibilityVersion,
+      )
     ) {
       return null;
     }
