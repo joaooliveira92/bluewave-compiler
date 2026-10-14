@@ -213,6 +213,95 @@ describe("a prototype, a variant and two revisions flatten to hand-worked values
 });
 
 // ---------------------------------------------------------------------------
+// The ship-type registry beside the part index (ticket 12a)
+// ---------------------------------------------------------------------------
+
+/** A minimal valid ship-type record, as a JSON record. */
+function shipType(id: string, overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    id,
+    name: id,
+    engineClass: "capital_combatant",
+    displayCategory: "CAPITAL_SHIP",
+    roles: ["BATTLE_LINE"],
+    era: "EARLY",
+    availability: {
+      fromEra: "EARLY",
+      requiresTech: null,
+      requiresCapability: null,
+      mechanicsImplemented: true,
+    },
+    classification: { precedence: 20, requires: [] },
+    torpedoPolicy: "OPTIONAL",
+    relativeCost: 3,
+    relativeBuildTime: 3,
+    auxiliary: false,
+    requiredHullTrait: null,
+    presentation: {
+      description: "d",
+      recommendedUse: "r",
+      weaknesses: "w",
+      armourProfile: "a",
+      armamentProfile: "m",
+    },
+    order: 10,
+    provenance,
+    ...overrides,
+  };
+}
+
+describe("the ship-type registry rides beside the part index, id-sorted", () => {
+  it("populates PartIndex.shipTypes in codepoint id order regardless of declaration order", () => {
+    withFixture((fixture) => {
+      const first = compile(
+        baseInput(fixture, {
+          shipTypeFiles: [
+            fixture.write(
+              "ship-building/ship-types.yaml",
+              JSON.stringify({ shipTypes: [shipType("KE"), shipType("AMC"), shipType("B")] }),
+            ),
+          ],
+        }),
+      );
+      expect(first.collector.errors).toEqual([]);
+      const index = first.output?.bundle.shipBuilding?.partModel?.partIndex;
+      expect(index?.shipTypes.map((record) => record.id)).toEqual(["AMC", "B", "KE"]);
+      expect(index?.shipTypes.map((record) => record.name)).toEqual(["AMC", "B", "KE"]);
+
+      // A different declaration order flattens to the same id-sorted array.
+      const second = compile(
+        baseInput(fixture, {
+          shipTypeFiles: [
+            fixture.write(
+              "ship-building/other-types.yaml",
+              JSON.stringify({ shipTypes: [shipType("B"), shipType("KE"), shipType("AMC")] }),
+            ),
+          ],
+        }),
+      );
+      expect(second.collector.errors).toEqual([]);
+      expect(second.output?.bundle.shipBuilding?.partModel?.partIndex.shipTypes).toEqual(
+        index?.shipTypes,
+      );
+    });
+  });
+
+  it("ascribes an unknown engine class to the strict decoder with the source file", () => {
+    withFixture((fixture) => {
+      const file = fixture.write(
+        "ship-building/ship-types.yaml",
+        JSON.stringify({ shipTypes: [shipType("B", { engineClass: "carrier_group" })] }),
+      );
+      const { output, collector } = compile(baseInput(fixture, { shipTypeFiles: [file] }));
+      expect(output).toBeUndefined();
+      const error = collector.errors.find((e) => e.code === "SCHEMA");
+      expect(error?.message).toContain("ShipType");
+      expect(error?.sourceLocation?.path).toBe(file);
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Structured diagnostics
 // ---------------------------------------------------------------------------
 

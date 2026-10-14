@@ -27,6 +27,7 @@ import {
   RulesetManifestSchema,
   ShipComponentSchema,
   ShipHullFormSchema,
+  ShipTypeRecordSchema,
   SlotTemplateSchema,
   TechnologyPrerequisiteChainSchema,
   validateAgainstSchema,
@@ -59,6 +60,7 @@ export interface ValidateOutput {
   parts?: unknown[];
   slotTemplates?: unknown[];
   platforms?: unknown[];
+  shipTypes?: unknown[];
   designLoadouts?: unknown[];
   /** The source file of each part, slot template and platform, for the flatten stage. */
   partModelSources?: PartModelSources;
@@ -78,6 +80,7 @@ export interface PartModelSources {
   readonly parts: ReadonlyMap<string, string>;
   readonly slotTemplates: ReadonlyMap<string, string>;
   readonly platforms: ReadonlyMap<string, string>;
+  readonly shipTypes: ReadonlyMap<string, string>;
 }
 
 const COLLECTION_KEYS = [
@@ -112,6 +115,7 @@ interface ValidatedCatalogue {
   parts: unknown[];
   slotTemplates: unknown[];
   platforms: unknown[];
+  shipTypes: unknown[];
   designLoadouts: unknown[];
 }
 
@@ -149,6 +153,7 @@ const SHIP_BUILDING_COLLECTIONS: readonly ShipBuildingCollection[] = [
   { key: "parts", schema: PartSchema, label: "Part", idField: "id" },
   { key: "slotTemplates", schema: SlotTemplateSchema, label: "SlotTemplate", idField: "id" },
   { key: "platforms", schema: PlatformSchema, label: "Platform", idField: "id" },
+  { key: "shipTypes", schema: ShipTypeRecordSchema, label: "ShipType", idField: "id" },
   {
     key: "designLoadouts",
     schema: ReferenceDesignLoadoutSchema,
@@ -286,6 +291,7 @@ export class ValidateStage implements CompilerStage<ParseOutput, ValidateOutput>
         parts: sourceById(input, "parts", "id"),
         slotTemplates: sourceById(input, "slotTemplates", "id"),
         platforms: sourceById(input, "platforms", "id"),
+        shipTypes: sourceById(input, "shipTypes", "id"),
       },
       ...campaign,
       ...(presentation !== undefined ? { presentation } : {}),
@@ -669,6 +675,7 @@ function validateShipBuildingCatalogue(
     parts: out["parts"] ?? [],
     slotTemplates: out["slotTemplates"] ?? [],
     platforms: out["platforms"] ?? [],
+    shipTypes: out["shipTypes"] ?? [],
     designLoadouts: out["designLoadouts"] ?? [],
   };
 }
@@ -692,6 +699,7 @@ function catalogueArrays(catalogue: ValidatedCatalogue): Record<string, unknown[
     parts: catalogue.parts,
     slotTemplates: catalogue.slotTemplates,
     platforms: catalogue.platforms,
+    shipTypes: catalogue.shipTypes,
     designLoadouts: catalogue.designLoadouts,
   };
 }

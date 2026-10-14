@@ -36,6 +36,7 @@ const WRAPPED_GROUPS: Readonly<Record<string, string>> = {
   parts: "parts",
   slotTemplates: "slotTemplates",
   platforms: "platforms",
+  shipTypes: "shipTypes",
   designLoadouts: "designs",
 };
 
@@ -77,6 +78,7 @@ export class ParseStage implements CompilerStage<CompilerInput, ParseOutput> {
       parts: input.partFiles ?? [],
       slotTemplates: input.slotTemplateFiles ?? [],
       platforms: input.platformFiles ?? [],
+      shipTypes: input.shipTypeFiles ?? [],
       designLoadouts: input.designLoadoutFiles ?? [],
       fleets: input.fleetFiles ?? [],
       economies: input.economyFiles ?? [],

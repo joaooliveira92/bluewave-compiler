@@ -96,6 +96,12 @@ const SHIP_BUILDING_COLLECTIONS: ReadonlyArray<{
     label: "platform",
   },
   {
+    manifestKey: "shipTypes",
+    groupKey: "shipTypeFiles",
+    inputKey: "shipTypeFiles",
+    label: "ship type",
+  },
+  {
     manifestKey: "designLoadouts",
     groupKey: "designLoadoutFiles",
     inputKey: "designLoadoutFiles",
@@ -200,6 +206,7 @@ export function buildFullSurfaceInput(
     partFiles: declaredByInputKey.partFiles,
     slotTemplateFiles: declaredByInputKey.slotTemplateFiles,
     platformFiles: declaredByInputKey.platformFiles,
+    shipTypeFiles: declaredByInputKey.shipTypeFiles,
     designLoadoutFiles: declaredByInputKey.designLoadoutFiles,
     fleetFiles: (files.fleets ?? []).map(toAbsolute),
     economyFiles: (files.economies ?? []).map(toAbsolute),

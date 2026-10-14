@@ -26,6 +26,7 @@ export interface ShipBuildingFileGroups {
   partFiles: string[];
   slotTemplateFiles: string[];
   platformFiles: string[];
+  shipTypeFiles: string[];
   designLoadoutFiles: string[];
 }
 
@@ -41,6 +42,7 @@ const FIXED_FILES: ReadonlyArray<readonly [keyof ShipBuildingFileGroups, string]
   ["ammunitionFiles", "ship-building/armament/ammunition.yaml"],
   ["slotTemplateFiles", "ship-building/slot-templates.yaml"],
   ["platformFiles", "ship-building/platforms.yaml"],
+  ["shipTypeFiles", "ship-building/ship-types.yaml"],
 ];
 
 const NAVAL_PROFILE_DIR = "ship-building/naval-profiles";
@@ -65,6 +67,7 @@ export function discoverShipBuildingFiles(contentDir: string): ShipBuildingFileG
     partFiles: [],
     slotTemplateFiles: [],
     platformFiles: [],
+    shipTypeFiles: [],
     designLoadoutFiles: [],
   };
 

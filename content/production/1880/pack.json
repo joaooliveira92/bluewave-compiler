@@ -72,6 +72,7 @@
     ],
     "slotTemplates": ["ship-building/slot-templates.yaml"],
     "platforms": ["ship-building/platforms.yaml"],
+    "shipTypes": ["ship-building/ship-types.yaml"],
     "designLoadouts": [
       "ship-building/design-loadouts/austria_hungary.yaml",
       "ship-building/design-loadouts/brazil.yaml",

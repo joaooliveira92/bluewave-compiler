@@ -125,6 +125,11 @@ export const BUNDLE_COLLECTIONS: readonly BundleCollectionSpec[] = [
     idField: "id",
     of: (b) => b.shipBuilding?.partModel?.platforms,
   },
+  {
+    name: "shipBuilding.partModel.shipTypes",
+    idField: "id",
+    of: (b) => b.shipBuilding?.partModel?.partIndex.shipTypes,
+  },
   { name: "campaign.fleets", idField: "id", of: (b) => b.campaign?.fleets },
   { name: "campaign.economies", idField: "nationId", of: (b) => b.campaign?.economies },
   { name: "campaign.constructions", idField: "id", of: (b) => b.campaign?.constructions },

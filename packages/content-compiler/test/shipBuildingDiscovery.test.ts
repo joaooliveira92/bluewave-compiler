@@ -42,6 +42,7 @@ function writeShipBuildingTree(root: string): void {
     "ship-building/reference-designs/germany/extra-a.yaml",
     "ship-building/components.yaml",
     "ship-building/reference-designs/uk/starters.yaml",
+    "ship-building/ship-types.yaml",
     "ship-building/naval-profiles/sub/b.yaml",
     "ship-building/reference-designs/germany/starters.yaml",
   ];
@@ -86,6 +87,7 @@ const EXPECTED = {
   partFiles: ["ship-building/parts/alpha.yaml", "ship-building/parts/zeta.yaml"],
   slotTemplateFiles: [],
   platformFiles: [],
+  shipTypeFiles: ["ship-building/ship-types.yaml"],
   designLoadoutFiles: [],
 };
 
@@ -128,6 +130,7 @@ describe("discoverShipBuildingFiles", () => {
         partFiles: [],
         slotTemplateFiles: [],
         platformFiles: [],
+        shipTypeFiles: [],
         designLoadoutFiles: [],
       });
     } finally {

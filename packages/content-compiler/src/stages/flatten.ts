@@ -4,8 +4,10 @@ import {
   type CompiledPartModel,
   type FlattenedPart,
   type PartData,
+  type PartIndex,
   type PlatformData,
   type QuantityComponentData,
+  type ShipTypeRecord,
   type SlotTemplateData,
 } from "@bluewave/content-schema";
 import { compareCodePoints } from "@bluewave/deterministic";
@@ -54,10 +56,17 @@ export class FlattenStage implements CompilerStage<ValidateOutput, FlattenOutput
     const parts = (input.parts ?? []) as readonly PartData[];
     const slotTemplates = (input.slotTemplates ?? []) as readonly SlotTemplateData[];
     const platforms = (input.platforms ?? []) as readonly PlatformData[];
-    if (parts.length === 0 && slotTemplates.length === 0 && platforms.length === 0) return rest;
+    const shipTypes = (input.shipTypes ?? []) as readonly ShipTypeRecord[];
+    if (
+      parts.length === 0 &&
+      slotTemplates.length === 0 &&
+      platforms.length === 0 &&
+      shipTypes.length === 0
+    )
+      return rest;
 
     const partModel = compilePartModel(
-      { parts, slotTemplates, platforms },
+      { parts, slotTemplates, platforms, shipTypes },
       {
         hullFormIds: idSet(input.shipHullForms),
         technologyIds: idSet(input.technologies),
@@ -75,12 +84,14 @@ const EMPTY_SOURCES: PartModelSources = {
   parts: new Map(),
   slotTemplates: new Map(),
   platforms: new Map(),
+  shipTypes: new Map(),
 };
 
 interface PartModelInput {
   readonly parts: readonly PartData[];
   readonly slotTemplates: readonly SlotTemplateData[];
   readonly platforms: readonly PlatformData[];
+  readonly shipTypes: readonly ShipTypeRecord[];
 }
 
 interface PartModelContext {
@@ -147,8 +158,14 @@ export function compilePartModel(
   }
   if (collector.hasErrors) return undefined;
 
+  const partIndex: PartIndex = {
+    ...buildIndex(flattened, parts),
+    // The ship-type registry rides beside the index, id-codepoint-sorted so the array is
+    // the canonical order regardless of the order the content declared it in (ADR-0146).
+    shipTypes: [...model.shipTypes].sort(compareById),
+  };
   return {
-    partIndex: buildIndex(flattened, parts),
+    partIndex,
     slotTemplates: [...model.slotTemplates].sort(compareById),
     platforms: [...model.platforms].sort(compareById),
   };
@@ -569,7 +586,7 @@ function flattenPart(
 function buildIndex(
   flattened: readonly FlattenedPart[],
   authored: readonly PartData[],
-): CompiledPartModel["partIndex"] {
+): Omit<PartIndex, "shipTypes"> {
   const byId: Record<string, FlattenedPart> = {};
   const byInterface: Record<string, string[]> = {};
   const byFamily: Record<string, string[]> = {};

@@ -114,11 +114,71 @@ export const GUN_MOUNT_TYPES = [
   "BROADSIDE_BATTERY",
 ] as const;
 
+/**
+ * The seven **engine behaviour classes** (ADR-0156 §2, proposal §3.5). Closed and
+ * code-owned: a ship type names exactly one, and an unknown value fails decoding, so no
+ * content string can select executable behaviour (invariant I-16).
+ */
+export const ENGINE_BEHAVIOUR_CLASSES = [
+  "capital_combatant",
+  "cruiser",
+  "torpedo_craft",
+  "colonial_vessel",
+  "merchant_auxiliary",
+  "aviation",
+  "submarine",
+] as const;
+
+/** The seven display categories a ship type is filed under (DESIGN-22 §6). */
+export const SHIP_TYPE_DISPLAY_CATEGORIES = [
+  "CAPITAL_SHIP",
+  "CRUISER",
+  "LIGHT_COMBATANT",
+  "COLONIAL_VESSEL",
+  "AUXILIARY",
+  "AVIATION",
+  "SUBMARINE",
+] as const;
+
+/** The strategic roles a ship type may declare (DESIGN-22 §6). */
+export const SHIP_TYPE_ROLES = [
+  "BATTLE_LINE",
+  "FLEET_SCOUTING",
+  "COMMERCE_PROTECTION",
+  "COMMERCE_RAIDING",
+  "COLONIAL_PRESENCE",
+  "CRUISER_HUNTING",
+  "PATROL",
+  "FOREIGN_STATION",
+  "SCREENING",
+  "TORPEDO_ATTACK",
+  "COASTAL_DEFENCE",
+  "MINELAYING",
+  "LOCAL_DEFENCE",
+  "AVIATION",
+  "UNDERSEA",
+  "TRANSPORT",
+] as const;
+
+/** DESIGN-22 §6 era bands; the natural-classifier date gate reads them. */
+export const SHIP_TYPE_ERA_BANDS = ["EARLY", "PRE_WAR", "INTERWAR", "MID_CENTURY", "LATE"] as const;
+
+/** A type's torpedo policy (DESIGN-22 §1): required, prohibited or optional. */
+export const TORPEDO_POLICIES = ["REQUIRED", "PROHIBITED", "OPTIONAL"] as const;
+
+/**
+ * The closed hull-trait vocabulary a ship type may require of a design's hull form
+ * (ADR-0154 §1). `merchant_derived` is the only trait used today; an unknown trait fails
+ * decoding rather than being dropped.
+ */
+export const SHIP_TYPE_HULL_TRAITS = ["merchant_derived"] as const;
+
 export type PartInterface = (typeof PART_INTERFACES)[number];
 export type PartFamily = (typeof PART_FAMILIES)[number];
 export type ApplicationBasis = (typeof APPLICATION_BASES)[number];
 export type QuantityKind = (typeof QUANTITY_KINDS)[number];
 export type LegacyExceptionCode = (typeof LEGACY_EXCEPTION_CODES)[number];
+export type EngineBehaviourClass = (typeof ENGINE_BEHAVIOUR_CLASSES)[number];
 
 const int = Schema.Finite.check(Schema.isInt());
 const nonNegativeInt = Schema.Finite.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(0));
@@ -138,6 +198,16 @@ const month = Schema.String.check(
 );
 const stableId = Schema.String.check(
   Schema.isPattern(/^[a-z][a-z0-9_]*$/, { message: "must be lower snake_case" }),
+);
+/**
+ * A canonical ship-type token (`B`, `CA`, `AMC`, …). The DESIGN-22 ids are upper-case
+ * abbreviations, so this is the upper-case analogue of `stableId` — a stable authored
+ * token, not a lowercase `stableId`. It is a closed *format* rather than a `Literals`
+ * union of the fourteen known ids, so authored content can add a type without a code
+ * change (ADR-0156 §1); behaviour is selected only by the closed `engineClass`.
+ */
+const shipTypeId = Schema.String.check(
+  Schema.isPattern(/^[A-Z][A-Z0-9]*$/, { message: "must be an upper-case ship-type token" }),
 );
 /** Slot ids may be dotted (`armour.belt_main`, `magazine.fwd`). */
 const slotId = Schema.String.check(
@@ -841,17 +911,99 @@ export const PartLineageSchema = Schema.Struct({
   supersededBy: Schema.Array(stableId),
 });
 
+// ---------------------------------------------------------------------------
+// Ship types as content (ADR-0156, ship-part-model ticket 12a)
+// ---------------------------------------------------------------------------
+
+/**
+ * One fit-requirement predicate a ship type may declare (ADR-0156 §3). Closed: a slot
+ * id, one interface from `interfaces/1`, the shared `SlotConstraintsSchema` keys, and an
+ * optional minimum mount count. An unknown predicate key, constraint key or interface
+ * fails decoding, so content cannot invent a fit rule. All 1880 records author an empty
+ * `requires` (the classifier is still code-owned until 12b).
+ */
+export const ShipTypeRequirementSchema = Schema.Struct({
+  slot: stableId,
+  interface: InterfaceSchema,
+  constraints: SlotConstraintsSchema,
+  mountCountMin: Schema.optional(positiveInt),
+});
+
+/**
+ * A ship type's classification block. `precedence` orders the natural classifier's
+ * attempts (lower first, exactly reproducing the code's `CLASSIFIED_SHIP_TYPES` order);
+ * `requires` is the closed predicate list that drives `TYPE_REQUIRES_*` findings.
+ */
+export const ShipTypeClassificationSchema = Schema.Struct({
+  precedence: int,
+  requires: Schema.Array(ShipTypeRequirementSchema),
+});
+
+/** Where and whether a ship type exists in a campaign (DESIGN-22 §1, ADR-0088). */
+export const ShipTypeAvailabilitySchema = Schema.Struct({
+  fromEra: Schema.Literals(SHIP_TYPE_ERA_BANDS),
+  /** Technology id that must be unlocked, or `null` when the era alone suffices. */
+  requiresTech: Schema.NullOr(stableId),
+  /** Nation capability that must be granted, or `null`. */
+  requiresCapability: Schema.NullOr(stableId),
+  /** False while the mechanics the type needs are not in the game: always locked. */
+  mechanicsImplemented: Schema.Boolean,
+});
+
+/** The player-facing text of one ship type; every field is authored (ADR-0156 §1). */
+export const ShipTypePresentationSchema = Schema.Struct({
+  description: Schema.NonEmptyString,
+  recommendedUse: Schema.NonEmptyString,
+  weaknesses: Schema.NonEmptyString,
+  armourProfile: Schema.NonEmptyString,
+  armamentProfile: Schema.NonEmptyString,
+});
+
+/**
+ * One canonical ship type as content (ADR-0156 §1). `engineClass` is a closed,
+ * code-owned behaviour selector (invariant I-16); `id` is the canonical DESIGN-22 token
+ * (`B`, `CA`, …). Numeric classification thresholds stay in the code-owned
+ * `ClassificationRules` and the scenario's `balance.classification`, so moving records to
+ * content changes no classification outcome (the P3 equivalence gate, SPM-R26).
+ */
+export const ShipTypeRecordSchema = Schema.Struct({
+  id: shipTypeId,
+  name: Schema.NonEmptyString,
+  engineClass: Schema.Literals(ENGINE_BEHAVIOUR_CLASSES),
+  displayCategory: Schema.Literals(SHIP_TYPE_DISPLAY_CATEGORIES),
+  roles: nonEmptyArray(Schema.Literals(SHIP_TYPE_ROLES)),
+  era: Schema.Literals(SHIP_TYPE_ERA_BANDS),
+  availability: ShipTypeAvailabilitySchema,
+  classification: ShipTypeClassificationSchema,
+  torpedoPolicy: Schema.Literals(TORPEDO_POLICIES),
+  /** Ordinal 1 (cheap) to 5 (most expensive) among a type's contemporaries. */
+  relativeCost: int.check(Schema.isBetween({ minimum: 1, maximum: 5 })),
+  /** Ordinal 1 (fastest to build) to 5 (slowest). */
+  relativeBuildTime: int.check(Schema.isBetween({ minimum: 1, maximum: 5 })),
+  /** An auxiliary or special project: not a regular frontline warship. */
+  auxiliary: Schema.Boolean,
+  /** Hull-form trait the design must use (e.g. `merchant_derived`), or `null`. */
+  requiredHullTrait: Schema.NullOr(Schema.Literals(SHIP_TYPE_HULL_TRAITS)),
+  presentation: ShipTypePresentationSchema,
+  /** Position within the roster (ascending). */
+  order: int,
+  provenance: ProvenanceSchema,
+});
+
 /**
  * The compiled part index (SPM-R11). Parts by id, part ids by interface and by family,
- * and the lineage graph. It is part of the content artifact, so the body hash and the
- * content lock cover it (ADR-0122/0123/0145). All id lists are codepoint-ordered
- * (ADR-0146); only non-empty interface and family groups are present.
+ * the lineage graph, and the ship-type registry (ADR-0156). It is part of the content
+ * artifact, so the body hash and the content lock cover it (ADR-0122/0123/0145). All id
+ * lists are codepoint-ordered (ADR-0146); only non-empty interface and family groups are
+ * present. `shipTypes` is an id-codepoint-sorted array rather than a `byId` record: a
+ * record's key order is not the canonical contract (ADR-0146), while an array is.
  */
 export const PartIndexSchema = Schema.Struct({
   byId: Schema.Record(stableId, FlattenedPartSchema),
   byInterface: Schema.Record(stableId, Schema.Array(stableId)),
   byFamily: Schema.Record(stableId, Schema.Array(stableId)),
   lineage: Schema.Record(stableId, PartLineageSchema),
+  shipTypes: Schema.Array(ShipTypeRecordSchema),
 });
 
 /** The part-model section of the content artifact: the index plus slot sources. */
@@ -864,6 +1016,8 @@ export const CompiledPartModelSchema = Schema.Struct({
 export type FlattenedPart = typeof FlattenedPartSchema.Type;
 export type PartIndex = typeof PartIndexSchema.Type;
 export type CompiledPartModel = typeof CompiledPartModelSchema.Type;
+export type ShipTypeRecord = typeof ShipTypeRecordSchema.Type;
+export type ShipTypeRequirement = typeof ShipTypeRequirementSchema.Type;
 
 /** A part's values at one month: the spec with every revision up to it applied. */
 export interface ResolvedPartRevision {

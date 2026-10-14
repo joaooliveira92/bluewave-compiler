@@ -48,6 +48,12 @@ export interface CompilerInput {
   slotTemplateFiles?: string[];
   platformFiles?: string[];
   /**
+   * The ship-type registry (ship-part-model ticket 12a, ADR-0156): one record per
+   * canonical type. Strictly decoded, then carried beside the part index as
+   * `partIndex.shipTypes`. Optional like the other part-model groups.
+   */
+  shipTypeFiles?: string[];
+  /**
    * Authoritative reference designs in the parts representation (ship-part-model
    * ticket 11d): each is a header + loadout the production compile path rebuilds
    * a draft from. Optional; a pack without them has no `designLoadouts`.
