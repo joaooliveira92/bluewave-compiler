@@ -2,7 +2,10 @@
 
 ## Status
 
-Accepted (2026-10-12). Amended by
+Superseded by: ADR-0159 (2026-10-14) for the app surfaces only — the full Effect
+runtime is adopted in `apps/desktop/src/main` and `apps/compiler-cli`. The
+runtime-free package policy and the renderer constraint are retained and
+restated there. Amended by
 [ADR-0152](ADR-0152-errors-by-reachability.md) §1 (the errors-by-reachability
 split: renderer-reachable packages keep plain classes with a `readonly _tag`
 rather than `Data.TaggedError`).
