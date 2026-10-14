@@ -43,6 +43,7 @@ const IMPLEMENTED_COMMANDS = new Set([
   "haltConstructionCommand",
   "resumeConstructionCommand",
   "setAccelerationCommand",
+  "cancelConstructionProjectCommand",
   "orderConstructionBatchCommand",
   "previewConstructionBatchCommand",
   "authorizeDockExpansionCommand",
@@ -308,6 +309,10 @@ describe("dispatchCampaignCommand", () => {
         "authorizeDockExpansionCommand",
         { sessionId: "s", expectedRevision: 0, transportRequestId: "r" },
       ],
+      [
+        "cancelConstructionProjectCommand",
+        { sessionId: "s", expectedRevision: 0, transportRequestId: "r" },
+      ],
     ] as const) {
       const result = await dispatchCampaignCommand(command, payload);
       expect(result.outcome).toBe("error");
@@ -363,6 +368,15 @@ describe("dispatchCampaignCommand", () => {
           expectedRevision: 0,
           transportRequestId: "r",
           possessionId: "pos",
+        },
+      ],
+      [
+        "cancelConstructionProjectCommand",
+        {
+          sessionId: "no-such-session",
+          expectedRevision: 0,
+          transportRequestId: "r",
+          projectId: "p",
         },
       ],
     ] as const) {

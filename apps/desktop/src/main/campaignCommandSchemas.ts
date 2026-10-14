@@ -119,6 +119,12 @@ export const SetAccelerationCommandPayloadSchema = Schema.Struct({
   accelerated: Schema.Boolean,
 });
 
+/** Cancel a project and settle it (DESIGN-23 section 23); deeper checks are the engine's own issue-time validation. */
+export const CancelConstructionProjectPayloadSchema = Schema.Struct({
+  ...CommandEnvelopePayloadSchema.fields,
+  projectId: nonEmptyString,
+});
+
 /** The class-order batch (DESIGN-23 sections 3-5; SB3-R11): a positive integer quantity, capped at the batch limit. */
 export const OrderConstructionBatchCommandPayloadSchema = Schema.Struct({
   ...CommandEnvelopePayloadSchema.fields,

@@ -74,6 +74,16 @@ export interface ResumeConstructionCommandPayload extends CommandEnvelope {
   readonly projectId: string;
 }
 
+/**
+ * Cancel a dockyard project and settle it (DESIGN-23 section 23; DESIGN-11). Distinct from `CancelConstructionCommand`,
+ * which cancels an in-flight queued order before the project is committed: this queues a real engine
+ * `CancelConstructionProject` command that applies on the next `commitMonth`, moving the project to `CANCELLED`,
+ * settling the work already done, and releasing a rebuild's target ship.
+ */
+export interface CancelConstructionProjectCommandPayload extends CommandEnvelope {
+  readonly projectId: string;
+}
+
 export interface SetAccelerationCommandPayload extends CommandEnvelope {
   readonly projectId: string;
   readonly accelerated: boolean;

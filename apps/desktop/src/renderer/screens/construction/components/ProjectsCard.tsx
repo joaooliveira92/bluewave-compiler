@@ -35,6 +35,8 @@ export interface ProjectsCardProps {
   readonly onResume?: (projectId: string) => void;
   /** Toggle engine-side acceleration (DESIGN-23 section 8): `true` enables, `false` disables. */
   readonly onAccelerate?: (projectId: string, accelerated: boolean) => void;
+  /** Cancel a committed project and settle it (DESIGN-23 section 23): work already done is forfeited and a rebuild's ship is released. */
+  readonly onCancelProject?: (projectId: string) => void;
   /** True while a steering command for this project is in flight, so the controls disable. */
   readonly pendingProjectId?: string | null;
 }
@@ -55,12 +57,14 @@ function SteeringControls({
   onHalt,
   onResume,
   onAccelerate,
+  onCancelProject,
 }: {
   readonly row: ProjectRow;
   readonly pending: boolean;
   readonly onHalt?: (projectId: string) => void;
   readonly onResume?: (projectId: string) => void;
   readonly onAccelerate?: (projectId: string, accelerated: boolean) => void;
+  readonly onCancelProject?: (projectId: string) => void;
 }) {
   const isHeld =
     row.status === "HALTED" || row.status === "DELAYED" || row.status === "AWAITING_CAPACITY";
@@ -121,6 +125,18 @@ function SteeringControls({
           Stop accelerating
         </Button>
       )}
+      {steerable && onCancelProject !== undefined && (
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={pending}
+          aria-label={`${row.className} cancel project`}
+          title="Cancel this project. Work already done is forfeited and is not refunded; a cancelled rebuild releases its ship on its old design."
+          onClick={() => onCancelProject(row.projectId)}
+        >
+          Cancel project
+        </Button>
+      )}
     </div>
   );
 }
@@ -131,6 +147,7 @@ export const ProjectsCard = memo(function ProjectsCard({
   onHalt,
   onResume,
   onAccelerate,
+  onCancelProject,
   pendingProjectId = null,
 }: ProjectsCardProps) {
   return (
@@ -170,6 +187,7 @@ export const ProjectsCard = memo(function ProjectsCard({
                   {...(onHalt === undefined ? {} : { onHalt })}
                   {...(onResume === undefined ? {} : { onResume })}
                   {...(onAccelerate === undefined ? {} : { onAccelerate })}
+                  {...(onCancelProject === undefined ? {} : { onCancelProject })}
                 />
                 <ProjectReadout row={row} />
                 {row.packages.length > 0 && (

@@ -150,12 +150,37 @@ describe("ProjectsCard steering controls (SB3-R5, SB3-R8)", () => {
         onHalt={noop}
         onResume={noop}
         onAccelerate={noop2}
+        onCancelProject={noop}
       />,
     );
     expect(screen.queryByRole("button", { name: "Havock class accelerate" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Havock class halt" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Havock class resume" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Havock class cancel project" })).toBeNull();
     // The status badge still shows the project's state.
     expect(screen.getByText("active")).toBeTruthy();
+  });
+
+  it("offers a cancel-project control for a live project and issues it (DESIGN-23 section 23)", () => {
+    let cancelled: string | null = null;
+    render(
+      <ProjectsCard
+        rows={[row()]}
+        onCancelProject={(id) => {
+          cancelled = id;
+        }}
+      />,
+    );
+    const cancel = screen.getByRole("button", { name: "Havock class cancel project" });
+    // The control discloses the non-refundable settlement and the ship release.
+    expect(cancel.getAttribute("title")).toMatch(/forfeited and is not refunded/);
+    expect(cancel.getAttribute("title")).toMatch(/releases its ship/);
+    cancel.click();
+    expect(cancelled).toBe("project-1");
+  });
+
+  it("offers no cancel control when the screen does not wire it", () => {
+    render(<ProjectsCard rows={[row()]} onHalt={noop} />);
+    expect(screen.queryByRole("button", { name: "Havock class cancel project" })).toBeNull();
   });
 });

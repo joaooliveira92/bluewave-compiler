@@ -210,6 +210,23 @@ describe("Design map and inspector routing", () => {
     const finish = within(localTabs()).getByRole("tab", { name: "Finish" });
     expect(finish.getAttribute("aria-selected")).toBe("true");
   });
+
+  it("reaches the rebuild surface from the Review section", () => {
+    render(<ShipbuildingWorkspace />);
+    openMap("Review");
+    openTab("Rebuild");
+    // Without a campaign there is nowhere to rebuild; the panel says so rather than failing or vanishing.
+    expect(within(inspector()).getByText(/open a campaign to rebuild/i)).toBeTruthy();
+  });
+
+  it("offers 'Rebuild a completed ship' from the design actions menu", () => {
+    render(<ShipbuildingWorkspace />);
+    fireEvent.click(within(commands()).getByRole("button", { name: /More design actions/ }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /Rebuild a completed ship/ }));
+    expect(
+      within(localTabs()).getByRole("tab", { name: "Rebuild" }).getAttribute("aria-selected"),
+    ).toBe("true");
+  });
 });
 
 describe("Central ship workspace views and overlays", () => {

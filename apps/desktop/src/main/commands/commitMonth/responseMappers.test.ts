@@ -50,6 +50,27 @@ describe("toDomainEvents", () => {
     expect(event!.message).toBe("GBR: project con_1 work 2 -> 5");
   });
 
+  it("describes a cancelled project with the settlement reason and loss", () => {
+    const [event] = toDomainEvents([
+      envelope("ConstructionProjectCancelled", {
+        kind: "ConstructionProjectCancelled",
+        projectId: "con_rebuild",
+        nationId: "GBR",
+        projectType: "REBUILD",
+        consumedWork: SafeInt(4),
+        refundedAmount: SafeInt(0),
+        lostAmount: SafeInt(4),
+        salvageableAmount: SafeInt(0),
+        reason: "CANCELLATION_WORK_CONSUMED",
+      }),
+    ]);
+    expect(event).toMatchObject({
+      id: "ConstructionProjectCancelled-1",
+      kind: "ConstructionProjectCancelled",
+      message: "GBR: project con_rebuild cancelled (CANCELLATION_WORK_CONSUMED; 4 lost)",
+    });
+  });
+
   it("keeps the order of the events", () => {
     const events = toDomainEvents([
       envelope("BattleResolved", {

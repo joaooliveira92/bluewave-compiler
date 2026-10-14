@@ -6,6 +6,7 @@ export type RequestKind =
   | "submit"
   | "replace"
   | "cancel"
+  | "cancel-project"
   | "halt"
   | "resume"
   | "accelerate"

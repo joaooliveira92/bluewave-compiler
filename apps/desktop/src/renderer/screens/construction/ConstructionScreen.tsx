@@ -37,6 +37,7 @@ export function ConstructionScreen({ sessionId }: { readonly sessionId: string }
     submit,
     replace,
     cancel,
+    cancelProject,
     halt,
     resume,
     setAcceleration,
@@ -207,6 +208,7 @@ export function ConstructionScreen({ sessionId }: { readonly sessionId: string }
               onHalt={halt}
               onResume={resume}
               onAccelerate={setAcceleration}
+              onCancelProject={cancelProject}
             />
           </div>
         </TabsContent>

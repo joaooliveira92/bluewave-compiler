@@ -101,6 +101,7 @@ export const SECTIONS: { readonly [K in DesignSectionId]: DesignSection & { read
     icon: ClipboardCheck,
     tabs: [
       { id: "findings", label: "Findings" },
+      { id: "rebuild", label: "Rebuild" },
       { id: "finish", label: "Finish" },
     ],
   },

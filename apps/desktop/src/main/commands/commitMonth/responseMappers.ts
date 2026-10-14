@@ -65,6 +65,8 @@ function describeDomainEventBody(body: DomainEventBody): string {
       return `${body.nationId}: project ${body.projectId} delayed in ${body.delayMonth} (${body.reason})`;
     case "ShipRebuilt":
       return `${body.nationId}: ship ${body.shipId} rebuilt from ${body.fromDesignVersionId} to ${body.toDesignVersionId}`;
+    case "ConstructionProjectCancelled":
+      return `${body.nationId}: project ${body.projectId} cancelled (${body.reason}; ${String(body.lostAmount)} lost)`;
     case "ResearchProgressed":
       return `${body.nationId}: ${body.techId} progress ${String(body.previousPoints)} -> ${String(body.newPoints)}`;
     case "BattleInitiated":

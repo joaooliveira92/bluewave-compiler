@@ -18,6 +18,7 @@ import { toSaveableState } from "../saveHelpers.js";
 import { commitMonth } from "./commitMonth.js";
 import {
   authorizeDockExpansionCommand,
+  cancelConstructionProjectCommand,
   haltConstructionCommand,
   orderConstructionBatchCommand,
   placeForeignConstructionCommand,
@@ -218,6 +219,39 @@ describe("construction status commands (end-to-end)", () => {
       .get("uk")!
       .constructionProjects.filter((p) => p.projectType === "INFRASTRUCTURE");
     expect(expansions.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("cancels a project through the queue and settles it in the monthly command phase", async () => {
+    const sessionId = "s-cancel";
+    registerProductionSession(sessionId, resolve(saveRoot, "save"), (snapshot) => {
+      const uk = snapshot.nations.get("uk");
+      if (!uk || uk.constructionProjects.length === 0) throw new Error("no uk project");
+      uk.constructionProjects[0]!.status = "ACTIVE";
+    });
+    const record = getCampaignSession(sessionId)!;
+    const projectId = record.state.snapshot.nations.get("uk")!.constructionProjects[0]!.id;
+
+    const issued = await cancelConstructionProjectCommand({
+      sessionId,
+      expectedRevision: Number(record.state.snapshot.turnNumber),
+      transportRequestId: "req-cancel-project",
+      projectId,
+    });
+    expect(issued.outcome).toBe("success");
+    if (issued.outcome !== "success") return;
+    expect(issued.value.bodyType).toBe("CancelConstructionProject");
+
+    // Queued, not yet applied.
+    const queued = pendingEnvelopesForExecution(sessionId, record.state.snapshot);
+    expect(queued.map((e) => e.body.type)).toContain("CancelConstructionProject");
+
+    await commit(sessionId);
+
+    const after = getCampaignSession(sessionId)!;
+    const project = after.state.snapshot.nations
+      .get("uk")!
+      .constructionProjects.find((p) => p.id === projectId);
+    expect(project?.status).toBe("CANCELLED");
   });
 
   it("places a foreign order through the queue and records the contract after the month", async () => {

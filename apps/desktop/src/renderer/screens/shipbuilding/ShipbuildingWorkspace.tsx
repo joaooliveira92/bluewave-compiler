@@ -27,6 +27,7 @@ import {
   MetricsPanel,
   PlacementsPanel,
   PlanModeButtons,
+  RebuildPanel,
   ShipSelectionProvider,
   ShipViewBoundary,
   SubmitPanel,
@@ -411,6 +412,14 @@ export function ShipbuildingWorkspace({ sessionId }: { readonly sessionId?: stri
               if (target) selection.select(target, f.key);
             }}
           />
+        ) : at.tab === "rebuild" ? (
+          <RebuildPanel
+            sessionId={sessionId}
+            draft={draft}
+            content={content}
+            onLoad={loadDraft}
+            dirty={state.editCount > 0}
+          />
         ) : sessionId !== undefined ? (
           <SubmitPanel
             sessionId={sessionId}
@@ -482,6 +491,10 @@ export function ShipbuildingWorkspace({ sessionId }: { readonly sessionId?: stri
             { label: "Import or export design…", onSelect: () => setDialog("file") },
             { label: "Edit history…", onSelect: () => setDialog("history") },
             { label: "Design alternatives…", onSelect: () => setDialog("alternatives") },
+            {
+              label: "Rebuild a completed ship…",
+              onSelect: () => openSection("review", "rebuild"),
+            },
             {
               label: "Reset to the starting design",
               destructive: true,

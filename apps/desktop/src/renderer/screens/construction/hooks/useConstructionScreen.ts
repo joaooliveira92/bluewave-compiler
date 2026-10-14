@@ -30,6 +30,7 @@ export interface UseConstructionScreenReturn {
   readonly submit: () => void;
   readonly replace: (commandId: string) => void;
   readonly cancel: (commandId: string) => void;
+  readonly cancelProject: (projectId: string) => void;
   readonly halt: (projectId: string) => void;
   readonly resume: (projectId: string) => void;
   readonly setAcceleration: (projectId: string, accelerated: boolean) => void;
@@ -120,6 +121,23 @@ export function useConstructionScreen(sessionId: string): UseConstructionScreenR
 
   // DESIGN-23 sections 7-8: halt, resume and the acceleration toggle queue a real engine envelope that applies on the
   // next `commitMonth`; the current month's readouts stay the engine's own compiled values until then.
+  // DESIGN-23 section 23: cancel a committed project and settle it in the engine; the ship of a cancelled rebuild is
+  // released on the next `commitMonth`.
+  const cancelProject = useCallback(
+    (projectId: string) => {
+      if (!bridge) return;
+      void execute("cancel-project", ({ expectedRevision, transportRequestId }) =>
+        bridge.campaign.execute("cancelConstructionProjectCommand", {
+          sessionId,
+          projectId,
+          expectedRevision,
+          transportRequestId,
+        }),
+      );
+    },
+    [bridge, execute, sessionId],
+  );
+
   const halt = useCallback(
     (projectId: string) => {
       if (!bridge) return;
@@ -281,6 +299,7 @@ export function useConstructionScreen(sessionId: string): UseConstructionScreenR
     submit,
     replace,
     cancel,
+    cancelProject,
     halt,
     resume,
     setAcceleration,

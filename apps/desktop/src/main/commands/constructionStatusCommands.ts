@@ -1,5 +1,6 @@
 import type {
   AuthorizeDockExpansionCommand,
+  CancelConstructionProjectCommand,
   HaltConstructionCommand,
   OrderConstructionCommand,
   OrderForeignConstructionCommand,
@@ -9,6 +10,7 @@ import type {
 import type { BridgeResult } from "../../shared/bridge-contract.js";
 import type {
   AuthorizeDockExpansionCommandPayload,
+  CancelConstructionProjectCommandPayload,
   ConstructionCommandQueuedOutcome,
   HaltConstructionCommandPayload,
   OrderConstructionBatchCommandPayload,
@@ -81,6 +83,25 @@ export async function setAccelerationCommand(
         accelerated: payload.accelerated,
       },
       discriminator: `${payload.projectId}:${String(payload.accelerated)}`,
+    }),
+  };
+  return await submitPlayerCommand(request);
+}
+
+export async function cancelConstructionProjectCommand(
+  payload: CancelConstructionProjectCommandPayload,
+): Promise<BridgeResult<ConstructionCommandQueuedOutcome>> {
+  const request: PlayerCommandRequest<CancelConstructionProjectCommand> = {
+    sessionId: payload.sessionId,
+    expectedRevision: payload.expectedRevision,
+    transportRequestId: payload.transportRequestId,
+    build: (record) => ({
+      body: {
+        type: "CancelConstructionProject",
+        nationId: record.playerSlotId,
+        projectId: payload.projectId,
+      },
+      discriminator: payload.projectId,
     }),
   };
   return await submitPlayerCommand(request);

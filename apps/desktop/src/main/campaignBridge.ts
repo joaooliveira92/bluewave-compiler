@@ -30,6 +30,7 @@ import {
   HaltConstructionCommandPayloadSchema,
   ResumeConstructionCommandPayloadSchema,
   SetAccelerationCommandPayloadSchema,
+  CancelConstructionProjectPayloadSchema,
   OrderConstructionBatchCommandPayloadSchema,
   PreviewConstructionBatchCommandPayloadSchema,
   AuthorizeDockExpansionCommandPayloadSchema,
@@ -59,6 +60,7 @@ import {
 } from "./commands/constructionCommands.js";
 import {
   authorizeDockExpansionCommand,
+  cancelConstructionProjectCommand,
   haltConstructionCommand,
   orderConstructionBatchCommand,
   placeForeignConstructionCommand,
@@ -240,6 +242,9 @@ export const defaultCommandRegistry: CommandRegistry = {
   ),
   setAccelerationCommand: withSchema(SetAccelerationCommandPayloadSchema, (payload) =>
     setAccelerationCommand(payload),
+  ),
+  cancelConstructionProjectCommand: withSchema(CancelConstructionProjectPayloadSchema, (payload) =>
+    cancelConstructionProjectCommand(payload),
   ),
   orderConstructionBatchCommand: withSchema(OrderConstructionBatchCommandPayloadSchema, (payload) =>
     orderConstructionBatchCommand(payload),

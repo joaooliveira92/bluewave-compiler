@@ -76,6 +76,47 @@ describe("useConstructionScreen dock expansion (SB3-R16)", () => {
   });
 });
 
+describe("useConstructionScreen cancel project (DESIGN-23 section 23)", () => {
+  it("issues cancelConstructionProjectCommand with the project and current revision", async () => {
+    mocks.execute.mockImplementation(async (command: string) => {
+      if (command === "inspectConstructionScreen")
+        return { outcome: "success", value: projection, diagnostics: [] };
+      if (command === "cancelConstructionProjectCommand")
+        return {
+          outcome: "success",
+          value: {
+            commandId: "cmd-cancel",
+            bodyType: "CancelConstructionProject",
+            appliedOnNextTurn: true,
+          },
+          diagnostics: [],
+        };
+      throw new Error(`unexpected command ${command}`);
+    });
+
+    const { result } = renderHook(() => useConstructionScreen("ses_1"));
+    await waitFor(() => expect(result.current.state.revision).toBe(3));
+
+    await act(async () => {
+      result.current.cancelProject("proj-1");
+    });
+
+    await waitFor(() =>
+      expect(mocks.execute).toHaveBeenCalledWith(
+        "cancelConstructionProjectCommand",
+        expect.objectContaining({
+          sessionId: "ses_1",
+          projectId: "proj-1",
+          expectedRevision: 3,
+        }),
+      ),
+    );
+    await waitFor(() =>
+      expect(result.current.state.notice).toMatch(/CancelConstructionProject queued/),
+    );
+  });
+});
+
 describe("useConstructionScreen batch order and preview (SB3-R11/R30)", () => {
   it("issues orderConstructionBatchCommand with the chosen design and quantity", async () => {
     mocks.execute.mockImplementation(async (command: string) => {
