@@ -1,5 +1,5 @@
 // Tests for scripts/assert-runtime-free.mjs — the runtime-free import gate's
-// detection boundary (ADR-0100 §2, ADR-0128). Covers admitted runtime-free
+// detection boundary (ADR-0100 §2, ADR-0159). Covers admitted runtime-free
 // forms, rejected runtime symbols/subpaths, aliases, re-exports, dynamic
 // imports, and the fail-closed parse path.
 import assert from "node:assert/strict";
@@ -80,9 +80,10 @@ void test("the runtime-free policy is an allowlist of data-only symbols", () => 
   }
 });
 
-void test("guards the desktop main process and the runtime-free packages", () => {
-  assert.ok(RUNTIME_FREE_ROOTS.includes("apps/desktop/src/main"));
+void test("guards the runtime-free packages but not the runtime app surfaces", () => {
   assert.ok(RUNTIME_FREE_ROOTS.includes("packages/phase-engine/src"));
   assert.ok(RUNTIME_FREE_ROOTS.includes("packages/combat/src"));
   assert.ok(!RUNTIME_FREE_ROOTS.includes("packages/persistence/src"));
+  // ADR-0159: the app surfaces adopt the full runtime and are no longer guarded.
+  assert.ok(!RUNTIME_FREE_ROOTS.includes("apps/desktop/src/main"));
 });

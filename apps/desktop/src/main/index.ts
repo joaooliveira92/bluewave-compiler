@@ -1,9 +1,11 @@
 import { app, BrowserWindow, dialog, ipcMain, session } from "electron";
+import { ManagedRuntime } from "effect";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import { applyContentSecurityPolicy } from "./csp.js";
-import { dispatchCampaignCommand } from "./campaignBridge.js";
+import { createCampaignCommandDispatcher, defaultCommandRegistry } from "./campaignBridge.js";
 import { ContentArtifactError, loadContentArtifact } from "./contentArtifact.js";
+import { contentArtifactLayer, type ContentArtifact } from "./runtime/contentArtifact.js";
 import {
   captureCrash,
   createCrashLimiter,
@@ -185,8 +187,15 @@ function createWindow(): BrowserWindow {
   return win;
 }
 
-function registerIpc(): void {
-  ipcMain.handle("campaign:execute", (event, command: string, payload: unknown) =>
+/** The desktop main runtime, providing the Layer's services (INC-1; ADR-0159). */
+type DesktopMainRuntime = ManagedRuntime.ManagedRuntime<ContentArtifact, never>;
+
+function registerIpc(runtime: DesktopMainRuntime): void {
+  const dispatchCampaignCommand = createCampaignCommandDispatcher(
+    defaultCommandRegistry,
+    () => runtime,
+  );
+  ipcMain.handle("campaign:execute", (_event, command: string, payload: unknown) =>
     dispatchCampaignCommand(command, payload),
   );
 
@@ -232,7 +241,7 @@ function registerIpc(): void {
  * drawing-board draft autosave, ADR-0082), then proceed even if it never
  * answers — a quit must never hang on an unresponsive renderer.
  */
-function installBoundedShutdown(): void {
+function installBoundedShutdown(runtime: DesktopMainRuntime): void {
   app.on("before-quit", (event) => {
     if (quitting) return;
     const win = BrowserWindow.getAllWindows().find((candidate) => !candidate.isDestroyed());
@@ -247,7 +256,13 @@ function installBoundedShutdown(): void {
       settled = true;
       clearTimeout(timer);
       ipcMain.removeListener("app:quit-flush-complete", proceed);
-      app.quit();
+      // Dispose the runtime (runs the Layer scope's finalizers) before quitting.
+      // app.quit() proceeds whether or not disposal resolves, so a hung finalizer
+      // cannot block the quit (ADR-0159).
+      void runtime.dispose().then(
+        () => app.quit(),
+        () => app.quit(),
+      );
     };
     const timer = setTimeout(proceed, QUIT_FLUSH_TIMEOUT_MS);
     timer.unref?.();
@@ -269,6 +284,8 @@ if (!app.requestSingleInstanceLock()) {
   });
 
   void app.whenReady().then(async () => {
+    const runtime = ManagedRuntime.make(contentArtifactLayer());
+
     if (isDev && reactDevToolsRequested) {
       try {
         const { installExtension, REACT_DEVELOPER_TOOLS } =
@@ -282,8 +299,8 @@ if (!app.requestSingleInstanceLock()) {
       }
     }
 
-    registerIpc();
-    installBoundedShutdown();
+    registerIpc(runtime);
+    installBoundedShutdown(runtime);
 
     // The app runs only on compiled, validated content (ticket 03). Verify the
     // artifact before any window exists; a missing/tampered artifact fails

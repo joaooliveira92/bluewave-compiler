@@ -5,15 +5,15 @@ import {
   VARIATION_IDS,
 } from "@bluewave/campaign";
 import { supportedPlayerSlotIds } from "@bluewave/campaign-engine";
-import { DiagnosticCollector } from "@bluewave/diagnostics";
+import { Effect } from "effect";
 import type { BridgeResult } from "../../shared/bridge-contract.js";
 import type {
   NewGameNation,
   NewGameOptions,
   NewGameScenario,
 } from "../../shared/new-game-contract.js";
-import { compileProductionCampaignFromArtifact } from "../compiler.js";
-import { resolveGeneratedContentDir } from "../contentPack.js";
+import { CommandFailed, type CommandError } from "../runtime/commandError.js";
+import { ContentArtifact } from "../runtime/contentArtifact.js";
 
 /**
  * `content/production/1880` is the only pack this MVP compiles against, and
@@ -32,37 +32,27 @@ function humanizePoliticalSystem(id: string): string {
     .join(" ");
 }
 
-export async function listNewGameOptions(
-  artifactDir: string = resolveGeneratedContentDir(),
-): Promise<BridgeResult<NewGameOptions>> {
-  const signal = new AbortController().signal;
-  const collector = new DiagnosticCollector();
-
-  let output: ReturnType<typeof compileProductionCampaignFromArtifact>;
-  try {
-    output = compileProductionCampaignFromArtifact(artifactDir, signal, collector);
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    return { outcome: "error", reason: "COMPILE_FAILED", diagnostics: [message] };
-  }
-
-  if (!output || collector.hasErrors) {
-    return {
-      outcome: "error",
-      reason: "COMPILE_FAILED",
-      diagnostics: collector.all.map((d) => d.message),
-    };
-  }
+/**
+ * `listNewGameOptions` as an Effect program (INC-1; ADR-0159): resolves the
+ * `ContentArtifact` service from the Layer and compiles through it. The wire
+ * result is byte-identical to the former direct implementation.
+ */
+export const listNewGameOptionsProgram: Effect.Effect<
+  BridgeResult<NewGameOptions>,
+  CommandError,
+  ContentArtifact
+> = Effect.gen(function* () {
+  const contentArtifact = yield* ContentArtifact;
+  const output = yield* contentArtifact.compileProductionCampaign();
 
   const scenarioDefinition = CANONICAL_SCENARIOS.find(
-    (s) => s.scenarioId === CONTENT_PACK_SCENARIO_ID,
+    (scenario) => scenario.scenarioId === CONTENT_PACK_SCENARIO_ID,
   );
   if (!scenarioDefinition) {
-    return {
-      outcome: "error",
+    return yield* new CommandFailed({
       reason: "SCENARIO_NOT_FOUND",
       diagnostics: [`Canonical scenario ${CONTENT_PACK_SCENARIO_ID} is missing.`],
-    };
+    });
   }
 
   const regimeById = new Map<string, { regimeName: string; regimeType: string }>();
@@ -120,4 +110,4 @@ export async function listNewGameOptions(
   };
 
   return { outcome: "success", value: options, diagnostics: [] };
-}
+});

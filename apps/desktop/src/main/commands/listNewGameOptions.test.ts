@@ -1,7 +1,12 @@
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { ManagedRuntime } from "effect";
 import { describe, expect, it } from "vite-plus/test";
-import { listNewGameOptions } from "./listNewGameOptions.js";
+import type { BridgeResult } from "../../shared/bridge-contract.js";
+import type { NewGameOptions } from "../../shared/new-game-contract.js";
+import { projectCommandExit } from "../runtime/bridgeResult.js";
+import { contentArtifactLayer } from "../runtime/contentArtifact.js";
+import { listNewGameOptionsProgram } from "./listNewGameOptions.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, "../../../../..");
@@ -11,6 +16,16 @@ const GENERATED_ARTIFACT = resolve(REPO_ROOT, "content", "generated", "1880");
 // playable, and 5 zero-design/zero-construction nations (spain plus 4
 // non-playable). See docs/research/content-4-desktop-mvp-pack-readiness.md.
 const ZERO_CONTENT_NATIONS = ["spain", "ottoman_empire", "netherlands", "portugal", "brazil"];
+
+/** Runs the program through a per-test runtime and projects the wire envelope. */
+async function listNewGameOptions(artifactDir: string): Promise<BridgeResult<NewGameOptions>> {
+  const runtime = ManagedRuntime.make(contentArtifactLayer(artifactDir));
+  try {
+    return projectCommandExit(await runtime.runPromiseExit(listNewGameOptionsProgram));
+  } finally {
+    await runtime.dispose();
+  }
+}
 
 describe("listNewGameOptions", () => {
   it("runs New Game preferences against real content/production/1880 data", async () => {

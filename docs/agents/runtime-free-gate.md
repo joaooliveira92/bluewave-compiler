@@ -2,20 +2,20 @@
 
 `scripts/assert-runtime-free.mjs` fails closed when a runtime-free root imports
 the Effect runtime. It enforces [ADR-0100](../../docs/adr/ADR-0100-adopt-effect-v4.md) §2
-(the runtime-usage boundary) and
-[ADR-0128](../../docs/adr/ADR-0128-effect-v4-runtime-wave-not-warranted.md)
-(no `ManagedRuntime` was introduced).
+(the runtime-usage boundary). [ADR-0159](../../docs/adr/ADR-0159-effect-runtime-in-app-surfaces.md)
+adopts the full runtime in `apps/desktop/src/main` and `apps/compiler-cli`,
+superseding ADR-0128 for the app surfaces.
 
 ## Guarded roots
 
 The runtime-free packages from ADR-0100's policy table, plus the
-renderer-reachable `campaign-engine` and the synchronous desktop main process:
+renderer-reachable `campaign-engine`:
 
-- `apps/desktop/src/main`
-- `packages/{ai,armament,campaign,campaign-engine,combat,commands,content-schema,contracts,deterministic,diagnostics,events,phase-engine,random,ship-design}/src`
+- `packages/{ai,armament,campaign,campaign-engine,combat,commands,content-schema,contracts,deterministic,diagnostics,events,phase-engine,random,ship-design,ship-visual}/src`
 
-`persistence`, `content-compiler`, and `compiler-cli` are explicit IO/entrypoint
-boundaries and are deliberately **not** guarded.
+`persistence` and `content-compiler` are IO boundaries, and
+`apps/desktop/src/main` and `apps/compiler-cli` are the runtime app surfaces
+(ADR-0159); all are deliberately **not** guarded.
 
 ## Rule
 

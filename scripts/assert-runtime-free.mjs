@@ -1,19 +1,22 @@
 #!/usr/bin/env node
-// Runtime-free import guard (MIG-RUNTIME-1, ADR-0100 §2, ADR-0128).
+// Runtime-free import guard (MIG-RUNTIME-1, ADR-0100 §2, ADR-0159).
 //
 // ADR-0100 makes the Effect runtime-usage boundary a hard architectural rule:
 // pure synchronous packages use only the runtime-free subset (`Schema`/`Data`/
 // `Result`/`Option`/`Predicate`/`Equal`/`Hash`), and the full runtime
 // (`Effect`/`Layer`/`Context`/`ManagedRuntime`/fibers/live services) is
-// permitted only at explicit IO/entrypoint boundaries. ADR-0128 then declined to
-// introduce a `ManagedRuntime` anywhere — the single runtime symbol in the repo
-// is `Effect.succeed([])` as a decode default in `packages/persistence`.
+// permitted only at explicit IO/entrypoint boundaries. ADR-0128 declined a
+// runtime anywhere; ADR-0159 supersedes it for the app surfaces, adopting the
+// full runtime in `apps/desktop/src/main` and `apps/compiler-cli` (both are no
+// longer guarded here). The pure packages stay runtime-free, and the single
+// runtime symbol in the repo remains `Effect.succeed([])` as a decode default in
+// `packages/persistence`.
 //
-// This gate enforces that boundary for the runtime-free packages and the
-// desktop main process: an import of a runtime symbol (or of a runtime module
-// subpath) fails closed. It is deliberately an allowlist — an unrecognised
-// `effect` export is treated as a violation rather than silently admitted, so a
-// future runtime symbol cannot slip through.
+// This gate enforces that boundary for the runtime-free packages: an import of a
+// runtime symbol (or of a runtime module subpath) fails closed. It is
+// deliberately an allowlist — an unrecognised `effect` export is treated as a
+// violation rather than silently admitted, so a future runtime symbol cannot
+// slip through.
 //
 // Usage:
 //   node scripts/assert-runtime-free.mjs              # check the real tree
@@ -31,11 +34,10 @@ import { parseSync } from "oxc-parser";
 const ROOT = resolve(fileURLToPath(new URL(".", import.meta.url)), "..");
 
 // Directories that must stay runtime-free (ADR-0100 §2 runtime-free row, plus
-// the renderer-reachable `campaign-engine` and the synchronous desktop main
-// process). `persistence`/`content-compiler`/`compiler-cli` are IO boundaries
-// and are deliberately NOT listed.
+// the renderer-reachable `campaign-engine`). `persistence`/`content-compiler`
+// are IO boundaries and are deliberately NOT listed; `apps/desktop/src/main`
+// and `apps/compiler-cli` adopt the full runtime (ADR-0159) and are NOT listed.
 export const RUNTIME_FREE_ROOTS = [
-  "apps/desktop/src/main",
   "packages/ai/src",
   "packages/armament/src",
   "packages/campaign/src",
@@ -328,9 +330,9 @@ function main() {
       console.error(`  - ${finding.file}:${String(finding.line)} — ${finding.detail}`);
     }
     console.error(
-      "Fix: pure packages and `apps/desktop/src/main` may import only the runtime-free subset " +
+      "Fix: the runtime-free packages may import only the runtime-free subset " +
         `(${[...RUNTIME_FREE_SYMBOLS].sort().join(", ")}). ` +
-        "Move IO/async orchestration behind an explicit entrypoint boundary (ADR-0100 §2, ADR-0128).",
+        "Move IO/async orchestration behind an explicit entrypoint boundary (ADR-0100 §2, ADR-0159).",
     );
     process.exit(1);
   }

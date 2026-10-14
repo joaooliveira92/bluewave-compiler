@@ -54,8 +54,9 @@ contract wins; fix this file in the same change.
 - Runtime-free subset: `Schema`, `SchemaIssue`, `Data`, `Equal`, `Hash`,
   `Option`, `Predicate`, `Result`. The runtime-free roots in
   `scripts/assert-runtime-free.mjs` import nothing else from `effect`. The full
-  runtime lives only at IO boundaries (`persistence`, `content-compiler`,
-  `compiler-cli`, app entry points).
+  runtime lives only at IO/entrypoint boundaries — `persistence`,
+  `content-compiler`, and the two app surfaces `apps/desktop/src/main` and
+  `apps/compiler-cli` (ADR-0159); the renderer and preload import no `effect`.
 
 ## Errors
 
