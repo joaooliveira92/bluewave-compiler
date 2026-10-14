@@ -46,6 +46,8 @@ parts:
         - rangeM: 14000
           settingId: 30kn
           speedMilliKnots: 30000
+      technologyPrerequisiteIds:
+        - wet_heater_engine
       tubeHitHazardPolicy: ORDINARY
       warheadExplosiveEquivalentMassKg: 280
       warheadExplosiveMassKg: 280
@@ -93,6 +95,8 @@ parts:
         - rangeM: 7500
           settingId: t3_30kn
           speedMilliKnots: 30000
+      technologyPrerequisiteIds:
+        - electric_propulsion
       tubeHitHazardPolicy: ELECTRIC
       warheadExplosiveEquivalentMassKg: 280
       warheadExplosiveMassKg: 280
@@ -145,6 +149,8 @@ parts:
         - rangeM: 40000
           settingId: 36kn
           speedMilliKnots: 36000
+      technologyPrerequisiteIds:
+        - oxygen_propulsion
       tubeHitHazardPolicy: OXYGEN
       warheadExplosiveEquivalentMassKg: 490
       warheadExplosiveMassKg: 490
@@ -196,6 +202,8 @@ parts:
         - rangeM: 12344
           settingId: 25kn
           speedMilliKnots: 25000
+      technologyPrerequisiteIds:
+        - wet_heater_engine
       tubeHitHazardPolicy: ORDINARY
       warheadExplosiveEquivalentMassKg: 234
       warheadExplosiveMassKg: 234
@@ -241,6 +249,8 @@ parts:
         - rangeM: 4572
           settingId: 40kn
           speedMilliKnots: 40000
+      technologyPrerequisiteIds:
+        - wet_heater_engine
       tubeHitHazardPolicy: ORDINARY
       warheadExplosiveEquivalentMassKg: 340
       warheadExplosiveMassKg: 340
@@ -289,6 +299,8 @@ parts:
         - rangeM: 8230
           settingId: 31kn
           speedMilliKnots: 31000
+      technologyPrerequisiteIds:
+        - wet_heater_engine
       tubeHitHazardPolicy: ORDINARY
       warheadExplosiveEquivalentMassKg: 230
       warheadExplosiveMassKg: 230
@@ -347,6 +359,7 @@ parts:
         - rangeM: 550
           settingId: 25kn
           speedMilliKnots: 25000
+      technologyPrerequisiteIds: []
       tubeHitHazardPolicy: ORDINARY
       warheadExplosiveEquivalentMassKg: 12
       warheadExplosiveMassKg: 12
@@ -391,6 +404,7 @@ parts:
         - rangeM: 730
           settingId: 26_5kn
           speedMilliKnots: 26500
+      technologyPrerequisiteIds: []
       tubeHitHazardPolicy: ORDINARY
       warheadExplosiveEquivalentMassKg: 54
       warheadExplosiveMassKg: 54

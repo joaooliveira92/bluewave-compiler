@@ -30,17 +30,17 @@ import {
   TORPEDO_TRACK_MDEG_PER_DEGREE,
   torpedoTrackId,
   verifyTorpedoTrackHash,
-  type TorpedoSetting,
   type TorpedoTrack,
 } from "../../src/torpedoes/index.js";
+import type { CompiledTorpedoSpeedSetting } from "@bluewave/armament";
 
 const G7A = "ger_533mm_g7a_1934"; // reliabilityBp 96_000, guidance "gyro"
 const G7A_RELIABILITY_BP = 96_000;
 // The shipped G7a 44-kn speed/range setting (model.ts orderedSettings[0]; the
 // same fixture launch-failure.test.ts uses).
-const G7A_44KN_SETTING: TorpedoSetting = {
+const G7A_44KN_SETTING: CompiledTorpedoSpeedSetting = {
   settingId: "44kn",
-  speedKnotsBp: 44_000, // 44 kn
+  speedMilliKnots: 44_000, // 44 kn
   rangeM: 6_000,
 };
 const G7A_ARMING_M = 150; // model.ts minimumArmingDistanceM
@@ -93,7 +93,7 @@ describe("AC-13: every launched torpedo creates one authoritative track with all
     expect(t.launchPosition).toEqual([0, 0]);
     expect(t.launchHeadingMdeg).toBe(90_000);
     expect(t.orderedGyroAngleMdeg).toBe(90_000);
-    expect(t.speedKnotsBp).toBe(G7A_44KN_SETTING.speedKnotsBp);
+    expect(t.speedKnotsBp).toBe(G7A_44KN_SETTING.speedMilliKnots);
     expect(t.maxRunDistanceM).toBe(G7A_44KN_SETTING.rangeM);
     expect(t.armingDistanceM).toBe(G7A_ARMING_M);
     expect(t.depthSettingM).toBe(5);

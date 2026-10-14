@@ -101,7 +101,34 @@ function readStringList(
     });
     return undefined;
   }
-  return value as string[];
+  return [...(value as string[])];
+}
+
+/** Like `readStringList`, but an empty list is valid (the technology-prerequisite field). */
+function readStringListAllowEmpty(
+  spec: Readonly<Record<string, unknown>>,
+  field: string,
+  failures: CompileTorpedoFailure[],
+): string[] | undefined {
+  const value = spec[field];
+  if (!Array.isArray(value)) {
+    failures.push({
+      code:
+        value === undefined ? "COMPILED_TORPEDO_MISSING_FIELD" : "COMPILED_TORPEDO_INVALID_FIELD",
+      path: field,
+      message: `'${field}' must be a list of stable ids.`,
+    });
+    return undefined;
+  }
+  if (!value.every((v) => typeof v === "string" && v.length > 0)) {
+    failures.push({
+      code: "COMPILED_TORPEDO_INVALID_FIELD",
+      path: field,
+      message: `'${field}' must contain only non-empty strings.`,
+    });
+    return undefined;
+  }
+  return [...(value as string[])];
 }
 
 function readSpeedSettings(
@@ -183,6 +210,11 @@ export function compileTorpedo(part: FlattenedPart, month: string): CompileTorpe
   const reliabilityBp = readNumber(spec, "reliabilityBp", failures);
   const guidanceCapability = readString(spec, "guidanceCapability", failures);
   const launchTypes = readStringList(spec, "launchTypes", failures);
+  const technologyPrerequisiteIds = readStringListAllowEmpty(
+    spec,
+    "technologyPrerequisiteIds",
+    failures,
+  );
   const tubeHitHazardPolicy = readString(spec, "tubeHitHazardPolicy", failures);
   const speedSettings = readSpeedSettings(spec, failures);
 
@@ -215,6 +247,7 @@ export function compileTorpedo(part: FlattenedPart, month: string): CompileTorpe
     reliabilityBp === undefined ||
     guidanceCapability === undefined ||
     launchTypes === undefined ||
+    technologyPrerequisiteIds === undefined ||
     tubeHitHazardPolicy === undefined ||
     speedSettings === undefined
   ) {
@@ -237,6 +270,7 @@ export function compileTorpedo(part: FlattenedPart, month: string): CompileTorpe
       reliabilityBp,
       guidanceCapability,
       launchTypes,
+      technologyPrerequisiteIds,
       tubeHitHazardPolicy,
       ...(isOxygen ? { oxygenWakeVisibilityModifierBp: oxygenModifier as number } : {}),
     },

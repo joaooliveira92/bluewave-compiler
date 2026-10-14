@@ -6,7 +6,7 @@ import type { ArrangementBalance, ArrangementResult, ZoneDef, ZoneId } from "./a
 import type { ArmourBalance, ArmourRegion, ArmourResult, ThreatProfile } from "./armour.js";
 import type { ClassificationRules } from "./classification.js";
 import type { ComponentCategory, ComponentDef } from "./component.js";
-import type { CompiledArmamentMount } from "@bluewave/armament";
+import type { CompiledArmamentMount, CompiledTorpedo } from "@bluewave/armament";
 import type { Finding } from "./findings.js";
 import { evaluate } from "./formula/eval.js";
 import { parseFormula } from "./formula/parse.js";
@@ -26,6 +26,12 @@ export interface PlacementSpec {
   /** Chosen values for the component's declared parameters; missing ones default to the minimum. */
   readonly params?: Readonly<Record<string, number>>;
   readonly magazineRef?: string;
+  /**
+   * The compiled torpedo the parts read path resolved for this tube placement (ticket 13b). The
+   * rebuild readers attach it from the launcher part's `loadsTorpedo`; the legacy placement path
+   * leaves it absent.
+   */
+  readonly compiledTorpedo?: CompiledTorpedo;
 }
 
 export interface MachineryPlan {
@@ -193,7 +199,11 @@ export interface ComponentSummary {
   /** Chosen parameters and evaluated attributes, for adapters (e.g. caliber, barrels, tubes). */
   readonly params: Readonly<Record<string, number>>;
   readonly attr: Readonly<Record<string, number>>;
-  readonly torpedoMount: { readonly mountType: string; readonly torpedoModelId: string } | null;
+  readonly torpedoMount: {
+    readonly mountType: string;
+    readonly torpedoModelId: string;
+    readonly compiledTorpedo?: CompiledTorpedo;
+  } | null;
   /**
    * The armament identity a gun placement compiled from (ADR-0093 Step 3). Present for gun categories
    * when the context carried first-class armament content and the combination resolved; absent otherwise.

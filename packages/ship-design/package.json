@@ -27,7 +27,6 @@
     "equivalence": "node ../../scripts/verify-equivalence-determinism.mjs"
   },
   "devDependencies": {
-    "@bluewave/combat": "workspace:*",
     "yaml": "^2.9.1"
   }
 }

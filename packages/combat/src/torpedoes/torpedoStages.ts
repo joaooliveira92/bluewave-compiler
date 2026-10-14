@@ -107,7 +107,11 @@ export function runLaunchStage(run: TorpedoRun): void {
     const accountByTube = new Map(reservation.accounts.map((a) => [a.tubeIndex, a]));
     const salvoTubes = [...cmd.tubeIndexes].sort((a, b) => a - b);
     const salvoModelId = accountByTube.get(salvoTubes[0]!)!.modelId;
-    const setting = resolvedSettingForCommand(salvoModelId, cmd.selectedSettingId);
+    const setting = resolvedSettingForCommand(
+      input.context.torpedoes,
+      salvoModelId,
+      cmd.selectedSettingId,
+    );
 
     const launched = resolveTubeLaunches({
       battleId,
@@ -115,6 +119,7 @@ export function runLaunchStage(run: TorpedoRun): void {
       firingSideId: sideOf(cmd.shipId),
       reservation,
       tubeIndexes: cmd.tubeIndexes,
+      torpedoes: input.context.torpedoes,
       crewQualityBp: wiring.crewQualityBp,
       salvoPolicy: cmd.salvoPolicy,
       selectedSetting: setting,

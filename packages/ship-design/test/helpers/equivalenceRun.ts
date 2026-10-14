@@ -1,4 +1,3 @@
-import { SHIPPED_TORPEDO_MODELS } from "@bluewave/combat";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
 import {
   buildArmourPartModel,
@@ -24,11 +23,7 @@ import {
   shipBalance,
 } from "./earlyContext.js";
 import { compatibility, designs, gunPartModel } from "./gunReadPath.js";
-
-const torpedoDiameterUm = (id: string): number | undefined => {
-  const model = SHIPPED_TORPEDO_MODELS.find((m) => String(m.torpedoModelId) === id);
-  return model === undefined ? undefined : model.diameterMm * 1000;
-};
+import { torpedoDiameterUm } from "./torpedoModels.js";
 
 export const environment: CandidateEnvironment = {
   components,

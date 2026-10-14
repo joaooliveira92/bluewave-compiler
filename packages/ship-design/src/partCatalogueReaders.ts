@@ -22,6 +22,7 @@ import type {
 import { compareCodePoints } from "@bluewave/deterministic";
 import { armourRegionFromEntry } from "./armourPartAdapter.js";
 import type { ArmourRegion } from "./armour.js";
+import { compileTorpedo } from "./compileTorpedo.js";
 import { armourRegionSlotId, compatibilitySlotId } from "./partCompatibility.js";
 import type { ZoneId } from "./arrangement.js";
 import type {
@@ -49,7 +50,8 @@ export type InverseReaderCode =
   | "READER_NO_REGION"
   | "READER_INVALID_VALUE"
   | "READER_NO_MACHINERY"
-  | "READER_NO_PLANT_PARAMETER";
+  | "READER_NO_PLANT_PARAMETER"
+  | "READER_TORPEDO_UNRESOLVED";
 
 export interface InverseReaderIssue {
   readonly code: InverseReaderCode;
@@ -191,6 +193,45 @@ function countParameterOf(part: FlattenedPart): string | null {
   return names[0] ?? null;
 }
 
+/**
+ * Attach the launcher's compiled torpedo to its placement (ticket 13b). The launcher part names
+ * the torpedo part it loads (`spec.loadsTorpedo`); compiling it at a far-future month resolves the
+ * model's effective (latest) revision — the part's current authored spec. A launcher whose named
+ * torpedo cannot be resolved (missing, not a torpedo, or a malformed spec) is reported as a typed
+ * `READER_TORPEDO_UNRESOLVED` issue, never silently dropped: the placement is still built, but the
+ * mount will carry no compiled torpedo and combat fails closed rather than defaulting.
+ */
+function withCompiledTorpedo(
+  reader: Reader,
+  launcherPart: Extract<FlattenedPart, { readonly family: "torpedo_launcher" }>,
+  placement: PlacementSpec,
+  entryPath: string,
+): PlacementSpec {
+  const torpedoId = launcherPart.spec.loadsTorpedo;
+  if (torpedoId === undefined) return placement;
+  const torpedo = reader.partOf(torpedoId);
+  if (torpedo === undefined || torpedo.family !== "torpedo") {
+    fail(
+      reader,
+      "READER_TORPEDO_UNRESOLVED",
+      entryPath,
+      `launcher '${launcherPart.id}' names torpedo '${torpedoId}', which is no torpedo part.`,
+    );
+    return placement;
+  }
+  const compiled = compileTorpedo(torpedo, "9999-12");
+  if (!compiled.ok) {
+    fail(
+      reader,
+      "READER_TORPEDO_UNRESOLVED",
+      entryPath,
+      `torpedo '${torpedoId}' does not compile: ${compiled.failures.map((f) => f.code).join(", ")}.`,
+    );
+    return placement;
+  }
+  return { ...placement, compiledTorpedo: compiled.value };
+}
+
 export interface ReadPlacementsInput {
   readonly designId: string;
   readonly entries: readonly LoadoutEntryData[];
@@ -235,7 +276,10 @@ export function readPlacements(input: ReadPlacementsInput): ReadPlacementsResult
       // A national launcher variant keeps its base launcher's component id as its prototype.
       const componentId = part.origin.prototype?.id ?? part.id;
       const placement = readUnitEntry(reader, entry, componentId, "tubes", entry.mountCount ?? 1);
-      if (placement !== null) placements.push(placement);
+      if (placement !== null)
+        placements.push(
+          withCompiledTorpedo(reader, part, placement, `entries[${entry.id ?? entry.slot}]`),
+        );
     } else if (part.family === "fitting" || part.family === "sensor") {
       const placement = readUnitEntry(
         reader,

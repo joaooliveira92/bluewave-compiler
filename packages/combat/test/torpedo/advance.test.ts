@@ -30,6 +30,7 @@ import {
   type TorpedoLauncherState,
   type TorpedoTargetContext,
 } from "../../src/torpedoes/index.js";
+import { COMPILED_TORPEDOES } from "../fixtures/compiledTorpedoes.js";
 
 // ---------------------------------------------------------------------------
 // shared scene builders (exported for the other INC-7 test files)
@@ -284,6 +285,7 @@ export function torpedoContext(overrides: Partial<TorpedoContext> = {}): Torpedo
     commands: [],
     targets: { d1: torpedoTargetContext() },
     tracks: [],
+    torpedoes: COMPILED_TORPEDOES,
     ...overrides,
   };
 }
@@ -327,7 +329,13 @@ describe("AC-22 — torpedo stage in the minute-advance (strict no-op + firing)"
 
   it("present-but-inert torpedo context (no launchers/commands/tracks): same byte-identical hashes", () => {
     const state = buildTorpedoBattleState({ battleId: "baseline-b1" });
-    const inert: TorpedoContext = { launchers: [], commands: [], targets: {}, tracks: [] };
+    const inert: TorpedoContext = {
+      launchers: [],
+      commands: [],
+      targets: {},
+      tracks: [],
+      torpedoes: {},
+    };
     const res = advanceMinutes({
       state,
       minutes: 3,

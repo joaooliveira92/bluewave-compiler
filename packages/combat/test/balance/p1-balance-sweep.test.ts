@@ -3,6 +3,7 @@
 // sanity bounds (regression tripwire, not a tuning pin). Set
 // BALANCE_SWEEP_WRITE=1 to (re)write docs/research/p1-balance-sweep.md.
 import { mkdirSync, writeFileSync } from "node:fs";
+import { compiledTorpedoOf } from "../fixtures/compiledTorpedoes.js";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vite-plus/test";
@@ -45,8 +46,18 @@ const withTorps = (n: FixtureNationSet, side: "attacker" | "defender") =>
   mapDesigns(n, side, (d) => ({
     ...d,
     torpedoArmament: [
-      { mountType: "UNDERWATER_FIXED", tubeCount: SafeInt(2), torpedoModelId: WHITEHEAD },
-      { mountType: "ABOVE_WATER_TRAINABLE", tubeCount: SafeInt(2), torpedoModelId: WHITEHEAD },
+      {
+        mountType: "UNDERWATER_FIXED",
+        tubeCount: SafeInt(2),
+        torpedoModelId: WHITEHEAD,
+        compiledTorpedo: compiledTorpedoOf(WHITEHEAD),
+      },
+      {
+        mountType: "ABOVE_WATER_TRAINABLE",
+        tubeCount: SafeInt(2),
+        torpedoModelId: WHITEHEAD,
+        compiledTorpedo: compiledTorpedoOf(WHITEHEAD),
+      },
     ],
   }));
 

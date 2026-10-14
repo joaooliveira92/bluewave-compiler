@@ -6,6 +6,7 @@
 // no ambient clock/random/env/fs order.
 import { canonicalSerialize } from "@bluewave/deterministic";
 import { SafeInt } from "@bluewave/contracts";
+import type { CompiledTorpedo } from "@bluewave/armament";
 import type { CompiledDesignVersion, Ship } from "@bluewave/campaign";
 import { buildManifest, type BattleManifest } from "../generation/manifest.js";
 import { withStrategicWeatherStateHash } from "../weather/strategic-state.js";
@@ -14,6 +15,26 @@ import type { AutoResolverNation } from "../battleResolution/project.js";
 
 const ATTACKER = "n-uk";
 const DEFENDER = "n-fr";
+
+// The 14-inch Whitehead resolved at its effective (latest, 1884-01) revision — the retired
+// combat constants reproduced as the neutral contract (27 kg warhead).
+const WHITEHEAD_14IN: CompiledTorpedo = {
+  partId: "whitehead_14in_1886",
+  revision: "1884-01",
+  diameterUm: 356_000,
+  massKg: 300,
+  warheadType: "WET_GUNCOTTON",
+  warheadExplosiveMassKg: 27,
+  warheadExplosiveEquivalentMassKg: 27,
+  propulsionType: "COMPRESSED_AIR",
+  speedSettings: [{ settingId: "25kn", speedMilliKnots: 25_000, rangeM: 550 }],
+  minimumArmingDistanceM: 25,
+  reliabilityBp: 88_000,
+  guidanceCapability: "none",
+  launchTypes: ["ABOVE_WATER_FIXED", "ABOVE_WATER_TRAINABLE", "UNDERWATER_FIXED"],
+  technologyPrerequisiteIds: [],
+  tubeHitHazardPolicy: "ORDINARY",
+};
 
 function design(designVersionId: string, nationId: string): CompiledDesignVersion {
   return {
@@ -152,11 +173,13 @@ function armedIronclads(designs: Map<string, CompiledDesignVersion>) {
             mountType: "UNDERWATER_FIXED",
             tubeCount: SafeInt(2),
             torpedoModelId: "whitehead_14in_1886",
+            compiledTorpedo: WHITEHEAD_14IN,
           },
           {
             mountType: "ABOVE_WATER_TRAINABLE",
             tubeCount: SafeInt(2),
             torpedoModelId: "whitehead_14in_1886",
+            compiledTorpedo: WHITEHEAD_14IN,
           },
         ],
       },

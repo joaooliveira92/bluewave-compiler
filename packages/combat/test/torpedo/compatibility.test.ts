@@ -19,13 +19,12 @@ import {
   massWithinLimits,
   platformTechnologyAndAdoption,
   propulsionAndSafetySupported,
-  torpedoModelById,
   TORPEDO_MODEL_INCOMPATIBLE,
   treatyOrScenarioPermits,
   type TorpedoLauncherDefinition,
   type TorpedoPlatformCapabilities,
-  withTorpedoModelContentHash,
 } from "../../src/torpedoes/index.js";
+import { compiledTorpedoOf, withCompiledTorpedo } from "../fixtures/compiledTorpedoes.js";
 
 const G7A = "ger_533mm_g7a_1934";
 const G7E = "ger_533mm_g7e_1936";
@@ -61,14 +60,12 @@ function platform(
 }
 
 function heavyG7a(massKg: number) {
-  const g7a = torpedoModelById(G7A);
-  const { contentHash: _ignored, ...surface } = g7a;
-  return withTorpedoModelContentHash({ ...surface, massKg });
+  return withCompiledTorpedo(compiledTorpedoOf(G7A), { massKg });
 }
 
 describe("AC-4: §4 predicates evaluate individually", () => {
   it("diameter fits only when the model diameter does not exceed the bore", () => {
-    const type93 = torpedoModelById("jpn_61cm_type93_1935"); // 610 mm
+    const type93 = compiledTorpedoOf("jpn_61cm_type93_1935"); // 610 mm
     const l = launcher533({
       boreDiameterMm: 533,
       handlingMassLimitKg: 3_000,
@@ -81,7 +78,7 @@ describe("AC-4: §4 predicates evaluate individually", () => {
       availableInventoryModelIds: [G7A, G7E, "jpn_61cm_type93_1935"],
     });
     expect(diameterFitsLauncher(type93, l)).toBe(false);
-    expect(diameterFitsLauncher(torpedoModelById(G7A), l)).toBe(true);
+    expect(diameterFitsLauncher(compiledTorpedoOf(G7A), l)).toBe(true);
     const verdict = evaluateInstallCompatibility(type93, l, p);
     expect(verdict.compatible).toBe(false);
     expect(verdict.predicateResults.diameter).toBe(false);
@@ -100,29 +97,28 @@ describe("AC-4: §4 predicates evaluate individually", () => {
   });
 
   it("propulsion/safety fails when the launcher does not support the propulsion type", () => {
-    const g7e = torpedoModelById(G7E); // ELECTRIC
+    const g7e = compiledTorpedoOf(G7E); // ELECTRIC
     const l = launcher533({ supportedPropulsionTypes: ["WET_HEATER"] });
     expect(propulsionAndSafetySupported(g7e, l)).toBe(false);
-    expect(propulsionAndSafetySupported(torpedoModelById(G7A), l)).toBe(true);
+    expect(propulsionAndSafetySupported(compiledTorpedoOf(G7A), l)).toBe(true);
     expect(
       evaluateInstallCompatibility(g7e, l, platform()).predicateResults.propulsionAndSafety,
     ).toBe(false);
   });
 
   it("fire control fails when it does not support the model's guidance capability", () => {
-    const g7a = torpedoModelById(G7A);
+    const g7a = compiledTorpedoOf(G7A);
     const l = launcher533({ fireControlSupportedGuidance: ["gyro"] });
     expect(fireControlSupportsModel(g7a, l)).toBe(true);
-    const acoustic = withTorpedoModelContentHash({
-      ...g7a,
-      torpedoModelId: "ger_533mm_g7a_acoustic",
+    const acoustic = withCompiledTorpedo(g7a, {
+      partId: "ger_533mm_g7a_acoustic",
       guidanceCapability: "acoustic",
     });
     expect(fireControlSupportsModel(acoustic, l)).toBe(false);
   });
 
   it("platform technology + adoption fails on an unsatisfied prerequisite or non-adopted model", () => {
-    const g7a = torpedoModelById(G7A); // requires wet_heater_engine
+    const g7a = compiledTorpedoOf(G7A); // requires wet_heater_engine
     expect(platformTechnologyAndAdoption(g7a, platform())).toBe(true);
     expect(
       platformTechnologyAndAdoption(
@@ -134,7 +130,7 @@ describe("AC-4: §4 predicates evaluate individually", () => {
   });
 
   it("inventory + treaty predicates gate installation", () => {
-    const g7a = torpedoModelById(G7A);
+    const g7a = compiledTorpedoOf(G7A);
     expect(inventoryAvailable(g7a, platform())).toBe(true);
     expect(inventoryAvailable(g7a, platform({ availableInventoryModelIds: [G7E] }))).toBe(false);
     expect(treatyOrScenarioPermits(g7a, platform())).toBe(true);
@@ -146,7 +142,7 @@ describe("AC-4: §4 predicates evaluate individually", () => {
 
 describe("F2: launcher-family membership is enforced (launcherFamilyId must be declared compatible by the model)", () => {
   it("rejects a G7e install into a 533mm_underwater_trainable launcher the model never declares (TORPEDO_MODEL_INCOMPATIBLE)", () => {
-    const g7e = torpedoModelById(G7E); // families: 533mm_above_water_trainable, 533mm_submarine_internal
+    const g7e = compiledTorpedoOf(G7E); // families: 533mm_above_water_trainable, 533mm_submarine_internal
     const l = launcher533({
       launcherFamilyId: "533mm_underwater_trainable", // NOT in G7e's compatible families
       supportedPropulsionTypes: ["WET_HEATER", "ELECTRIC"],
@@ -169,7 +165,7 @@ describe("F2: launcher-family membership is enforced (launcherFamilyId must be d
   });
 
   it("accepts the model when the launcher family IS declared compatible", () => {
-    const g7e = torpedoModelById(G7E);
+    const g7e = compiledTorpedoOf(G7E);
     const l = launcher533({
       launcherFamilyId: "533mm_submarine_internal", // declared by G7e
       supportedPropulsionTypes: ["WET_HEATER", "ELECTRIC"],
@@ -179,11 +175,35 @@ describe("F2: launcher-family membership is enforced (launcherFamilyId must be d
     expect(launcherFamilyMatches(g7e, l)).toBe(true);
     expect(canInstallTorpedo(g7e, l, p)).toBe(true);
   });
+
+  it("re-expresses membership as mount type + physical bore (ticket 13b, ADR-0158)", () => {
+    // The neutral CompiledTorpedo carries DESIGN-40 §2 mount types + the physical diameter; the
+    // retired exact `compatibleLauncherFamilyIds` string set is re-expressed as mount type + physical
+    // bore. A 21-in (533 mm) model therefore matches a `533mm_...` launcher of a declared mount type
+    // — the two labels name the same physical bore. An undeclared mount type or a different bore
+    // still fails closed.
+    const mkIv = compiledTorpedoOf("rn_21in_mk_iv_1916"); // 533 mm; declares UNDERWATER_FIXED,
+    // UNDERWATER_TRAINABLE, ABOVE_WATER_TRAINABLE
+    expect(
+      launcherFamilyMatches(mkIv, launcher533({ launcherFamilyId: "533mm_above_water_trainable" })),
+    ).toBe(true);
+    expect(
+      launcherFamilyMatches(mkIv, launcher533({ launcherFamilyId: "533mm_underwater_trainable" })),
+    ).toBe(true);
+    // A mount type the model never declares still fails closed.
+    expect(
+      launcherFamilyMatches(mkIv, launcher533({ launcherFamilyId: "533mm_submarine_internal" })),
+    ).toBe(false);
+    // A different physical bore never matches.
+    expect(
+      launcherFamilyMatches(mkIv, launcher533({ launcherFamilyId: "610mm_above_water_trainable" })),
+    ).toBe(false);
+  });
 });
 
 describe("AC-4: install only when EVERY §4 predicate passes", () => {
   it("a fully-compatible model installs (all predicates pass)", () => {
-    const g7a = torpedoModelById(G7A);
+    const g7a = compiledTorpedoOf(G7A);
     const verdict = evaluateInstallCompatibility(g7a, launcher533(), platform());
     expect(verdict.compatible).toBe(true);
     for (const result of Object.values(verdict.predicateResults)) {
@@ -193,7 +213,7 @@ describe("AC-4: install only when EVERY §4 predicate passes", () => {
   });
 
   it("an incompatible model fails the full AND", () => {
-    const g7e = torpedoModelById(G7E);
+    const g7e = compiledTorpedoOf(G7E);
     const l = launcher533({ supportedPropulsionTypes: ["WET_HEATER"] });
     expect(canInstallTorpedo(g7e, l, platform())).toBe(false);
   });
@@ -217,7 +237,7 @@ describe("AC-4: a supply/administrative action must NOT bypass mechanical compat
   });
 
   it("rejects a wrong-diameter model even when supply guarantees inventory", () => {
-    const type93 = torpedoModelById("jpn_61cm_type93_1935"); // 610 mm
+    const type93 = compiledTorpedoOf("jpn_61cm_type93_1935"); // 610 mm
     const p = platform({
       technologyPrerequisiteIds: ["wet_heater_engine", "electric_propulsion", "oxygen_propulsion"],
       adoptedModelIds: [G7A, G7E, "jpn_61cm_type93_1935"],
@@ -232,13 +252,13 @@ describe("AC-4: a supply/administrative action must NOT bypass mechanical compat
   });
 
   it("rejects an unsupported-propulsion model even when inventory holds it", () => {
-    const g7e = torpedoModelById(G7E);
+    const g7e = compiledTorpedoOf(G7E);
     const l = launcher533({ supportedPropulsionTypes: ["WET_HEATER"] });
     expect(() => administrativeInstall(g7e, l, platform())).toThrow(BluewaveError);
   });
 
   it("an administratively-cleared mechanically-compatible model installs (inventory/treaty waived, mechanical enforced)", () => {
-    const g7a = torpedoModelById(G7A);
+    const g7a = compiledTorpedoOf(G7A);
     // inventory empty + treaty-restricted — the administrative action carries
     // clearance, but mechanical compatibility is still fully enforced.
     const p = platform({

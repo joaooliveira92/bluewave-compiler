@@ -161,6 +161,18 @@ export const GATE_SETS = {
       args: ["scripts/verify-no-unknown-casts.mjs"],
     },
     {
+      id: "torpedo-model-constants-self-test",
+      label: "no-torpedo-model-constants guard self-test",
+      needs: ["git-state"],
+      args: ["scripts/verify-no-torpedo-model-constants.mjs", "--self-test"],
+    },
+    {
+      id: "torpedo-model-constants",
+      label: "no torpedo-model constants in combat",
+      needs: ["torpedo-model-constants-self-test"],
+      args: ["scripts/verify-no-torpedo-model-constants.mjs"],
+    },
+    {
       id: "test-focus",
       label: "no focused/unexplained-skip tests",
       needs: ["git-state"],

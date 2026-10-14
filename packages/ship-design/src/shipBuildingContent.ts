@@ -106,6 +106,12 @@ export interface ShipBuildingContent {
   readonly navalProfileFor: (nationId: string, month: string) => NationNavalProfile | null;
   /** Starter designs (a reference design with a `starterFor`), for AI procurement candidate generation. */
   readonly starterDesigns: readonly StarterDesign[];
+  /**
+   * The compiled part model, when the pack carries parts content (ticket 13b). Callers that build a
+   * design's torpedo mounts into the neutral compiled record (combat reads it) resolve the torpedo
+   * part from `partIndex.byId`; a parts-less pack leaves it absent and combat fails closed.
+   */
+  readonly partModel?: CompiledPartModel;
 }
 
 /** Technology is available once its year has begun; month ids are YYYY-MM. */
@@ -227,6 +233,7 @@ export function buildShipBuildingContent(data: ShipBuildingData): ShipBuildingCo
     study,
     navalProfiles: profiles,
     armament: data.armament ?? null,
+    ...(data.partModel === undefined ? {} : { partModel: data.partModel }),
     navalProfileFor: (nationId, month) => resolveNavalProfile(profiles, nationId, month),
     starterDesigns: referenceDesigns
       .filter((r): r is RawReferenceDesign & { starterFor: string } => r.starterFor !== undefined)

@@ -735,6 +735,8 @@ const TorpedoSpecFields = {
   guidanceCapability: stableId,
   /** DESIGN-40 §2 mount types this torpedo may be fired from (combat's launcher-family set). */
   launchTypes: nonEmptyArray(Schema.Literals(TORPEDO_MOUNT_TYPE_VALUES)),
+  /** Technology prerequisites combat's §4 platform-technology predicate reads; empty is valid. */
+  technologyPrerequisiteIds: Schema.Array(stableId),
   /** Tube-hit hazard policy; derived from `propulsionType` in combat but carried explicitly. */
   tubeHitHazardPolicy: Schema.Literals(TORPEDO_TUBE_HIT_HAZARD_POLICIES),
   /** Per-model oxygen wake-visibility modifier, bp; present exactly for an `OXYGEN` torpedo. */

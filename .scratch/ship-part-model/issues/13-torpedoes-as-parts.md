@@ -1,9 +1,9 @@
 # 13: Torpedoes as parts and the compiled torpedo interface for combat (P4)
 
 **Type:** implementation
-**Status:** in-progress (13a done; 13b open)
+**Status:** resolved (13a + 13b done)
 **Blocked by:** 11
-**Frontier:** yes
+**Frontier:** no
 **Requirements:** SPM-R17, SPM-R26 (P4 gate) · Stories 5, 12, 34, 35
 
 ## What to build
@@ -21,11 +21,31 @@ it does not change ship-type records or classification rules (ticket 12), even i
 
 ## Acceptance criteria
 
-- [ ] (13b) No torpedo performance value remains in combat code. A test or grep gate proves it.
-- [ ] (13b) Combat goldens are byte-identical, and cross-process battle determinism passes.
+- [x] (13b) No torpedo performance value remains in combat code. A test or grep gate proves it.
+- [x] (13b) Combat goldens are byte-identical, and cross-process battle determinism passes.
 - [x] (13a) A P4 equivalence report shows zero `changed`.
 - [x] (13a) Resolving the Whitehead torpedo before and after its 1884 revision gives the
       revised warhead, and its provenance points at the revision.
+
+## Resolution (13b, 2026-10-14)
+
+Slice 13b is done; ticket 13 is resolved. See ADR-0157 §13b resolution.
+
+- **Combat reads `CompiledTorpedo`.** A `CompiledTorpedoRegistry` is threaded on
+  `TorpedoContext.torpedoes` (keyed by part id); `torpedoProjection` builds it from the design's
+  compiled snapshot and every former `torpedoModelById` read is re-expressed on the neutral record.
+  `packages/combat/src/torpedoes/model.ts` is deleted.
+- **Gate.** `scripts/verify-no-torpedo-model-constants.mjs` (wired into `pnpm preflight`) fails on
+  any retired symbol in `packages/combat/src` and on a `CompiledTorpedo` sample literal outside the
+  two cross-process test harnesses.
+- **Decisions.** Effective month = the model's effective (latest) revision (`9999-12`), reproducing
+  the constants; `technologyPrerequisiteIds` is modelled; `ownerNationIds` / `productionRequirementId`
+  / `depthKeepingProfile` are dropped (unread).
+- **Fidelity.** The compiled snapshot rides the design version for both the parts read path and the
+  legacy/player path; the campaign hash excludes it. Launcher-family membership is re-expressed as
+  mount type + physical bore (documented, tested).
+- **P4.** Equivalence byte-identical (`ebd0ddb6…`, zero `changed`, 91/91, 823/823); 11 golden hashes
+  unchanged; cross-process determinism byte-identical.
 
 ## Resolution (13a, 2026-10-14)
 

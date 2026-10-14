@@ -136,6 +136,7 @@ const torpedo = (id: string, diameterUm: number) =>
       reliabilityBp: 88_000,
       guidanceCapability: "none",
       launchTypes: ["ABOVE_WATER_TRAINABLE"],
+      technologyPrerequisiteIds: [],
       tubeHitHazardPolicy: "ORDINARY",
     },
   });

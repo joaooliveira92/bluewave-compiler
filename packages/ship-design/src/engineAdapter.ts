@@ -1,5 +1,6 @@
 import type { CompiledDesign, DesignDraft } from "./compile.js";
 import type { CompiledWeaponArmament } from "./compileShared.js";
+import type { CompiledTorpedo } from "@bluewave/armament";
 import { UM_PER_KNOT } from "./units.js";
 
 /**
@@ -32,6 +33,8 @@ export interface EngineDesignFields {
     mountType: string;
     tubeCount: number;
     torpedoModelId: string;
+    /** The neutral compiled torpedo contract the parts read path resolved (ticket 13b). */
+    compiledTorpedo?: CompiledTorpedo;
   }[];
 }
 
@@ -84,7 +87,12 @@ export function toEngineDesign(
 
   const mounts = new Map<
     string,
-    { mountType: string; tubeCount: number; torpedoModelId: string }
+    {
+      mountType: string;
+      tubeCount: number;
+      torpedoModelId: string;
+      compiledTorpedo?: CompiledTorpedo;
+    }
   >();
   for (const k of c.components) {
     if (k.category !== "TORPEDO_TUBE" || !k.torpedoMount) continue;
@@ -93,7 +101,16 @@ export function toEngineDesign(
     const tubes = k.params.tubes ?? 1;
     mounts.set(
       key,
-      cur ? { ...cur, tubeCount: cur.tubeCount + tubes } : { ...k.torpedoMount, tubeCount: tubes },
+      cur
+        ? {
+            ...cur,
+            tubeCount: cur.tubeCount + tubes,
+            // First resolved record wins; the mount group shares one model.
+            ...(cur.compiledTorpedo === undefined && k.torpedoMount.compiledTorpedo !== undefined
+              ? { compiledTorpedo: k.torpedoMount.compiledTorpedo }
+              : {}),
+          }
+        : { ...k.torpedoMount, tubeCount: tubes },
     );
   }
   const torpedoArmament = [...mounts.entries()]

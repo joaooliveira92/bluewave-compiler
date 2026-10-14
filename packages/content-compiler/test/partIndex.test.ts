@@ -50,6 +50,7 @@ const PROTOTYPE = `parts:
       reliabilityBp: 88000
       guidanceCapability: none
       launchTypes: [ABOVE_WATER_TRAINABLE]
+      technologyPrerequisiteIds: []
       tubeHitHazardPolicy: ORDINARY
     quantities:
       - { id: torpedo_mass, kind: massKg, value: 300, basis: PER_PART_UNIT }
@@ -90,6 +91,7 @@ const TORPEDO_SPEC = {
   reliabilityBp: 88000,
   guidanceCapability: "none",
   launchTypes: ["ABOVE_WATER_TRAINABLE"],
+  technologyPrerequisiteIds: [],
   tubeHitHazardPolicy: "ORDINARY",
 };
 
@@ -188,6 +190,7 @@ describe("a prototype, a variant and two revisions flatten to hand-worked values
             "propulsionType",
             "reliabilityBp",
             "speedSettings",
+            "technologyPrerequisiteIds",
             "tubeHitHazardPolicy",
             "warheadExplosiveEquivalentMassKg",
             "warheadExplosiveMassKg",
@@ -220,6 +223,7 @@ describe("a prototype, a variant and two revisions flatten to hand-worked values
       reliabilityBp: 90000
       guidanceCapability: none
       launchTypes: [ABOVE_WATER_TRAINABLE]
+      technologyPrerequisiteIds: []
       tubeHitHazardPolicy: ORDINARY
     provenance: ${PROVENANCE}
   - id: dry_funnel

@@ -191,7 +191,10 @@ export function runDamageStage(
       impactZone: target.zone,
       impactSide: target.scene.impactSide,
       longitudinalPositionM: target.scene.longitudinalPositionM,
-      warheadExplosiveEquivalentMassKg: modelWarheadEquivalentKg(track.torpedoModelId),
+      warheadExplosiveEquivalentMassKg: modelWarheadEquivalentKg(
+        run.input.context.torpedoes,
+        track.torpedoModelId,
+      ),
       detonationDepthM: track.depthSettingM,
       protectionLevel: target.protectionLevel,
       hullBreachAreaM2: target.scene.hullBreachAreaM2,
@@ -245,6 +248,7 @@ export function runDamageStage(
         substep: TORPEDO_RESOLVE_IMPACT_SUBSTEP,
         launcherId: target.tubeHazard.launcherId,
         loadedTorpedoes: target.tubeHazard.loadedChecks,
+        torpedoes: run.input.context.torpedoes,
         modifiers: CHAIN_REACTION_NEUTRAL_MODIFIERS,
         keyedRng,
       });

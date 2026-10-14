@@ -1,4 +1,3 @@
-import { SHIPPED_TORPEDO_MODELS } from "@bluewave/combat";
 import {
   FlattenedPartSchema,
   LoadoutEntrySchema,
@@ -62,6 +61,7 @@ import {
   resolveRow,
   type Design,
 } from "./helpers/gunReadPath.js";
+import { torpedoDiameterUm } from "./helpers/torpedoModels.js";
 
 // ---------------------------------------------------------------------------
 // Fixture
@@ -122,10 +122,6 @@ const legacyPlacement = (designId: string, instanceId: string): Resolved =>
     `legacy ${designId}:${instanceId}`,
   );
 
-const torpedoDiameterUm = (id: string): number | undefined => {
-  const model = SHIPPED_TORPEDO_MODELS.find((m) => String(m.torpedoModelId) === id);
-  return model === undefined ? undefined : model.diameterMm * 1000;
-};
 const launcherModel = buildLauncherPartModel({
   components,
   profiles: navalProfiles,

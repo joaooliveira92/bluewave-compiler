@@ -17,8 +17,6 @@ import {
   SHIPPED_TORPEDO_CONTRACT,
   SHIPPED_TORPEDO_DETONATION_CONTRACT,
   SHIPPED_TORPEDO_LAUNCH_AUTHORITY_CONTRACT,
-  SHIPPED_TORPEDO_MODELS,
-  SHIPPED_TORPEDO_MODELS_CONTRACT,
   TORPEDO_DANGER_SECTOR_RAD_TO_MDEG,
   TORPEDO_FRIENDLY_DANGER_SECTOR_MINIMUM_BP,
   TORPEDO_FRIENDLY_FIRE_LOW_CONFIDENCE_BP,
@@ -44,7 +42,6 @@ import {
   TORPEDO_SOLUTION_SCALE_EXPONENT,
   TORPEDO_STATE_INVARIANT_FAILED,
   TORPEDO_TARGET_CONTACT_MINIMUM_BP,
-  torpedoModelsContentVersion,
   torpedoPolicyId,
   torpedoSpeedBpKnotsToUmS,
   UNDERWATER_TUBE_MAX_SPEED_KNOTS,
@@ -54,7 +51,6 @@ import {
   validateTorpedoDetonationContract,
   validateTorpedoLauncherDefinition,
   validateTorpedoLaunchAuthorityContract,
-  validateTorpedoModelsContract,
   type TorpedoLauncherDefinition,
   // INC-6 (damage package): §16-§23 contracts + guards
   SHIPPED_TORPEDO_DAMAGE_CONTRACT,
@@ -422,14 +418,13 @@ describe("AC-24: exact shipped constant surface", () => {
     ).toThrow(BluewaveError);
   });
 
-  it("ships the research-grounded torpedo_models_v1 model set (8 models, 1880-1945) with deterministic hashes", () => {
-    expect(SHIPPED_TORPEDO_CONTRACT.shippedModelIds).toEqual(
-      SHIPPED_TORPEDO_MODELS.map((m) => m.torpedoModelId),
-    );
-    // INC-8 rollup: the full research-grounded set (~6-8 models across 1880-1945,
-    // docs/research/c1-m3-torpedoes.md §4.1) — nothing more, nothing less.
-    expect(SHIPPED_TORPEDO_MODELS.length).toBe(8);
-    expect(SHIPPED_TORPEDO_MODELS.map((m) => m.torpedoModelId)).toEqual([
+  it("ships the research-grounded torpedo_models_v1 model-id list (8 models, 1880-1945)", () => {
+    expect(SHIPPED_TORPEDO_CONTRACT.shippedModelIds).toEqual(SEED_TORPEDO_MODEL_IDS);
+    // The full research-grounded set (~6-8 models across 1880-1945,
+    // docs/research/c1-m3-torpedoes.md §4.1) — the id list is now the fuselage of the
+    // model->fuze map; the model DATA lives in the content parts (ticket 13b).
+    expect(SEED_TORPEDO_MODEL_IDS.length).toBe(8);
+    expect([...SEED_TORPEDO_MODEL_IDS]).toEqual([
       "whitehead_18in_1894",
       "rn_21in_mk_iv_1916",
       "ger_533mm_g7a_1934",
@@ -439,69 +434,12 @@ describe("AC-24: exact shipped constant surface", () => {
       "rn_21in_mk_viii_1927",
       "usn_21in_mk14_1931",
     ]);
-    for (const model of SHIPPED_TORPEDO_MODELS) {
-      expect(model.contentVersion).toBe(torpedoModelsContentVersion);
-      expect(model.contentHash).toMatch(/^[0-9a-f]{64}$/);
-    }
   });
 
   it("speed conversion rejects non-integers and produces exact integers", () => {
     expect(torpedoSpeedBpKnotsToUmS(44_000)).toBe(22_635_536); // 44 kn (G7a high)
     expect(() => torpedoSpeedBpKnotsToUmS(44_000.5)).toThrow(BluewaveError);
     expect(() => torpedoSpeedBpKnotsToUmS(0)).toThrow(BluewaveError);
-  });
-});
-
-describe("AC-24 (INC-8): the torpedo_models_v1 contract + validate guard (fail closed)", () => {
-  it("ships the *_v1 policy id and SHIPPED_TORPEDO_MODELS_CONTRACT", () => {
-    expect(torpedoModelsContentVersion).toBe("torpedo_models_v1");
-    expect(SHIPPED_TORPEDO_MODELS_CONTRACT.policyId).toBe("torpedo_models_v1");
-    expect(SHIPPED_TORPEDO_MODELS_CONTRACT.modelIds).toEqual(SEED_TORPEDO_MODEL_IDS);
-    expect(SHIPPED_TORPEDO_MODELS_CONTRACT.models).toEqual(SHIPPED_TORPEDO_MODELS);
-  });
-
-  it("validates the shipped contract without throwing", () => {
-    expect(() => validateTorpedoModelsContract(SHIPPED_TORPEDO_MODELS_CONTRACT)).not.toThrow();
-  });
-
-  it("fails closed on a tampered model-id list (added/removed/reordered)", () => {
-    expect(() =>
-      validateTorpedoModelsContract({
-        ...SHIPPED_TORPEDO_MODELS_CONTRACT,
-        modelIds: [...SEED_TORPEDO_MODEL_IDS, "bogus_model"],
-      }),
-    ).toThrow(BluewaveError);
-    expect(() =>
-      validateTorpedoModelsContract({
-        ...SHIPPED_TORPEDO_MODELS_CONTRACT,
-        modelIds: [...SEED_TORPEDO_MODEL_IDS].reverse(),
-      }),
-    ).toThrow(BluewaveError);
-    expect(() =>
-      validateTorpedoModelsContract({
-        ...SHIPPED_TORPEDO_MODELS_CONTRACT,
-        modelIds: [],
-      }),
-    ).toThrow(BluewaveError);
-  });
-
-  it("fails closed on a tampered/edited model definition (content hash mismatch)", () => {
-    const [first, ...rest] = SHIPPED_TORPEDO_MODELS;
-    const tampered = { ...first, massKg: first.massKg + 1 }; // hash no longer verifies
-    expect(() =>
-      validateTorpedoModelsContract({
-        ...SHIPPED_TORPEDO_MODELS_CONTRACT,
-        models: [tampered, ...rest],
-      }),
-    ).toThrow(BluewaveError);
-  });
-
-  it("fails closed on a null/missing contract and a mismatched policy id", () => {
-    expect(() => validateTorpedoModelsContract(null)).toThrow(BluewaveError);
-    expect(() => validateTorpedoModelsContract(undefined)).toThrow(BluewaveError);
-    expect(() =>
-      validateTorpedoModelsContract({ ...SHIPPED_TORPEDO_MODELS_CONTRACT, policyId: "x" }),
-    ).toThrow(BluewaveError);
   });
 });
 

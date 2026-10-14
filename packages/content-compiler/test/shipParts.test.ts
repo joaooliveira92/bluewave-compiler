@@ -112,6 +112,7 @@ const ONE_PER_FAMILY = JSON.stringify({
         reliabilityBp: 88000,
         guidanceCapability: "none",
         launchTypes: ["ABOVE_WATER_TRAINABLE"],
+        technologyPrerequisiteIds: [],
         tubeHitHazardPolicy: "ORDINARY",
       },
       provenance,

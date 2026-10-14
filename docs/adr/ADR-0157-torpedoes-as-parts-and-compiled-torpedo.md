@@ -4,7 +4,8 @@
 
 Accepted (2026-10-14). Filed with ship-part-model ticket 13, slice 13a (P4). Implements
 ADR-0154 §8 for torpedoes and fixes the field list the ticket's authorization deferred to
-this ADR (SPM-R17's enumerated interface).
+this ADR (SPM-R17's enumerated interface). Slice 13b landed the same day; see
+[§13b resolution](#13b-resolution-2026-10-14).
 
 ## Context
 
@@ -109,6 +110,18 @@ reads its constants.
   stay identical. `technologyPrerequisiteIds` (read by `torpedoes/compatibility.ts`) likewise
   needs a model-or-drop decision.
 - **Do not** claim combat is parts-driven until 13b switches it.
+
+## 13b resolution (2026-10-14)
+
+Slice 13b is complete: combat reads `CompiledTorpedo` and the per-model constants are gone. Recorded here because §Consequences deferred these decisions to 13b.
+
+1. **Combat reads the compiled record; the constants are deleted.** `packages/combat/src/torpedoes/model.ts` (`TorpedoModelDefinition`, `SHIPPED_TORPEDO_MODELS`, `torpedoModelById`, `TorpedoSetting`, `OxygenTorpedoState`, the `torpedo_models_v1` contract) is removed. Every read now goes through a `CompiledTorpedoRegistry` threaded on the battle input (`TorpedoContext.torpedoes`, keyed by part id; `torpedoes/registry.ts`), built by `torpedoProjection` from the design's compiled snapshot. `torpedoModelById`'s fail-closed semantics survive as `compiledTorpedoOf`.
+2. **Effective-month decision (D1).** The compiled torpedo is resolved at the model's **effective (latest) revision** (`compileTorpedo(part, "9999-12")`: base spec plus every revision folded), *not* the design month. This reproduces the shipped constants exactly — the 14-inch Whitehead yields the 1884 Mk IV 27 kg charge, not the 1877 12 kg first pattern — so combat goldens and cross-process determinism stay byte-identical. The design-month alternative (12 kg, re-pinned goldens) is rejected: P4 demands identical combat output, and the revision is a representation of the model's current state, not a per-design month query.
+3. **`technologyPrerequisiteIds` is modelled (D2).** It is added to `TorpedoSpecFields` and `CompiledTorpedo`, populated by the builder from the authoritative models, and read by `compatibility.ts`'s `platformTechnologyAndAdoption`. `ownerNationIds`, `productionRequirementId`, `depthKeepingProfile`, `contentVersion` and `contentHash` stay `(none)`: they are unread by combat and are dropped with the constants. `TORPEDO_SOURCE_FIELDS` reflects this.
+4. **Launcher-family membership is re-expressed as mount type + physical bore.** The neutral record carries DESIGN-40 §2 `launchTypes` and `diameterUm`, not the retired exact `compatibleLauncherFamilyIds` string set (whose unit label — `21in` vs `533mm` — is not in the contract). `launcherFamilyMatches` therefore accepts a launcher family whose mount type the torpedo declares **and** whose physical bore equals the torpedo's. A same-bore alias (`533mm_above_water_trainable` for a 533 mm / 21-in model) now matches where the exact string set rejected it; an undeclared mount type or a different bore still fails closed. This is a deliberate, deterministic re-expression of the physical fit, pinned by a test in `test/torpedo/compatibility.test.ts`; it is the only predicate whose acceptance boundary moved, and it is not on the golden path.
+5. **The compiled snapshot rides on the design version.** `ComponentSummary.torpedoMount.compiledTorpedo` (ship-design) → `EngineDesignFields.torpedoArmament[].compiledTorpedo` → `CompiledTorpedoMount.compiledTorpedo` (campaign) → phase-engine `buildDesignVersion`. The campaign hash surface **excludes** the snapshot (`hashableTorpedoArmament`: only the three identity fields), so campaign goldens and saved-design hashes are unmoved; the ship-design `CompiledDesign.hash` includes it (it covers the component summary). Both the parts read path (`partCatalogueReaders.readPlacements`) and the legacy compile path (`buildDesignVersion` via `pricingFor`'s `torpedoOf`) attach it, so authored **and** player/AI-built designs resolve identically — closing the `BATTLE_AUTO_RESOLUTION_FAILED` gap a parts-less design would otherwise hit. A launcher whose named torpedo cannot be compiled reports `READER_TORPEDO_UNRESOLVED` rather than silently dropping it.
+6. **The no-reader gate.** `scripts/verify-no-torpedo-model-constants.mjs` (wired into `pnpm preflight`) fails if any retired symbol returns to `packages/combat/src`, and fails if a `CompiledTorpedo` sample record literal appears outside the two cross-process test harnesses (`src/simulation/run-*-child.ts`), which carry sample inputs to drive determinism children. The combat **engine** therefore holds no per-model torpedo data.
+7. **Deferred / dropped, recorded not silent.** `ownerNationIds`, `productionRequirementId`, `depthKeepingProfile` are dropped (unread). `TORPEDO_MODEL_FUZE_POLICY` (`detonation.ts`) remains a keyed combat algorithm constant — the fuze is not a `CompiledTorpedo` field and 13a left it out; `SEED_TORPEDO_MODEL_IDS` remains for the surviving `TorpedoContract`/fuze key-set pin. The P4 equivalence report is byte-identical (`ebd0ddb6…`, zero `changed`, 91/91 designs, 823/823 placements), the 11 campaign goldens are unchanged, and cross-process determinism passes.
 
 ## Alternatives
 

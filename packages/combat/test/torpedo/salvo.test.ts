@@ -23,6 +23,7 @@ import {
   type TorpedoLauncherState,
   type TorpedoSalvoPolicyInputs,
 } from "../../src/torpedoes/index.js";
+import { COMPILED_TORPEDOES } from "../fixtures/compiledTorpedoes.js";
 
 const G7A = "ger_533mm_g7a_1934";
 
@@ -287,6 +288,7 @@ describe("AC-11 seam: the eligibility aggregate validates the salvo tube indexes
   it("duplicate tube indexes in a launch fail closed", () => {
     expect(() =>
       evaluateLaunchEligibility({
+        torpedoes: COMPILED_TORPEDOES,
         state: launcher(),
         definition: {
           launcherFamilyId: "533mm_underwater_trainable",
@@ -313,7 +315,7 @@ describe("AC-11 seam: the eligibility aggregate validates the salvo tube indexes
         friendlyIdentities: [],
         targetRelativeBearingMdeg: 0,
         targetEstimatedRangeM: 5_000,
-        selectedSetting: { settingId: "30kn", speedKnotsBp: 30_000, rangeM: 14_000 },
+        selectedSetting: { settingId: "30kn", speedMilliKnots: 30_000, rangeM: 14_000 },
         launchKind: "AUTOMATED",
         fireSolutionQualityBp: 6_000,
         ownSpeedMicrometresPerSecond: 12_000_000,

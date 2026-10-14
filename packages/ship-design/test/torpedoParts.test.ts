@@ -6,7 +6,6 @@
  * values come from the authoritative combat models and the research, never recomputed the
  * way the builder computes them.
  */
-import { SHIPPED_TORPEDO_MODELS } from "@bluewave/combat";
 import {
   FlattenedPartSchema,
   LoadoutSchema,
@@ -38,12 +37,7 @@ import {
   plants,
   shipBalance,
 } from "./helpers/earlyContext.js";
-import { torpedoModels } from "./helpers/torpedoModels.js";
-
-const torpedoDiameterUm = (id: string): number | undefined => {
-  const model = SHIPPED_TORPEDO_MODELS.find((m) => String(m.torpedoModelId) === id);
-  return model === undefined ? undefined : model.diameterMm * 1000;
-};
+import { torpedoDiameterUm, torpedoModels } from "./helpers/torpedoModels.js";
 
 const source: SourceCatalogue = {
   components,
@@ -76,7 +70,7 @@ const part = (id: string): FlattenedPart => {
 describe("the torpedo catalogue (13a)", () => {
   it("covers every combat torpedo model, strictly decoded", () => {
     expect(torpedoParts.map((p) => p.id)).toEqual(
-      SHIPPED_TORPEDO_MODELS.map((m) => String(m.torpedoModelId)).sort(),
+      torpedoModels.map((m) => String(m.torpedoModelId)).sort(),
     );
     for (const p of torpedoParts) {
       expect(decodeStrict(FlattenedPartSchema, p), p.id).toEqual(p);
@@ -88,8 +82,15 @@ describe("the torpedo catalogue (13a)", () => {
       TORPEDO_SOURCE_FIELDS.length,
     );
     const mapped = new Set(TORPEDO_SOURCE_FIELDS.map((f) => f.field));
-    for (const key of Object.keys(SHIPPED_TORPEDO_MODELS[0]!)) {
-      expect(mapped.has(key), key).toBe(true);
+    const contentSide = new Set([
+      "availableFrom",
+      "availableUntil",
+      "warheadFirstPattern",
+      "provenance",
+      "sourceFile",
+    ]);
+    for (const key of Object.keys(torpedoModels[0]!)) {
+      expect(mapped.has(key) || contentSide.has(key), key).toBe(true);
     }
     expect(built.inventory.unmappedFieldsFound).toBe(0);
   });
@@ -161,7 +162,7 @@ const MOUNT_ORDER = [
   "SUBMARINE_INTERNAL",
 ] as const;
 
-const launchTypesFor = (model: (typeof SHIPPED_TORPEDO_MODELS)[number]): string[] => {
+const launchTypesFor = (model: (typeof torpedoModels)[number]): string[] => {
   const types = new Set<string>();
   for (const familyId of model.compatibleLauncherFamilyIds) {
     const mountType = MOUNT_ORDER.find((m) => familyId.endsWith(m.toLowerCase()));
@@ -171,7 +172,7 @@ const launchTypesFor = (model: (typeof SHIPPED_TORPEDO_MODELS)[number]): string[
 };
 
 const expectedCompiled = (
-  model: (typeof SHIPPED_TORPEDO_MODELS)[number],
+  model: (typeof torpedoModels)[number],
   month: string,
 ): Record<string, unknown> => {
   const id = String(model.torpedoModelId);
@@ -204,6 +205,7 @@ const expectedCompiled = (
     reliabilityBp: model.reliabilityBp,
     guidanceCapability: model.guidanceCapability,
     launchTypes: launchTypesFor(model),
+    technologyPrerequisiteIds: [...model.technologyPrerequisiteIds],
     tubeHitHazardPolicy: model.tubeHitHazardPolicyId,
     ...(model.propulsionType === "OXYGEN" && model.oxygenState !== null
       ? { oxygenWakeVisibilityModifierBp: model.oxygenState.wakeVisibilityModifierBp }
@@ -216,12 +218,12 @@ describe("the compiled torpedo contract (SPM-R17)", () => {
     const compiled = compileTorpedo(part(WHITEHEAD), "1880-01");
     expect(compiled.ok).toBe(true);
     if (!compiled.ok) return;
-    const model = SHIPPED_TORPEDO_MODELS.find((m) => String(m.torpedoModelId) === WHITEHEAD)!;
+    const model = torpedoModels.find((m) => String(m.torpedoModelId) === WHITEHEAD)!;
     expect(compiled.value).toEqual(expectedCompiled(model, "1880-01"));
   });
 
   it("compiles every model to its mapped source values at a post-availability month", () => {
-    for (const model of SHIPPED_TORPEDO_MODELS) {
+    for (const model of torpedoModels) {
       const id = String(model.torpedoModelId);
       const compiled = compileTorpedo(part(id), "1940-01");
       expect(compiled.ok, id).toBe(true);

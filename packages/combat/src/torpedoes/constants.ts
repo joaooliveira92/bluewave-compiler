@@ -293,8 +293,9 @@ export const TORPEDO_SALVO_FRIENDLY_LAUNCHER_PRESSURE_BP_TABLE: readonly {
   { maxCount: Number.MAX_SAFE_INTEGER, pressureBp: 3_000 },
 ];
 
-// DESIGN-40 §23 shipped oxygen-torpedo effects (declared per oxygen model in
-// OxygenTorpedoState; mechanics resolve in INC-6). BALANCE TARGET: oxygen
+// DESIGN-40 §23 shipped oxygen-torpedo effects (algorithm constants; a torpedo
+// part carries only its per-model wake modifier; mechanics resolve in INC-6).
+// BALANCE TARGET: oxygen
 // wake-detection 7_500 vs near-invisible wake evidence (research §4.4) — the
 // per-model wakeVisibilityModifierBp is the lever, the shipped §23 value is not
 // silently changed.

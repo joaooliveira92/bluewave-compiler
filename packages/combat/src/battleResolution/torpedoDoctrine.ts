@@ -16,7 +16,7 @@ import type { TacticalBattleState } from "../tactical/state.js";
 import type { TacticalShipUnit } from "../tactical/unit.js";
 import {
   EMPTY_TUBE,
-  torpedoModelById,
+  compiledTorpedoOf,
   type TorpedoContext,
   type TorpedoLaunchCommand,
 } from "../torpedoes/index.js";
@@ -69,8 +69,8 @@ export function planTorpedoCommands(input: {
     if (tubeIndex === -1) continue;
     const own = movement[wiring.ownerShipId];
     if (!own) continue;
-    const model = torpedoModelById(wiring.launcher.loadedPerTube[tubeIndex]!);
-    const setting = model.orderedSettings[0]!;
+    const model = compiledTorpedoOf(torpedoes.torpedoes, wiring.launcher.loadedPerTube[tubeIndex]!);
+    const setting = model.speedSettings[0]!;
     const { cosBp, sinBp } = directionBp(own.heading);
     // launch point: the engine resolves torpedoes (step 10.5) AFTER this minute's
     // movement, from the firing ship's end-of-minute position — predict it.

@@ -31,6 +31,7 @@ import {
   type TorpedoChainReactionModifierKey,
   type TorpedoDamagePackageInput,
 } from "../../src/torpedoes/index.js";
+import { COMPILED_TORPEDOES } from "../fixtures/compiledTorpedoes.js";
 
 function neutralModifiers(): Record<TorpedoChainReactionModifierKey, number> {
   return {
@@ -100,11 +101,13 @@ describe("AC-18 §22: the shipped base probabilities", () => {
   });
 
   it("per-model base comes from the authoritative torch policy", () => {
-    expect(chainReactionBaseBpForModel("ger_533mm_g7a_1934")).toBe(1_500); // ORDINARY
-    expect(chainReactionBaseBpForModel("jpn_61cm_type93_1935")).toBe(3_000); // OXYGEN
-    expect(chainReactionBaseBpForModel("ger_533mm_g7e_1936")).toBe(1_000); // ELECTRIC
-    expect(chainReactionBaseBpForModel("whitehead_18in_1894")).toBe(1_500); // ORDINARY
-    expect(() => chainReactionBaseBpForModel("BOGUS_MODEL")).toThrow(BluewaveError);
+    expect(chainReactionBaseBpForModel(COMPILED_TORPEDOES, "ger_533mm_g7a_1934")).toBe(1_500); // ORDINARY
+    expect(chainReactionBaseBpForModel(COMPILED_TORPEDOES, "jpn_61cm_type93_1935")).toBe(3_000); // OXYGEN
+    expect(chainReactionBaseBpForModel(COMPILED_TORPEDOES, "ger_533mm_g7e_1936")).toBe(1_000); // ELECTRIC
+    expect(chainReactionBaseBpForModel(COMPILED_TORPEDOES, "whitehead_18in_1894")).toBe(1_500); // ORDINARY
+    expect(() => chainReactionBaseBpForModel(COMPILED_TORPEDOES, "BOGUS_MODEL")).toThrow(
+      BluewaveError,
+    );
   });
 });
 
@@ -172,6 +175,7 @@ describe("AC-18 §22: the per-loaded-torpedo keyed checks", () => {
       substep: 4,
       launcherId: "LCH-1",
       loadedTorpedoes: [{ tubeIndex: 0, torpedoModelId: "ger_533mm_g7a_1934" }],
+      torpedoes: COMPILED_TORPEDOES,
       modifiers: neutralModifiers(),
       keyedRng: () => 0.001, // drawBp 10 < 1_500
     });
@@ -196,6 +200,7 @@ describe("AC-18 §22: the per-loaded-torpedo keyed checks", () => {
       substep: 4,
       launcherId: "LCH-1",
       loadedTorpedoes: [{ tubeIndex: 0, torpedoModelId: "ger_533mm_g7a_1934" }],
+      torpedoes: COMPILED_TORPEDOES,
       modifiers: neutralModifiers(),
       keyedRng: () => 0.15, // drawBp 1_500 >= 1_500
     });
@@ -217,6 +222,7 @@ describe("AC-18 §22: the per-loaded-torpedo keyed checks", () => {
         { tubeIndex: 1, torpedoModelId: "jpn_61cm_type93_1935" }, // oxygen
         { tubeIndex: 2, torpedoModelId: "ger_533mm_g7e_1936" }, // electric
       ],
+      torpedoes: COMPILED_TORPEDOES,
       modifiers: neutralModifiers(),
       keyedRng: () => {
         calls += 1;
@@ -236,6 +242,7 @@ describe("AC-18 §22: the per-loaded-torpedo keyed checks", () => {
         substep: 4,
         launcherId: "LCH-1",
         loadedTorpedoes: [{ tubeIndex: 0, torpedoModelId: "NOT_SHIPPED" }],
+        torpedoes: COMPILED_TORPEDOES,
         modifiers: neutralModifiers(),
         keyedRng: () => 0.001,
       }),
@@ -251,6 +258,7 @@ describe("AC-18 §22: the SEPARATE explosion damage package (MEDIUM-4 compositio
       substep: 4,
       launcherId: "LCH-1",
       loadedTorpedoes: [{ tubeIndex: 0, torpedoModelId: "ger_533mm_g7a_1934" }],
+      torpedoes: COMPILED_TORPEDOES,
       modifiers: neutralModifiers(),
       keyedRng: () => 0.001, // detonates
     });
@@ -282,6 +290,7 @@ describe("AC-18 §22: the SEPARATE explosion damage package (MEDIUM-4 compositio
       substep: 4,
       launcherId: "LCH-1",
       loadedTorpedoes: [{ tubeIndex: 0, torpedoModelId: "ger_533mm_g7a_1934" }],
+      torpedoes: COMPILED_TORPEDOES,
       modifiers: neutralModifiers(),
       keyedRng: () => 0.5, // drawBp 5_000 >= 1_500 -> does NOT detonate
     });
@@ -298,6 +307,7 @@ describe("AC-18 §22: the SEPARATE explosion damage package (MEDIUM-4 compositio
       substep: 4,
       launcherId: "LCH-1",
       loadedTorpedoes: [{ tubeIndex: 0, torpedoModelId: "ger_533mm_g7a_1934" }],
+      torpedoes: COMPILED_TORPEDOES,
       modifiers: neutralModifiers(),
       keyedRng: () => 0.001, // detonates -> 280 kg consumed
     });

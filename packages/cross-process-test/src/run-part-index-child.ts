@@ -57,6 +57,7 @@ const PARTS = `parts:
       reliabilityBp: 90000
       guidanceCapability: none
       launchTypes: [ABOVE_WATER_TRAINABLE]
+      technologyPrerequisiteIds: []
       tubeHitHazardPolicy: ORDINARY
     provenance: ${PROVENANCE}
   - id: whitehead_14in_fiume
@@ -87,6 +88,7 @@ const PARTS = `parts:
       reliabilityBp: 88000
       guidanceCapability: none
       launchTypes: [ABOVE_WATER_TRAINABLE]
+      technologyPrerequisiteIds: []
       tubeHitHazardPolicy: ORDINARY
     quantities: [{ id: torpedo_mass, kind: massKg, value: 300, basis: PER_PART_UNIT }]
     provenance: ${PROVENANCE}

@@ -54,6 +54,7 @@ const torpedoSpec = (diameterUm: number, warheadKg: number) => ({
   reliabilityBp: 88000,
   guidanceCapability: "none",
   launchTypes: ["ABOVE_WATER_TRAINABLE" as const],
+  technologyPrerequisiteIds: [],
   tubeHitHazardPolicy: "ORDINARY" as const,
 });
 

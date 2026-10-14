@@ -74,6 +74,8 @@ export interface TorpedoModelSource {
   readonly minimumArmingDistanceM: number;
   readonly reliabilityBp: number;
   readonly guidanceCapability: string;
+  /** Technology prerequisites combat's §4 platform-technology predicate reads (may be empty). */
+  readonly technologyPrerequisiteIds: readonly string[];
   /** Combat launcher-family ids; their mount-type suffix becomes the part's `launchTypes`. */
   readonly compatibleLauncherFamilyIds: readonly string[];
   readonly tubeHitHazardPolicyId: TorpedoTubeHitHazardPolicy;
@@ -143,6 +145,7 @@ export const TORPEDO_SOURCE_FIELDS: readonly TorpedoSourceFieldDestination[] = [
   { field: "minimumArmingDistanceM", destination: "spec.minimumArmingDistanceM" },
   { field: "reliabilityBp", destination: "spec.reliabilityBp" },
   { field: "guidanceCapability", destination: "spec.guidanceCapability" },
+  { field: "technologyPrerequisiteIds", destination: "spec.technologyPrerequisiteIds" },
   { field: "compatibleLauncherFamilyIds", destination: "spec.launchTypes (+ spec.diameterUm)" },
   {
     field: "oxygenState",
@@ -152,7 +155,6 @@ export const TORPEDO_SOURCE_FIELDS: readonly TorpedoSourceFieldDestination[] = [
   // Fields intentionally not carried by a part (unread by combat, or engine bookkeeping).
   { field: "depthKeepingProfile", destination: "(none)" },
   { field: "ownerNationIds", destination: "(none)" },
-  { field: "technologyPrerequisiteIds", destination: "(none)" },
   { field: "productionRequirementId", destination: "(none)" },
   { field: "contentVersion", destination: "(none)" },
   { field: "contentHash", destination: "(none)" },
@@ -321,6 +323,7 @@ export function buildTorpedoPartModel(input: {
       minimumArmingDistanceM: model.minimumArmingDistanceM,
       reliabilityBp: model.reliabilityBp,
       guidanceCapability: model.guidanceCapability,
+      technologyPrerequisiteIds: [...model.technologyPrerequisiteIds],
       launchTypes: launch.launchTypes,
       tubeHitHazardPolicy: model.tubeHitHazardPolicyId,
       ...(isOxygen && model.oxygenState !== null

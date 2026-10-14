@@ -1,5 +1,6 @@
 // P-1 (ADR-0052): per-ship cause-of-loss is observational and deterministic.
 import { describe, expect, it } from "vite-plus/test";
+import { compiledTorpedoOf } from "../fixtures/compiledTorpedoes.js";
 import { SafeInt } from "@bluewave/contracts";
 import type { CompiledDesignVersion } from "@bluewave/campaign";
 import { resolveBattleAuto } from "../../src/battleResolution/resolve.js";
@@ -105,11 +106,13 @@ function ironclads(armed: boolean, guns: number): FixtureNationSet {
                     mountType: "UNDERWATER_FIXED" as const,
                     tubeCount: SafeInt(2),
                     torpedoModelId: WHITEHEAD,
+                    compiledTorpedo: compiledTorpedoOf(WHITEHEAD),
                   },
                   {
                     mountType: "ABOVE_WATER_TRAINABLE" as const,
                     tubeCount: SafeInt(2),
                     torpedoModelId: WHITEHEAD,
+                    compiledTorpedo: compiledTorpedoOf(WHITEHEAD),
                   },
                 ],
               }

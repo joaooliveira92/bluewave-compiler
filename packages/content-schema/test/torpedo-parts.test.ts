@@ -27,6 +27,7 @@ const TORPEDO_SPEC = {
   reliabilityBp: 88_000,
   guidanceCapability: "none",
   launchTypes: ["ABOVE_WATER_FIXED", "ABOVE_WATER_TRAINABLE", "UNDERWATER_FIXED"],
+  technologyPrerequisiteIds: [],
   tubeHitHazardPolicy: "ORDINARY",
 };
 

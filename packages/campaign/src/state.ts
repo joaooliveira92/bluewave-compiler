@@ -1,6 +1,6 @@
 //packages/campaign/src/state.ts
 import type { SafeInt } from "@bluewave/contracts";
-import type { CompiledArmamentMount } from "@bluewave/armament";
+import type { CompiledArmamentMount, CompiledTorpedo } from "@bluewave/armament";
 import type { CanonicalEnvelope } from "@bluewave/deterministic";
 import type { PermanentDivision } from "./division.js";
 import type { Officer } from "./officers.js";
@@ -134,6 +134,8 @@ export interface CompiledTorpedoMount {
   mountType: string;
   tubeCount: SafeInt;
   torpedoModelId: string;
+  /** The neutral compiled torpedo contract, when the compile resolved the parts read path (ticket 13b). */
+  compiledTorpedo?: CompiledTorpedo;
 }
 
 export interface DesignFamily {

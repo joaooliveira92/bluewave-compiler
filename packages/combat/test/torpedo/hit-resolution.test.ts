@@ -38,15 +38,15 @@ import {
   traveledArmingDistance,
   type TargetHitProfile,
   type TorpedoContactBlocker,
-  type TorpedoSetting,
   type TorpedoTrack,
 } from "../../src/torpedoes/index.js";
+import type { CompiledTorpedoSpeedSetting } from "@bluewave/armament";
 
 const G7A = "ger_533mm_g7a_1934";
 const G7A_RELIABILITY_BP = 96_000; // -> track reliability 9_600 (10_000 bp roll scale)
-const G7A_44KN_SETTING: TorpedoSetting = {
+const G7A_44KN_SETTING: CompiledTorpedoSpeedSetting = {
   settingId: "44kn",
-  speedKnotsBp: 44_000,
+  speedMilliKnots: 44_000,
   rangeM: 6_000,
 };
 const G7A_ARMING_M = 150;

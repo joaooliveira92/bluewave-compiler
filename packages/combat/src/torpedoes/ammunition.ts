@@ -10,7 +10,7 @@
 // Pure/deterministic: no ambient I/O/clock/random.
 import { BluewaveError } from "@bluewave/contracts";
 import { EMPTY_TUBE } from "./constants.js";
-import { torpedoModelById } from "./model.js";
+import { compiledTorpedoOf, type CompiledTorpedoRegistry } from "./registry.js";
 import {
   TORPEDO_AMMUNITION_UNAVAILABLE,
   TORPEDO_MODEL_INCOMPATIBLE,
@@ -112,6 +112,7 @@ export function reserveForReload(
   opts: {
     tubeIndex: number;
     modelId: string;
+    torpedoes: CompiledTorpedoRegistry;
     compatible: boolean;
     requiredReloadTimeMs: number;
     progressMs?: number;
@@ -139,10 +140,10 @@ export function reserveForReload(
       "reload progress must be an integer within [0, requiredReloadTimeMs]",
     );
 
-  // F5: the modelId must exist in the shipped model catalog — a caller-supplied
-  // `compatible: true` must never open a consumption path for an unknown model
-  // (fail-closed with INVALID_TORPEDO_MODEL_DEFINITION, mirroring torpedoModelById).
-  torpedoModelById(modelId);
+  // F5: the modelId must exist in the battle's compiled-torpedo registry — a
+  // caller-supplied `compatible: true` must never open a consumption path for
+  // an unknown model (fail-closed with INVALID_TORPEDO_MODEL_DEFINITION).
+  compiledTorpedoOf(opts.torpedoes, modelId);
 
   if (state.loadedPerTube[tubeIndex] !== EMPTY_TUBE)
     invariant(

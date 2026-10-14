@@ -1,5 +1,6 @@
 // P-1 ticket 04 — AC-4/AC-5/AC-6: torpedoes in campaign auto-resolution.
 import { describe, it, expect } from "vite-plus/test";
+import { compiledTorpedoOf } from "../fixtures/compiledTorpedoes.js";
 import { SafeInt } from "@bluewave/contracts";
 import type { CompiledDesignVersion } from "@bluewave/campaign";
 import { resolveBattleAuto } from "../../src/battleResolution/resolve.js";
@@ -16,11 +17,17 @@ function armAll(nations: FixtureNationSet): FixtureNationSet {
         {
           ...d,
           torpedoArmament: [
-            { mountType: "UNDERWATER_FIXED", tubeCount: SafeInt(2), torpedoModelId: WHITEHEAD },
+            {
+              mountType: "UNDERWATER_FIXED",
+              tubeCount: SafeInt(2),
+              torpedoModelId: WHITEHEAD,
+              compiledTorpedo: compiledTorpedoOf(WHITEHEAD),
+            },
             {
               mountType: "ABOVE_WATER_TRAINABLE",
               tubeCount: SafeInt(2),
               torpedoModelId: WHITEHEAD,
+              compiledTorpedo: compiledTorpedoOf(WHITEHEAD),
             },
           ],
         },
@@ -63,7 +70,12 @@ describe("P-1 AC-4 projection", () => {
         {
           ...d,
           torpedoArmament: [
-            { mountType: "SUBMARINE_INTERNAL", tubeCount: SafeInt(1), torpedoModelId: WHITEHEAD },
+            {
+              mountType: "SUBMARINE_INTERNAL",
+              tubeCount: SafeInt(1),
+              torpedoModelId: WHITEHEAD,
+              compiledTorpedo: compiledTorpedoOf(WHITEHEAD),
+            },
           ],
         },
       ]),

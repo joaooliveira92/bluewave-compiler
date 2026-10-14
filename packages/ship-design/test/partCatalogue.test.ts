@@ -10,7 +10,6 @@
  * Expected values come from the sources (the armament catalogue, the components file and the
  * reference designs), never recomputed the way the builder computes them.
  */
-import { SHIPPED_TORPEDO_MODELS } from "@bluewave/combat";
 import { FlattenedPartSchema, PART_TAGS, decodeStrict } from "@bluewave/content-schema";
 import type { FlattenedPart } from "@bluewave/content-schema";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
@@ -36,12 +35,7 @@ import {
   shipBalance,
 } from "./helpers/earlyContext.js";
 import { compatibility, designs, present, resolveRow } from "./helpers/gunReadPath.js";
-import { torpedoModels } from "./helpers/torpedoModels.js";
-
-const torpedoDiameterUm = (id: string): number | undefined => {
-  const model = SHIPPED_TORPEDO_MODELS.find((m) => String(m.torpedoModelId) === id);
-  return model === undefined ? undefined : model.diameterMm * 1000;
-};
+import { torpedoDiameterUm, torpedoModels } from "./helpers/torpedoModels.js";
 
 const source: SourceCatalogue = {
   components,

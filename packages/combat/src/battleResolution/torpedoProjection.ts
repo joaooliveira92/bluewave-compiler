@@ -10,6 +10,7 @@
 //   draftM           = clamp(round(cbrt(tonnes) * 0.35), 1, 12)
 // The derivation is monotone in displacement and only feeds hit geometry.
 import type { CompiledDesignVersion } from "@bluewave/campaign";
+import type { CompiledTorpedo } from "@bluewave/armament";
 import type { TacticalShipUnit } from "../tactical/unit.js";
 import type { DamageTargetContext } from "./damage.js";
 import {
@@ -20,7 +21,6 @@ import {
   TORPEDO_FORMULA_VERSION,
   TORPEDO_MOUNT_TYPES,
   TORPEDO_RULESET_VERSION,
-  torpedoModelById,
   withTorpedoLauncherStateHash,
   type TorpedoContext,
   type TorpedoLauncherWiring,
@@ -72,6 +72,7 @@ export function projectTorpedoes(input: {
   damageTargets: Readonly<Record<string, DamageTargetContext>>;
 }): TorpedoContext | undefined {
   const launchers: TorpedoLauncherWiring[] = [];
+  const registry: Record<string, CompiledTorpedo> = {};
   for (const u of input.units) {
     const mounts = input.designs[u.assetId]?.torpedoArmament ?? [];
     mounts.forEach((mount, i) => {
@@ -84,17 +85,26 @@ export function projectTorpedoes(input: {
         });
       }
       const mountType = mount.mountType as TorpedoMountType;
-      const model = torpedoModelById(mount.torpedoModelId);
-      const familyId = `${Math.round(model.diameterMm / 25.4)}in_${mountType.toLowerCase()}`;
-      if (!(model.compatibleLauncherFamilyIds as readonly string[]).includes(familyId)) {
+      const compiled = mount.compiledTorpedo;
+      if (compiled === undefined) {
         throw new BluewaveError(BATTLE_AUTO_RESOLUTION_FAILED, {
           code: BATTLE_AUTO_RESOLUTION_FAILED,
           shipId: u.assetId,
           torpedoModelId: mount.torpedoModelId,
+          reason: "design torpedo mount carries no compiled torpedo record",
+        });
+      }
+      const familyId = `${Math.round(compiled.diameterUm / 25_400)}in_${mountType.toLowerCase()}`;
+      if (!(compiled.launchTypes as readonly string[]).includes(mountType)) {
+        throw new BluewaveError(BATTLE_AUTO_RESOLUTION_FAILED, {
+          code: BATTLE_AUTO_RESOLUTION_FAILED,
+          shipId: u.assetId,
+          torpedoModelId: compiled.partId,
           launcherFamilyId: familyId,
           reason: "design torpedo model is not compatible with the mount's launcher family",
         });
       }
+      registry[compiled.partId] = compiled;
       const tubeCount = Number(mount.tubeCount);
       const id = launcherId(u.assetId, i);
       launchers.push({
@@ -105,9 +115,9 @@ export function projectTorpedoes(input: {
           mountPosition: `mount_${i + 1}`,
           mountType,
           tubeCount,
-          loadedPerTube: Array.from({ length: tubeCount }, () => mount.torpedoModelId),
+          loadedPerTube: Array.from({ length: tubeCount }, () => compiled.partId),
           // One load per tube: no reloads are modelled in auto-resolution.
-          reserveAmmunition: { [mount.torpedoModelId]: 0 },
+          reserveAmmunition: { [compiled.partId]: 0 },
           reloadState: NO_RELOAD_IN_PROGRESS,
           trainingLimitsMdeg: { ...TRAINING_LIMITS_MDEG[mountType] },
           underwaterLaunchCapability: mountType.startsWith("UNDERWATER"),
@@ -168,7 +178,7 @@ export function projectTorpedoes(input: {
       machinery: { zone: "MACHINERY", machineryComponents: ["ENGINE-1"] },
     };
   }
-  return { launchers, commands: [], targets, tracks: [] };
+  return { launchers, commands: [], targets, tracks: [], torpedoes: registry };
 }
 
 /** True when a launcher still has a loaded tube; returns the lowest loaded index. */

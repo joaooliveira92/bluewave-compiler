@@ -35,6 +35,25 @@ import { nationalContext, readReferenceDesignEntries } from "./helpers/earlyCont
 const root = join(import.meta.dirname, "..", "..", "..", "content", "production", "1880");
 const shipBuilding = join(root, "ship-building");
 
+/**
+ * Drop the compiled-torpedo contract (and the design hash that covers it) from a compiled design
+ * before comparing it to the legacy compile (ticket 13b): the parts pipeline resolves the neutral
+ * `CompiledTorpedo` onto each tube mount, and the legacy path has no parts to compile. Every other
+ * field must still be identical; the equivalence harness proves the derived metrics are unchanged.
+ */
+function stripCompiledTorpedo(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(stripCompiledTorpedo);
+  if (value !== null && typeof value === "object") {
+    const out: Record<string, unknown> = {};
+    for (const [key, inner] of Object.entries(value as Record<string, unknown>)) {
+      if (key === "compiledTorpedo" || key === "hash") continue;
+      out[key] = stripCompiledTorpedo(inner);
+    }
+    return out;
+  }
+  return value;
+}
+
 function readYaml(path: string): Record<string, unknown> {
   const collector = { addError: () => undefined, hasErrors: false } as never;
   const parsed = parseYamlSafe(readFileSync(path, "utf8"), path, collector);
@@ -140,9 +159,17 @@ describe("production parts content → compile (ticket 11d)", () => {
         legacy.draft,
         nationalContext(loadout.month, legacy.draft.nationId),
       );
-      expect(canonicalSerialize(result.compiled), loadout.id).toBe(
-        canonicalSerialize(legacyCompiled),
+      expect(canonicalSerialize(stripCompiledTorpedo(result.compiled)), loadout.id).toBe(
+        canonicalSerialize(stripCompiledTorpedo(legacyCompiled)),
       );
+      // The parts pipeline DID resolve the neutral contract onto every tube mount (ticket 13b).
+      for (const component of result.compiled.components) {
+        if (component.category !== "TORPEDO_TUBE" || component.torpedoMount === null) continue;
+        expect(
+          component.torpedoMount.compiledTorpedo,
+          `${loadout.id}:${component.instanceId}`,
+        ).toBeDefined();
+      }
     }
     expect(placements).toBe(823);
   });

@@ -20,6 +20,7 @@ import {
   type TorpedoLauncherState,
   withTorpedoLauncherStateHash,
 } from "../../src/torpedoes/index.js";
+import { COMPILED_TORPEDOES } from "../fixtures/compiledTorpedoes.js";
 
 const G7A = "ger_533mm_g7a_1934";
 const G7E = "ger_533mm_g7e_1936";
@@ -119,6 +120,7 @@ describe("AC-3: reserveForReload reserves + consumes one compatible reserve", ()
     const { state: next, account } = reserveForReload(state, {
       tubeIndex: 2,
       modelId: G7A,
+      torpedoes: COMPILED_TORPEDOES,
       compatible: true,
       requiredReloadTimeMs: RELOAD_MS,
     });
@@ -142,6 +144,7 @@ describe("AC-3: reserveForReload reserves + consumes one compatible reserve", ()
         reserveForReload(state, {
           tubeIndex: 2,
           modelId: G7E,
+          torpedoes: COMPILED_TORPEDOES,
           compatible: false,
           requiredReloadTimeMs: RELOAD_MS,
         }),
@@ -160,6 +163,7 @@ describe("AC-3: reserveForReload reserves + consumes one compatible reserve", ()
         reserveForReload(state, {
           tubeIndex: 2,
           modelId: G7A,
+          torpedoes: COMPILED_TORPEDOES,
           compatible: true,
           requiredReloadTimeMs: RELOAD_MS,
         }),
@@ -173,6 +177,7 @@ describe("AC-3: reserveForReload reserves + consumes one compatible reserve", ()
         reserveForReload(baseLauncher(), {
           tubeIndex: 2,
           modelId: "jpn_61cm_type93_1935",
+          torpedoes: COMPILED_TORPEDOES,
           compatible: true,
           requiredReloadTimeMs: RELOAD_MS,
         }),
@@ -187,6 +192,7 @@ describe("AC-3: reserveForReload reserves + consumes one compatible reserve", ()
         reserveForReload(state, {
           tubeIndex: 2,
           modelId: "ger_533mm_g7a_2040", // never shipped
+          torpedoes: COMPILED_TORPEDOES,
           compatible: true, // caller asserts compatibility — must still fail closed
           requiredReloadTimeMs: RELOAD_MS,
         }),
@@ -205,6 +211,7 @@ describe("AC-3: reserveForReload reserves + consumes one compatible reserve", ()
         reserveForReload(baseLauncher(), {
           tubeIndex: 0,
           modelId: G7A,
+          torpedoes: COMPILED_TORPEDOES,
           compatible: true,
           requiredReloadTimeMs: RELOAD_MS,
         }),
@@ -218,6 +225,7 @@ describe("AC-3: reserveForReload reserves + consumes one compatible reserve", ()
         reserveForReload(baseLauncher(), {
           tubeIndex: 4,
           modelId: G7A,
+          torpedoes: COMPILED_TORPEDOES,
           compatible: true,
           requiredReloadTimeMs: RELOAD_MS,
         }),
@@ -240,6 +248,7 @@ describe("AC-3: reserveForReload reserves + consumes one compatible reserve", ()
         reserveForReload(state, {
           tubeIndex: 3,
           modelId: G7E,
+          torpedoes: COMPILED_TORPEDOES,
           compatible: true,
           requiredReloadTimeMs: RELOAD_MS,
         }),
@@ -254,6 +263,7 @@ describe("AC-3: reload completion — no creation, no substitution", () => {
     const reserved = reserveForReload(state, {
       tubeIndex: 2,
       modelId: G7A,
+      torpedoes: COMPILED_TORPEDOES,
       compatible: true,
       requiredReloadTimeMs: RELOAD_MS,
       progressMs: RELOAD_MS, // reload elapsed
@@ -270,6 +280,7 @@ describe("AC-3: reload completion — no creation, no substitution", () => {
     const reserved = reserveForReload(baseLauncher(), {
       tubeIndex: 2,
       modelId: G7A,
+      torpedoes: COMPILED_TORPEDOES,
       compatible: true,
       requiredReloadTimeMs: RELOAD_MS,
       progressMs: 0,
@@ -296,6 +307,7 @@ describe("AC-3 (NF-1): a missing reloadState fails closed — never a raw TypeEr
         reserveForReload(raw, {
           tubeIndex: 2,
           modelId: G7A,
+          torpedoes: COMPILED_TORPEDOES,
           compatible: true,
           requiredReloadTimeMs: RELOAD_MS,
         }),
@@ -328,6 +340,7 @@ describe("AC-3: inventory conservation across consume/reload cycles", () => {
     state = reserveForReload(state, {
       tubeIndex: 0,
       modelId: G7A,
+      torpedoes: COMPILED_TORPEDOES,
       compatible: true,
       requiredReloadTimeMs: RELOAD_MS,
       progressMs: RELOAD_MS,

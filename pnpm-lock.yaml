@@ -315,6 +315,9 @@ importers:
       '@bluewave/diagnostics':
         specifier: workspace:*
         version: link:../diagnostics
+      '@bluewave/ship-design':
+        specifier: workspace:*
+        version: link:../ship-design
       yaml:
         specifier: ^2.9.1
         version: 2.9.1
@@ -550,6 +553,9 @@ importers:
       '@bluewave/ai':
         specifier: workspace:*
         version: link:../ai
+      '@bluewave/armament':
+        specifier: workspace:*
+        version: link:../armament
       '@bluewave/campaign':
         specifier: workspace:*
         version: link:../campaign
@@ -627,9 +633,6 @@ importers:
         specifier: workspace:*
         version: link:../random
     devDependencies:
-      '@bluewave/combat':
-        specifier: workspace:*
-        version: link:../combat
       yaml:
         specifier: ^2.9.1
         version: 2.9.1

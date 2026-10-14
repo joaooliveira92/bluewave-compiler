@@ -59,17 +59,17 @@ import {
   setTorpedoTerminalResult,
   type TargetHitProfile,
   type TorpedoImpactZone,
-  type TorpedoSetting,
   type TorpedoTargetProtectionLevel,
   type TorpedoTrack,
 } from "../../src/torpedoes/index.js";
+import type { CompiledTorpedoSpeedSetting } from "@bluewave/armament";
 
 // Model-id fixtures: the §15 fuze is pinned by the model->fuze mapping.
 const G7A = "ger_533mm_g7a_1934"; // MAGNETIC (Pi MZ pistols, Torpedokrise)
 const WHITEHEAD = "whitehead_18in_1894"; // CONTACT (contact pistol)
-const G7A_44KN_SETTING: TorpedoSetting = {
+const G7A_44KN_SETTING: CompiledTorpedoSpeedSetting = {
   settingId: "44kn",
-  speedKnotsBp: 44_000,
+  speedMilliKnots: 44_000,
   rangeM: 6_000,
 };
 const TRACK_ID = "B1:5:4:torpedo:LCH-1:tube0";

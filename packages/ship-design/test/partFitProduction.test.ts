@@ -1,4 +1,3 @@
-import { SHIPPED_TORPEDO_MODELS } from "@bluewave/combat";
 import {
   FlattenedPartSchema,
   LoadoutSchema,
@@ -43,6 +42,7 @@ import {
   resolveRow,
   type Design,
 } from "./helpers/gunReadPath.js";
+import { torpedoDiameterUm, torpedoModels } from "./helpers/torpedoModels.js";
 
 // ---------------------------------------------------------------------------
 // Production fixture: every design's whole loadout through the read path
@@ -57,10 +57,6 @@ const WEAPON = new Set([
 ]);
 const categoryOf = (id: string) => components.find((c) => c.id === id)?.category;
 
-const torpedoDiameterUm = (id: string): number | undefined => {
-  const model = SHIPPED_TORPEDO_MODELS.find((m) => String(m.torpedoModelId) === id);
-  return model === undefined ? undefined : model.diameterMm * 1000;
-};
 const fittingModel = buildFittingPartModel({ components });
 const plantModel = buildPlantPartModel({ plants });
 const armourModel = buildArmourPartModel({ armour: shipBalance.armour });
@@ -108,6 +104,7 @@ function fixtureTorpedo(modelId: string): FlattenedPart {
       reliabilityBp: 1,
       guidanceCapability: "none",
       launchTypes: ["ABOVE_WATER_TRAINABLE"],
+      technologyPrerequisiteIds: [],
       tubeHitHazardPolicy: "ORDINARY",
     },
     quantities: [],
@@ -313,10 +310,13 @@ describe("fit over production launchers (ticket 04 hand-over)", () => {
       "the French launcher",
     );
     const other = present(
-      SHIPPED_TORPEDO_MODELS.map((m) => String(m.torpedoModelId)).find(
-        (id) =>
-          id !== loadedTorpedoOf(french.id) && torpedoDiameterUm(id) !== french.spec.boreDiameterUm,
-      ),
+      torpedoModels
+        .map((m) => String(m.torpedoModelId))
+        .find(
+          (id) =>
+            id !== loadedTorpedoOf(french.id) &&
+            torpedoDiameterUm(id) !== french.spec.boreDiameterUm,
+        ),
       "a torpedo of another diameter",
     );
     const r = launcherFit(french, other, true);

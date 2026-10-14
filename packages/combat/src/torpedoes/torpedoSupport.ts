@@ -5,7 +5,8 @@ import { BluewaveError } from "@bluewave/contracts";
 import { RandomEngine } from "@bluewave/random";
 import { BattleEvent } from "../battleLedger.js";
 import { TORPEDO_FORMULA_VERSION, TORPEDO_RULESET_VERSION } from "./constants.js";
-import { torpedoModelById, type TorpedoSetting } from "./model.js";
+import type { CompiledTorpedoSpeedSetting } from "@bluewave/armament";
+import { compiledTorpedoOf, type CompiledTorpedoRegistry } from "./registry.js";
 import { type TorpedoTrack } from "./track.js";
 import { type TorpedoDamageApplicationResult } from "./damagePackage.js";
 import {
@@ -76,8 +77,11 @@ export function keyedRngOf(engine: RandomEngine | undefined): (stream: string) =
   return (stream: string): number => (engine ? engine.stream(stream).next() : 0);
 }
 
-export function modelWarheadEquivalentKg(modelId: string): number {
-  return torpedoModelById(modelId).warheadExplosiveEquivalentMassKg;
+export function modelWarheadEquivalentKg(
+  torpedoes: CompiledTorpedoRegistry,
+  modelId: string,
+): number {
+  return compiledTorpedoOf(torpedoes, modelId).warheadExplosiveEquivalentMassKg;
 }
 
 export function commandSourceOf(
@@ -167,9 +171,13 @@ export function makeRecord(battleId: string, seed: RecordSeed): TorpedoRecord {
   });
 }
 
-export function launchSolutionInputs(setting: TorpedoSetting, gyroMdeg: number, depthM: number) {
+export function launchSolutionInputs(
+  setting: CompiledTorpedoSpeedSetting,
+  gyroMdeg: number,
+  depthM: number,
+) {
   return [
-    { key: "orderedSpeedKnotsBp", value: setting.speedKnotsBp },
+    { key: "orderedSpeedKnotsBp", value: setting.speedMilliKnots },
     { key: "orderedRangeM", value: setting.rangeM },
     { key: "orderedGyroAngleMdeg", value: gyroMdeg },
     { key: "depthSettingM", value: depthM },
@@ -177,16 +185,17 @@ export function launchSolutionInputs(setting: TorpedoSetting, gyroMdeg: number, 
 }
 
 export function resolvedSettingForCommand(
+  torpedoes: CompiledTorpedoRegistry,
   modelId: string,
   selectedSettingId: string | null | undefined,
-): TorpedoSetting {
-  const model = torpedoModelById(modelId); // fail-closed
+): CompiledTorpedoSpeedSetting {
+  const model = compiledTorpedoOf(torpedoes, modelId); // fail-closed
   if (selectedSettingId === null || selectedSettingId === undefined) {
-    const first = model.orderedSettings[0];
-    if (!first) invariant("orderedSettings", modelId, "a model must ship at least one setting");
+    const first = model.speedSettings[0];
+    if (!first) invariant("speedSettings", modelId, "a model must ship at least one setting");
     return first;
   }
-  const found = model.orderedSettings.find((s) => s.settingId === selectedSettingId);
+  const found = model.speedSettings.find((s) => s.settingId === selectedSettingId);
   if (!found)
     invariant(
       "selectedSettingId",

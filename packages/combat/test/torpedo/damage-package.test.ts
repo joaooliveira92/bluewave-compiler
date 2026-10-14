@@ -18,12 +18,12 @@ import {
   assertTorpedoDamagePackageSurface,
   battleIdFromPackage,
   createTorpedoDamagePackage,
-  torpedoModelById,
   TORPEDO_PROGRESSIVE_FLOODING_CREATED,
   UNDERWATER_TUBE_SEVERE_FLOODING,
   verifyTorpedoDamagePackageHash,
   type TorpedoDamagePackage,
 } from "../../src/torpedoes/index.js";
+import { compiledTorpedoOf } from "../fixtures/compiledTorpedoes.js";
 
 // ---- fixture state (the B-4 shape proven by damage/state.test.ts) ----------
 function baseState(overrides: Partial<ShipDamageState> = {}): ShipDamageState {
@@ -48,7 +48,7 @@ function baseState(overrides: Partial<ShipDamageState> = {}): ShipDamageState {
 
 // A Type-93-scale package on a STANDARD-protected hull (MACHINERY zone).
 function type93Package(battleId = "B1"): TorpedoDamagePackage {
-  const model = torpedoModelById("jpn_61cm_type93_1935");
+  const model = compiledTorpedoOf("jpn_61cm_type93_1935");
   return createTorpedoDamagePackage({
     battleId,
     battleMinute: 6,

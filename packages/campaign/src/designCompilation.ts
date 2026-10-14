@@ -4,6 +4,7 @@
 // human-friendly units (knots, mm); this stage normalizes to canonical engine
 // units (µm/s, µm) per ADR-0037 and hashes each immutable compiled version.
 import { SafeInt } from "@bluewave/contracts";
+import type { CompiledTorpedo } from "@bluewave/armament";
 import {
   type DesignTemplate,
   DesignTemplateSchema,
@@ -46,14 +47,39 @@ export function assertFleetDesignLinks(
   return !collector.hasErrors;
 }
 
-function mapTorpedoArmament(validated: DesignTemplate): CompiledTorpedoMount[] | undefined {
+/**
+ * Resolves a design's torpedo mount to its neutral compiled torpedo, when the content bundle
+ * carries the torpedo part (ticket 13b). Returns `undefined` for a bundle without parts — combat
+ * then fails closed if the mount reaches a battle.
+ */
+export type TorpedoResolver = (torpedoModelId: string) => CompiledTorpedo | undefined;
+
+function mapTorpedoArmament(
+  validated: DesignTemplate,
+  torpedoOf?: TorpedoResolver,
+): CompiledTorpedoMount[] | undefined {
   const armament = validated["torpedoArmament"] as
     | { mountType: string; tubeCount: number; torpedoModelId: string }[]
     | undefined;
-  return armament?.map((m) => ({
-    mountType: m.mountType,
-    tubeCount: SafeInt(m.tubeCount),
-    torpedoModelId: m.torpedoModelId,
+  return armament?.map((m) => {
+    const compiledTorpedo = torpedoOf?.(m.torpedoModelId);
+    return {
+      mountType: m.mountType,
+      tubeCount: SafeInt(m.tubeCount),
+      torpedoModelId: m.torpedoModelId,
+      ...(compiledTorpedo !== undefined ? { compiledTorpedo } : {}),
+    };
+  });
+}
+
+/** The hashed mount surface: the three identity fields, never the optional compiled record. */
+function hashableTorpedoArmament(
+  armament: CompiledTorpedoMount[] | undefined,
+): readonly { mountType: string; tubeCount: SafeInt; torpedoModelId: string }[] | undefined {
+  return armament?.map(({ mountType, tubeCount, torpedoModelId }) => ({
+    mountType,
+    tubeCount,
+    torpedoModelId,
   }));
 }
 
@@ -97,8 +123,11 @@ function computeCompiledDesignHash(
       machineryType: validated["machineryType"],
       hitPoints: validated["hitPoints"],
       crewComplement: validated["crewComplement"],
-      // P-1 AC-2: only hashed when present, so unarmed designs keep their hash.
-      ...(torpedoArmament ? { torpedoArmament } : {}),
+      // P-1 AC-2: only hashed when present, so unarmed designs keep their hash. The optional
+      // compiled torpedo (ticket 13b) is NOT part of the hashed surface — the identity fields are.
+      ...(hashableTorpedoArmament(torpedoArmament)
+        ? { torpedoArmament: hashableTorpedoArmament(torpedoArmament) }
+        : {}),
     }),
   );
 }
@@ -107,8 +136,9 @@ function buildCompiledDesign(
   designVersionId: string,
   rec: Record<string, unknown>,
   validated: DesignTemplate,
+  torpedoOf?: TorpedoResolver,
 ): CompiledDesignVersion {
-  const torpedoArmament = mapTorpedoArmament(validated);
+  const torpedoArmament = mapTorpedoArmament(validated, torpedoOf);
   return {
     designVersionId,
     designFamilyId: toStr(validated["designFamilyId"], ""),
@@ -150,6 +180,7 @@ function buildCompiledDesign(
 export function buildDesignsFromData(
   designsData: unknown[],
   collector: DiagnosticCollector,
+  torpedoOf?: TorpedoResolver,
 ): Map<string, CompiledDesignVersion> {
   const designs = new Map<string, CompiledDesignVersion>();
 
@@ -168,7 +199,7 @@ export function buildDesignsFromData(
     );
     if (!validated) continue;
 
-    designs.set(designVersionId, buildCompiledDesign(designVersionId, rec, validated));
+    designs.set(designVersionId, buildCompiledDesign(designVersionId, rec, validated, torpedoOf));
   }
 
   return designs;

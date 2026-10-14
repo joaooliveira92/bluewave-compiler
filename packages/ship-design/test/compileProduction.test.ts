@@ -4,7 +4,6 @@
 // through `deriveAfterFit`. An invalid loadout exposes fit information and no derived metric, so
 // no production caller can obtain metrics for a loadout that does not fit.
 
-import { SHIPPED_TORPEDO_MODELS } from "@bluewave/combat";
 import {
   LoadoutSchema,
   decodeStrict,
@@ -46,14 +45,11 @@ import {
   resolveRow,
   type Design,
 } from "./helpers/gunReadPath.js";
+import { torpedoDiameterUm } from "./helpers/torpedoModels.js";
 
 const WEAPON = new Set(["MAIN_GUN", "SECONDARY_GUN", "DUAL_PURPOSE_GUN", "AA_WEAPON"]);
 const categoryOf = (id: string) => components.find((c) => c.id === id)?.category;
 
-const torpedoDiameterUm = (id: string): number | undefined => {
-  const model = SHIPPED_TORPEDO_MODELS.find((m) => String(m.torpedoModelId) === id);
-  return model === undefined ? undefined : model.diameterMm * 1000;
-};
 const fittingModel = buildFittingPartModel({ components });
 const plantModel = buildPlantPartModel({ plants });
 const armourModel = buildArmourPartModel({ armour: shipBalance.armour });

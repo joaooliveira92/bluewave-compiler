@@ -1,4 +1,3 @@
-import { SHIPPED_TORPEDO_MODELS } from "@bluewave/combat";
 import { PART_TAGS } from "@bluewave/content-schema";
 import { join } from "node:path";
 // The authoritative decoded content, shared with the equivalence harness so the codemod is
@@ -12,7 +11,10 @@ import {
   shipBalance,
   plants,
 } from "../../../ship-design/test/helpers/earlyContext.js";
-import { torpedoModels } from "../../../ship-design/test/helpers/torpedoModels.js";
+import {
+  torpedoDiameterUm,
+  torpedoModels,
+} from "../../../ship-design/test/helpers/torpedoModels.js";
 import type { LegacySource } from "../../src/types.js";
 
 export { armamentContent, components, hullRecords, navalProfiles, shipBalance, plants };
@@ -28,12 +30,7 @@ export const contentDir = join(
   "1880",
 );
 
-export const torpedoDiameterUm = (id: string): number | undefined => {
-  const model = SHIPPED_TORPEDO_MODELS.find((m) => String(m.torpedoModelId) === id);
-  return model === undefined ? undefined : model.diameterMm * 1000;
-};
-
-export { torpedoModels };
+export { torpedoDiameterUm, torpedoModels };
 
 /** The in-memory legacy source (the same content the equivalence harness compiles). */
 export const legacySource: LegacySource = {

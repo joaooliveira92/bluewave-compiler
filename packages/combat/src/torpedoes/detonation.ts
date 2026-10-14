@@ -146,6 +146,9 @@ export const TORPEDO_FUZE_POLICIES = ["CONTACT", "MAGNETIC"] as const;
 export type TorpedoFuzePolicy = (typeof TORPEDO_FUZE_POLICIES)[number];
 
 // ---- AUTHORITATIVE model -> fuze mapping (INC-5, ADR-0031) ------------------
+// OUT OF SCOPE for the torpedo performance-data retirement (ship-part-model ticket 13b): this
+// map is a combat ALGORITHM constant (which exploder a model family carried), not per-model
+// performance data. It stays keyed by the unchanged torpedo part ids.
 // The versioned carrier that pins each shipped model's §15 fuze policy. The
 // INC-1 model surface has NO fuze field (adding one would change every model's
 // contentHash, an AC-25 golden-schema risk), so THIS mapping is the canonical

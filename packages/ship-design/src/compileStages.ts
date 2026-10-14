@@ -101,8 +101,8 @@ export function resolveDesignComponents(
 
   const resolved: Resolved[] = [];
   for (const spec of [...draft.placements].sort((x, y) => cmpStr(x.instanceId, y.instanceId))) {
-    const def = catalogue.get(spec.componentId);
-    if (!def) {
+    const baseDef = catalogue.get(spec.componentId);
+    if (!baseDef) {
       findings.push(
         about(
           f(
@@ -122,6 +122,17 @@ export function resolveDesignComponents(
       );
       continue;
     }
+    // The parts read path resolves the tube's compiled torpedo onto the placement; rebuild the
+    // ComponentDef with it so the compiled summary carries the neutral contract (ticket 13b).
+    const def: ComponentDef =
+      baseDef.category === "TORPEDO_TUBE" &&
+      spec.compiledTorpedo !== undefined &&
+      baseDef.torpedoMount !== undefined
+        ? {
+            ...baseDef,
+            torpedoMount: { ...baseDef.torpedoMount, compiledTorpedo: spec.compiledTorpedo },
+          }
+        : baseDef;
     techCheck(def.id, def.requires, def.introduction.fromMonth, def.introduction.obsoleteMonth, [
       placementTarget(spec.instanceId),
     ]);

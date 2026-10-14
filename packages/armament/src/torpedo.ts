@@ -50,6 +50,8 @@ export interface CompiledTorpedo {
   readonly guidanceCapability: string;
   /** The DESIGN-40 §2 mount types the torpedo may be launched from. */
   readonly launchTypes: readonly string[];
+  /** Technology prerequisites the platform must satisfy before install (DESIGN-40 §4). */
+  readonly technologyPrerequisiteIds: readonly string[];
   readonly tubeHitHazardPolicy: string;
   /** Present exactly for an `OXYGEN` torpedo (the per-model wake-visibility modifier, bp). */
   readonly oxygenWakeVisibilityModifierBp?: number;

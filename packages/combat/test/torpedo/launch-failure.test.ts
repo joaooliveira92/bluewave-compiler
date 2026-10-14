@@ -32,9 +32,10 @@ import {
   type TorpedoLauncherState,
   type TorpedoSalvoPolicyInputs,
 } from "../../src/torpedoes/index.js";
+import { COMPILED_TORPEDOES } from "../fixtures/compiledTorpedoes.js";
 
 const G7A = "ger_533mm_g7a_1934"; // reliabilityBp 96_000, guidance "gyro"
-const G7A_44KN_SETTING = { settingId: "44kn", speedKnotsBp: 44_000, rangeM: 6_000 };
+const G7A_44KN_SETTING = { settingId: "44kn", speedMilliKnots: 44_000, rangeM: 6_000 };
 
 // A tactically-neutral salvo policy (mirrors salvo.test.ts): with the neutral
 // factor set the recommended size equals the mission-objective base tubes.
@@ -103,6 +104,7 @@ function resolve(
     firingShipId: "SHIP-ALPHA",
     firingSideId: "SIDE-A",
     reservation,
+    torpedoes: COMPILED_TORPEDOES,
     tubeIndexes: [0, 1, 3],
     crewQualityBp: 5_000,
     salvoPolicy: neutralPolicy(),
@@ -349,6 +351,7 @@ describe("AC-12: per-tube mechanical failure consumes NO torpedo unless STUCK_IN
         firingShipId: "SHIP-ALPHA",
         firingSideId: "SIDE-A",
         reservation: partial,
+        torpedoes: COMPILED_TORPEDOES,
         tubeIndexes: [0, 1, 3],
         crewQualityBp: 5_000,
         salvoPolicy: neutralPolicy(),

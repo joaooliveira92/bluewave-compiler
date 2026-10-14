@@ -59,7 +59,8 @@ import {
   propulsionAndSafetySupported,
 } from "./compatibility.js";
 import { type AuthorityGrant, validateLaunchAuthority } from "./authority.js";
-import { torpedoModelById, type TorpedoModelDefinition, type TorpedoSetting } from "./model.js";
+import type { CompiledTorpedo, CompiledTorpedoSpeedSetting } from "@bluewave/armament";
+import { compiledTorpedoOf, type CompiledTorpedoRegistry } from "./registry.js";
 import {
   INVALID_TORPEDO_LAUNCHER_STATE,
   TORPEDO_AMMUNITION_UNAVAILABLE,
@@ -129,8 +130,9 @@ export interface LaunchEligibilityInputs {
   friendlyIdentities: readonly string[]; // confirmed-friendly estimated identities
   targetRelativeBearingMdeg: number; // integer milli-degrees vs launcher training limits
   targetEstimatedRangeM: number; // integer metres (knowledge estimate, §9)
-  selectedSetting: TorpedoSetting; // selected speed/range setting (§11 command; membership in the
-  // loaded model's orderedSettings is the §11/INC-4 command contract — documented seam)
+  selectedSetting: CompiledTorpedoSpeedSetting; // selected speed/range setting (§11 command; membership in the
+  // loaded model's speedSettings is the §11/INC-4 command contract — documented seam)
+  torpedoes: CompiledTorpedoRegistry; // the battle's compiled-torpedo records (keyed by part id)
   launchKind: TorpedoLaunchKind;
   fireSolutionQualityBp: number; // integer bp [0, 10_000] — INC-3 §10 formula output (seam)
   ownSpeedMicrometresPerSecond: number; // integer µm/s (B-2 movement speed model surface)
@@ -166,13 +168,14 @@ export function tubesCarryCompatibleTorpedoes(
   state: TorpedoLauncherState,
   definition: TorpedoLauncherDefinition,
   tubeIndexes: readonly number[],
+  torpedoes: CompiledTorpedoRegistry,
 ): boolean {
   for (const idx of tubeIndexes) {
     const loaded = state.loadedPerTube[idx];
     // EMPTY_TUBE is the "EMPTY" marker — a non-empty string that is NOT a model
-    // id; it must fail compatibility without reaching torpedoModelById.
+    // id; it must fail compatibility without reaching compiledTorpedoOf.
     if (loaded === EMPTY_TUBE || typeof loaded !== "string" || loaded.length === 0) return false;
-    const model = torpedoModelById(loaded); // fail-closed: unknown model throws
+    const model = compiledTorpedoOf(torpedoes, loaded); // fail-closed: unknown id throws
     if (!launcherFamilyMatches(model, definition)) return false;
     if (!diameterFitsLauncher(model, definition)) return false;
     if (!massWithinLimits(model, definition)) return false;
@@ -187,13 +190,14 @@ export function tubesCarryCompatibleTorpedoes(
 export function loadedModelsForTubes(
   state: TorpedoLauncherState,
   tubeIndexes: readonly number[],
-): TorpedoModelDefinition[] {
-  const models: TorpedoModelDefinition[] = [];
+  torpedoes: CompiledTorpedoRegistry,
+): CompiledTorpedo[] {
+  const models: CompiledTorpedo[] = [];
   for (const idx of tubeIndexes) {
     const loaded = state.loadedPerTube[idx];
     if (loaded === EMPTY_TUBE || typeof loaded !== "string" || loaded.length === 0)
       invariant("loadedPerTube", loaded, "a selected tube must be loaded for eligibility");
-    models.push(torpedoModelById(loaded));
+    models.push(compiledTorpedoOf(torpedoes, loaded));
   }
   return models;
 }
@@ -248,7 +252,7 @@ export function targetWithinLaunchArc(
 // §6: target estimated range within the selected setting's maximum run.
 export function targetRangeWithinSetting(
   targetEstimatedRangeM: number,
-  selectedSetting: TorpedoSetting,
+  selectedSetting: CompiledTorpedoSpeedSetting,
 ): boolean {
   return targetEstimatedRangeM <= selectedSetting.rangeM;
 }
@@ -258,7 +262,7 @@ export function targetRangeWithinSetting(
 // fired tubes' loaded models.
 export function armingDistanceSatisfiable(
   targetEstimatedRangeM: number,
-  models: readonly TorpedoModelDefinition[],
+  models: readonly CompiledTorpedo[],
 ): boolean {
   const bindingArmingM = models.reduce((max, m) => Math.max(max, m.minimumArmingDistanceM), 0);
   return targetEstimatedRangeM >= bindingArmingM;
@@ -427,12 +431,12 @@ export function evaluateLaunchEligibility(
       ammunitionReservation: false,
     });
   }
-  if (!tubesCarryCompatibleTorpedoes(state, definition, tubeIndexes)) {
+  if (!tubesCarryCompatibleTorpedoes(state, definition, tubeIndexes, inputs.torpedoes)) {
     return fail("compatibleTorpedoesLoaded", TORPEDO_MODEL_INCOMPATIBLE, {
       compatibleTorpedoesLoaded: false,
     });
   }
-  const models = loadedModelsForTubes(state, tubeIndexes);
+  const models = loadedModelsForTubes(state, tubeIndexes, inputs.torpedoes);
 
   // §6 predicate 4 — reload and safety interlocks complete.
   if (!reloadAndSafetyInterlocksComplete(state)) {

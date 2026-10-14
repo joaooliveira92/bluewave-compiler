@@ -17,7 +17,7 @@
 // Wired into `pnpm preflight`. Standalone: `node scripts/verify-test-focus.mjs`.
 
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const root = resolve(import.meta.dirname, "..");
@@ -91,13 +91,17 @@ export function collectProblems(file, text) {
 }
 
 function trackedTestFiles() {
-  return execFileSync("git", ["ls-files", "*.test.*", "*.spec.*"], {
-    cwd: root,
-    encoding: "utf8",
-  })
-    .split("\n")
-    .filter(Boolean)
-    .filter(isTestFile);
+  return (
+    execFileSync("git", ["ls-files", "*.test.*", "*.spec.*"], {
+      cwd: root,
+      encoding: "utf8",
+    })
+      .split("\n")
+      .filter(Boolean)
+      .filter(isTestFile)
+      // Skip a tracked test deleted in the worktree but not yet staged: there is no test to scan.
+      .filter((file) => existsSync(resolve(root, file)))
+  );
 }
 
 function main() {

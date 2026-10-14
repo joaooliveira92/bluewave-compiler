@@ -1,6 +1,8 @@
 import type { CompiledDesignVersion } from "@bluewave/campaign";
+import type { CompiledTorpedo } from "@bluewave/armament";
 import { SafeInt } from "@bluewave/contracts";
 import {
+  compileTorpedo,
   computeCost,
   constructionOrderPlan,
   toEngineDesign,
@@ -28,11 +30,33 @@ export interface DesignPricing {
     /** Keel-laying month for the era multiplier on build time (ADR-0080). */
     readonly month?: string | undefined;
   };
+  /**
+   * Resolves a torpedo mount's neutral compiled torpedo from the pack's part model (ticket 13b).
+   * Present when the pack carries the ship-building parts; absent for a parts-less pack (combat then
+   * fails closed rather than defaulting). `buildDesignVersion` fills every torpedo mount the legacy
+   * compile path left without a `compiledTorpedo`, so a player- or AI-built design reaches
+   * auto-resolution the same way an authored design does.
+   */
+  readonly torpedoOf?: (torpedoModelId: string) => CompiledTorpedo | undefined;
 }
 
 /** Pricing inputs for a month from the ship-building content: the same cost model the Drawing Board forecast uses. */
 export function pricingFor(content: ShipBuildingContent, month: string): DesignPricing {
   const env = content.environmentFor(month);
+  const byId = content.partModel?.partIndex.byId;
+  // A fresh record per call: the snapshot clone treats a shared reference as a cycle, and each
+  // mount must own its value. Compiles at the model's effective (latest) revision (`9999-12`).
+  const torpedoOf =
+    byId === undefined
+      ? undefined
+      : (torpedoModelId: string): CompiledTorpedo | undefined => {
+          const part = byId[torpedoModelId];
+          const compiled =
+            part !== undefined && part.family === "torpedo"
+              ? compileTorpedo(part, "9999-12")
+              : undefined;
+          return compiled !== undefined && compiled.ok ? compiled.value : undefined;
+        };
   return {
     costBalance: env.costBalance,
     costCtx: env.costCtx,
@@ -43,6 +67,7 @@ export function pricingFor(content: ShipBuildingContent, month: string): DesignP
       industryBp: env.industryBp,
       month,
     },
+    ...(torpedoOf === undefined ? {} : { torpedoOf }),
   };
 }
 
@@ -114,11 +139,19 @@ export function buildDesignVersion(
     ...(e.armament ? { armament: structuredClone(e.armament) } : {}),
     ...(e.torpedoArmament
       ? {
-          torpedoArmament: e.torpedoArmament.map((m) => ({
-            mountType: m.mountType,
-            tubeCount: SafeInt(m.tubeCount),
-            torpedoModelId: m.torpedoModelId,
-          })),
+          torpedoArmament: e.torpedoArmament.map((m) => {
+            // The parts read path already resolved the neutral contract; the legacy compile path
+            // leaves it absent, so resolve it here from the pack's part model (ticket 13b). This
+            // keeps a player- or AI-built design resolvable by combat exactly like an authored one.
+            const resolved = m.compiledTorpedo ?? pricing.torpedoOf?.(m.torpedoModelId);
+            return {
+              mountType: m.mountType,
+              tubeCount: SafeInt(m.tubeCount),
+              torpedoModelId: m.torpedoModelId,
+              // A copy: the immutable compiled-torpedo snapshot must not alias the command body.
+              ...(resolved ? { compiledTorpedo: structuredClone(resolved) } : {}),
+            };
+          }),
         }
       : {}),
   };

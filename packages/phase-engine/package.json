@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@bluewave/ai": "workspace:*",
+    "@bluewave/armament": "workspace:*",
     "@bluewave/campaign": "workspace:*",
     "@bluewave/campaign-engine": "workspace:*",
     "@bluewave/combat": "workspace:*",

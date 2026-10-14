@@ -24,7 +24,7 @@
 // torpedo — the caller passes the ACTUAL loaded torpedoes, e.g. after the
 // tube-hazard consumption). Pure/deterministic: no ambient I/O/clock/random.
 import { BluewaveError } from "@bluewave/contracts";
-import { torpedoModelById } from "./model.js";
+import { compiledTorpedoOf, type CompiledTorpedoRegistry } from "./registry.js";
 import {
   TORPEDO_CHAIN_REACTION_BASE_BP,
   TORPEDO_CHAIN_REACTION_MODIFIER_KEYS,
@@ -63,12 +63,15 @@ export function chainReactionBaseBp(policyId: string): number {
   return TORPEDO_CHAIN_REACTION_BASE_BP[policyId as TubeHitHazardPolicy];
 }
 
-// §22 -> the authoritative base from the torpedo model definition
-// (torpedoModelById fails closed on an unknown model id — a loaded torpedo
-// chain check always runs against a SHIPPED model).
-export function chainReactionBaseBpForModel(torpedoModelId: string): number {
-  const model = torpedoModelById(torpedoModelId);
-  return chainReactionBaseBp(model.tubeHitHazardPolicyId);
+// §22 -> the authoritative base from the compiled torpedo record
+// (compiledTorpedoOf fails closed on an unknown part id — a loaded torpedo
+// chain check always runs against a recorded torpedo).
+export function chainReactionBaseBpForModel(
+  torpedoes: CompiledTorpedoRegistry,
+  torpedoModelId: string,
+): number {
+  const model = compiledTorpedoOf(torpedoes, torpedoModelId);
+  return chainReactionBaseBp(model.tubeHitHazardPolicy);
 }
 
 // AC-18: the exact §22 probability composition:
@@ -150,6 +153,7 @@ export function resolveTorpedoChainReaction(o: {
   substep: number;
   launcherId: string;
   loadedTorpedoes: readonly { tubeIndex: number; torpedoModelId: string }[];
+  torpedoes: CompiledTorpedoRegistry; // the battle's compiled-torpedo records
   modifiers: Record<TorpedoChainReactionModifierKey, number>;
   keyedRng: (stream: string) => number;
 }): TorpedoChainReactionResult {
@@ -180,8 +184,8 @@ export function resolveTorpedoChainReaction(o: {
   let totalMass = 0;
 
   for (const t of o.loadedTorpedoes) {
-    const model = torpedoModelById(t.torpedoModelId); // fail-closed lookup
-    const baseProbabilityBp = chainReactionBaseBpForModel(t.torpedoModelId);
+    const model = compiledTorpedoOf(o.torpedoes, t.torpedoModelId); // fail-closed lookup
+    const baseProbabilityBp = chainReactionBaseBp(model.tubeHitHazardPolicy);
     const finalProbabilityBp = computeChainReactionProbabilityBp({
       baseProbabilityBp: baseProbabilityBp,
       modifiers: o.modifiers,

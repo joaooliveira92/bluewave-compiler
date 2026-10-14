@@ -16,8 +16,8 @@ import {
   resolveOxygenPerformanceEffects,
   SHIPPED_OXYGEN_EFFECTS,
   tubeHitPropulsionMultiplierBp,
-  torpedoModelById,
 } from "../../src/torpedoes/index.js";
+import { compiledTorpedoOf } from "../fixtures/compiledTorpedoes.js";
 
 const TYPE93 = "jpn_61cm_type93_1935";
 const G7A = "ger_533mm_g7a_1934";
@@ -42,7 +42,7 @@ describe("AC-18 §23: the exact shipped effects", () => {
 describe("AC-18 §23: gains apply only when the setting + launcher are compatible", () => {
   it("a compatible setting + launcher on the Type 93 applies every gain", () => {
     const r = resolveOxygenPerformanceEffects({
-      model: torpedoModelById(TYPE93),
+      model: compiledTorpedoOf(TYPE93),
       selectedSettingId: "48kn",
       launcherFamilyId: "61cm_above_water_trainable",
     });
@@ -57,7 +57,7 @@ describe("AC-18 §23: gains apply only when the setting + launcher are compatibl
 
   it("an incompatible launcher family yields NO gains (neutral 10_000)", () => {
     const r = resolveOxygenPerformanceEffects({
-      model: torpedoModelById(TYPE93),
+      model: compiledTorpedoOf(TYPE93),
       selectedSettingId: "48kn",
       launcherFamilyId: "533mm_above_water_trainable",
     });
@@ -70,7 +70,7 @@ describe("AC-18 §23: gains apply only when the setting + launcher are compatibl
 
   it("an unknown setting yields NO gains (neutral 10_000)", () => {
     const r = resolveOxygenPerformanceEffects({
-      model: torpedoModelById(TYPE93),
+      model: compiledTorpedoOf(TYPE93),
       selectedSettingId: "99kn",
       launcherFamilyId: "61cm_above_water_trainable",
     });
@@ -81,7 +81,7 @@ describe("AC-18 §23: gains apply only when the setting + launcher are compatibl
 
   it("a non-oxygen model can never apply §23 gains", () => {
     const r = resolveOxygenPerformanceEffects({
-      model: torpedoModelById(G7A),
+      model: compiledTorpedoOf(G7A),
       selectedSettingId: "44kn",
       launcherFamilyId: "533mm_above_water_trainable",
     });
@@ -93,7 +93,7 @@ describe("AC-18 §23: gains apply only when the setting + launcher are compatibl
   it("rejects malformed setting/launcher ids (fail closed)", () => {
     expect(() =>
       resolveOxygenPerformanceEffects({
-        model: torpedoModelById(TYPE93),
+        model: compiledTorpedoOf(TYPE93),
         selectedSettingId: "",
         launcherFamilyId: "61x_above_water_trainable",
       }),

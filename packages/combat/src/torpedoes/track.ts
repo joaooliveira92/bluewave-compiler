@@ -54,7 +54,7 @@ import {
 } from "./constants.js";
 import { TORPEDO_STATE_INVARIANT_FAILED } from "./reasonCodes.js";
 import type { Position } from "../spotting/detection.js";
-import type { TorpedoSetting } from "./model.js";
+import type { CompiledTorpedoSpeedSetting } from "@bluewave/armament";
 
 // §13 "reliability state": the per-roll reliability of the running torpedo,
 // normalized from the model's §1 reliabilityBp (100_000 scale) to the
@@ -388,7 +388,7 @@ export function createTorpedoTrack(o: {
   torpedoModelId: string;
   reliabilityBp: number; // the model's §1 reliabilityBp (100_000 scale)
   guidanceCapability: string; // the model's guidance capability id
-  selectedSetting: TorpedoSetting; // the salvo's selected speed/range setting
+  selectedSetting: CompiledTorpedoSpeedSetting; // the salvo's selected speed/range setting
   armingDistanceM: number; // the model's minimum arming distance
   launchMinute: number;
   launchSubstep: number;
@@ -419,7 +419,7 @@ export function createTorpedoTrack(o: {
     launchPosition,
     launchHeadingMdeg: o.launchHeadingMdeg,
     orderedGyroAngleMdeg: o.orderedGyroAngleMdeg,
-    speedKnotsBp: o.selectedSetting.speedKnotsBp,
+    speedKnotsBp: o.selectedSetting.speedMilliKnots,
     maxRunDistanceM: o.selectedSetting.rangeM,
     armingDistanceM: o.armingDistanceM,
     depthSettingM: o.depthSettingM,

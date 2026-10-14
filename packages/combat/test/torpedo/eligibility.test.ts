@@ -39,7 +39,6 @@ import {
   TORPEDO_MANUAL_LAUNCH_MODE_PROHIBITED,
   TORPEDO_MODEL_INCOMPATIBLE,
   TORPEDO_TARGET_CONTACT_INSUFFICIENT,
-  torpedoModelById,
   tubesCarryCompatibleTorpedoes,
   UNDERWATER_TUBE_SPEED_LIMIT_EXCEEDED,
   withTorpedoLauncherStateHash,
@@ -49,11 +48,12 @@ import {
   type TorpedoLauncherDefinition,
   type TorpedoLauncherState,
 } from "../../src/torpedoes/index.js";
+import { COMPILED_TORPEDOES, compiledTorpedoOf } from "../fixtures/compiledTorpedoes.js";
 import type { ContactTrack } from "../../src/targeting.js";
 
 const G7A = "ger_533mm_g7a_1934";
 const G7E = "ger_533mm_g7e_1936";
-const G7A_30KN = { settingId: "30kn", speedKnotsBp: 30_000, rangeM: 14_000 };
+const G7A_30KN = { settingId: "30kn", speedMilliKnots: 30_000, rangeM: 14_000 };
 
 function baseLauncher(overrides: Partial<TorpedoLauncherState> = {}): TorpedoLauncherState {
   const surface: Omit<TorpedoLauncherState, "stateHash"> = {
@@ -162,6 +162,7 @@ function inputs(overrides: Partial<LaunchEligibilityInputs> = {}): LaunchEligibi
     targetRelativeBearingMdeg: 0,
     targetEstimatedRangeM: 5_000,
     selectedSetting: G7A_30KN,
+    torpedoes: COMPILED_TORPEDOES,
     launchKind: "AUTOMATED",
     fireSolutionQualityBp: 6_000,
     ownSpeedMicrometresPerSecond: 12_000_000,
@@ -359,7 +360,7 @@ describe("AC-6: every §6 predicate fails with EXACTLY one explicit reason code 
         friendlyTracks: [friendlyTrack({ relativeBearingMdeg: 5_000, rangeM: 11_460 })],
         spreadHalfAngleMdeg: 6_000,
         targetEstimatedRangeM: 11_460,
-        selectedSetting: { settingId: "30kn", speedKnotsBp: 30_000, rangeM: 14_000 },
+        selectedSetting: { settingId: "30kn", speedMilliKnots: 30_000, rangeM: 14_000 },
         fireSolutionQualityBp: 7_500,
       }),
     );
@@ -599,20 +600,24 @@ describe("AC-6: shape-guards fail closed — never a raw TypeError (hardening it
   it("rejects a malformed selectedSetting surface (missing range, non-integer speed, empty id)", () => {
     expect(() =>
       evaluateLaunchEligibility(
-        inputs({ selectedSetting: { settingId: "30kn", speedKnotsBp: 30_000 } as never }),
+        inputs({ selectedSetting: { settingId: "30kn", speedMilliKnots: 30_000 } as never }),
       ),
     ).toThrow(BluewaveError);
     expect(() =>
       evaluateLaunchEligibility(
         inputs({
-          selectedSetting: { settingId: "30kn", speedKnotsBp: 30_000.5, rangeM: 14_000 } as never,
+          selectedSetting: {
+            settingId: "30kn",
+            speedMilliKnots: 30_000.5,
+            rangeM: 14_000,
+          } as never,
         }),
       ),
     ).toThrow(BluewaveError);
     expect(() =>
       evaluateLaunchEligibility(
         inputs({
-          selectedSetting: { settingId: "", speedKnotsBp: 30_000, rangeM: 14_000 } as never,
+          selectedSetting: { settingId: "", speedMilliKnots: 30_000, rangeM: 14_000 } as never,
         }),
       ),
     ).toThrow(BluewaveError);
@@ -639,11 +644,11 @@ describe("AC-6: per-predicate functions (boundary cases)", () => {
   });
 
   it("arming distance: exactly the minimum arming distance is satisfiable", () => {
-    const g7a = torpedoModelById(G7A); // minimumArmingDistanceM 150
+    const g7a = compiledTorpedoOf(G7A); // minimumArmingDistanceM 150
     expect(armingDistanceSatisfiable(150, [g7a])).toBe(true);
     expect(armingDistanceSatisfiable(149, [g7a])).toBe(false);
     // the binding constraint is the MAX across fired tubes' models
-    const g7e = torpedoModelById(G7E); // minimumArmingDistanceM 150
+    const g7e = compiledTorpedoOf(G7E); // minimumArmingDistanceM 150
     expect(armingDistanceSatisfiable(150, [g7a, g7e])).toBe(true);
   });
 
@@ -700,13 +705,18 @@ describe("AC-6: per-predicate functions (boundary cases)", () => {
     const state = baseLauncher();
     expect(launcherAndTubesOperational(state)).toBe(true);
     expect(launcherAndTubesOperational(baseLauncher({ damageState: "DESTROYED" }))).toBe(false);
-    expect(tubesCarryCompatibleTorpedoes(state, launcher533(), [0, 3])).toBe(true);
-    expect(tubesCarryCompatibleTorpedoes(state, launcher533(), [2])).toBe(false); // EMPTY
+    expect(tubesCarryCompatibleTorpedoes(state, launcher533(), [0, 3], COMPILED_TORPEDOES)).toBe(
+      true,
+    );
+    expect(tubesCarryCompatibleTorpedoes(state, launcher533(), [2], COMPILED_TORPEDOES)).toBe(
+      false,
+    ); // EMPTY
     expect(
       tubesCarryCompatibleTorpedoes(
         baseLauncher({ loadedPerTube: [G7E, G7A, EMPTY_TUBE, G7A] }),
         launcher533(),
         [0],
+        COMPILED_TORPEDOES,
       ),
     ).toBe(false); // G7E never declares 533mm_underwater_trainable
     expect(ammunitionReservationSucceeds(state, [0, 3])).toBe(true);

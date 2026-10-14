@@ -1,6 +1,7 @@
 import { evaluate } from "./formula/eval.js";
 import { parseFormula, freeVariables } from "./formula/parse.js";
 import { FormulaError } from "./formula/ast.js";
+import type { CompiledTorpedo } from "@bluewave/armament";
 
 export const COMPONENT_CATEGORIES = [
   "HULL_FORM",
@@ -70,7 +71,12 @@ export interface ComponentDef {
   readonly fcClass?: string;
   readonly fcClasses?: readonly string[];
   /** For torpedo tubes: how the engine's tactical layer names the mount and its torpedo. */
-  readonly torpedoMount?: { readonly mountType: string; readonly torpedoModelId: string };
+  readonly torpedoMount?: {
+    readonly mountType: string;
+    readonly torpedoModelId: string;
+    /** The compiled torpedo contract when the parts read path resolved one (ticket 13b). */
+    readonly compiledTorpedo?: CompiledTorpedo;
+  };
   /** Monthly maintenance as bp of the component's cost. */
   readonly maintenanceMonthlyBp?: number;
   /** Build effort in work micro-units; defaults to a share of cost (balance). */

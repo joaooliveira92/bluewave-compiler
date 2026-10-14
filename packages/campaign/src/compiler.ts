@@ -8,6 +8,8 @@ import type { ContentPack } from "@bluewave/content-schema";
 import { SafeInt } from "@bluewave/contracts";
 import { canonicalSerialize, createEnvelope, sha256Hex } from "@bluewave/deterministic";
 import { type DiagnosticCollector as DiagnosticCollectorType } from "@bluewave/diagnostics";
+import { compileTorpedo } from "@bluewave/ship-design";
+import type { CompiledTorpedo } from "@bluewave/armament";
 import { toStr, type CampaignFileData } from "./campaignInput.js";
 import { validateCampaignPreconditions } from "./campaignSession.js";
 import {
@@ -153,8 +155,14 @@ export class CampaignCompiler {
     // Step 6: Build political state
     const politics = buildPoliticalState(data.diplomacy, nations, collector);
 
-    // Step 6b: Build designs from design data
-    const designs = buildDesignsFromData(data.designs, collector);
+    // Step 6b: Build designs from design data. When the bundle carries the ship-building part
+    // model, resolve each torpedo mount's neutral compiled torpedo so combat reads it directly
+    // (ticket 13b). A bundle without parts leaves the field absent (combat fails closed).
+    const designs = buildDesignsFromData(
+      data.designs,
+      collector,
+      torpedoResolverFor(input.contentBundle),
+    );
     const designFamilies = buildDesignFamiliesFromData(data.designs);
 
     // Validate fleet -> design link (immutable reference)
@@ -202,6 +210,26 @@ export class CampaignCompiler {
       pack,
     };
   }
+}
+
+/**
+ * The torpedo resolver for the campaign's authored designs: compile each torpedo part named by a
+ * design mount to its neutral contract at the model's effective (latest) revision (`9999-12`).
+ * Returns `undefined` when the bundle carries no part model (a parts-less pack).
+ */
+function torpedoResolverFor(
+  bundle: ContentBundle,
+): ((torpedoModelId: string) => CompiledTorpedo | undefined) | undefined {
+  const byId = bundle.shipBuilding?.partModel?.partIndex.byId;
+  if (byId === undefined) return undefined;
+  // A fresh record per call: the snapshot clone treats a shared reference as a cycle, and each
+  // mount must own its value.
+  return (torpedoModelId: string) => {
+    const part = byId[torpedoModelId];
+    const compiled =
+      part !== undefined && part.family === "torpedo" ? compileTorpedo(part, "9999-12") : undefined;
+    return compiled !== undefined && compiled.ok ? compiled.value : undefined;
+  };
 }
 
 /**

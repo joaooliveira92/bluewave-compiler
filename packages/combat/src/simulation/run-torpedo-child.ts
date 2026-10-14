@@ -7,6 +7,7 @@
 // clock/random/env/fs order). Prints ONE canonically-serialized JSON line.
 import { canonicalSerialize } from "@bluewave/deterministic";
 import { SafeInt } from "@bluewave/contracts";
+import type { CompiledTorpedo } from "@bluewave/armament";
 import { RandomEngine } from "@bluewave/random";
 import type { TacticalBattleState, TacticalShipUnit } from "../tactical/index.js";
 import type { MovementState } from "../movement.js";
@@ -57,6 +58,32 @@ function unit(id: string, sideId: "ATTACKER" | "DEFENDER", className: string): T
 }
 
 const BATTLE_ID = "b7-torpedo-determinism";
+
+// The compiled record for the launcher's torpedo (the retired rn_21in_mk_iv_1916 constants,
+// reproduced as the neutral contract; the determinism test only compares two runs).
+const TORPEDOES: Readonly<Record<string, CompiledTorpedo>> = {
+  rn_21in_mk_iv_1916: {
+    partId: "rn_21in_mk_iv_1916",
+    revision: "base",
+    diameterUm: 533_000,
+    massKg: 1_454,
+    warheadType: "TNT",
+    warheadExplosiveMassKg: 234,
+    warheadExplosiveEquivalentMassKg: 234,
+    propulsionType: "WET_HEATER",
+    speedSettings: [
+      { settingId: "35kn", speedMilliKnots: 35_000, rangeM: 7_315 },
+      { settingId: "29kn", speedMilliKnots: 29_000, rangeM: 9_144 },
+      { settingId: "25kn", speedMilliKnots: 25_000, rangeM: 12_344 },
+    ],
+    minimumArmingDistanceM: 50,
+    reliabilityBp: 93_500,
+    guidanceCapability: "gyro",
+    launchTypes: ["UNDERWATER_FIXED", "UNDERWATER_TRAINABLE", "ABOVE_WATER_TRAINABLE"],
+    technologyPrerequisiteIds: ["wet_heater_engine"],
+    tubeHitHazardPolicy: "ORDINARY",
+  },
+};
 
 const launcherState: TorpedoLauncherState = withTorpedoLauncherStateHash({
   launcherId: "LCH-1",
@@ -227,6 +254,7 @@ const torpedoes: TorpedoContext = {
     },
   },
   tracks: [],
+  torpedoes: TORPEDOES,
 };
 
 async function main(): Promise<void> {

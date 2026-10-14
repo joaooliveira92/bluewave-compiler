@@ -33,6 +33,7 @@ import type { Position } from "../spotting/detection.js";
 import type { ShipDamageState } from "../damage/state.js";
 import type { TurretComponent } from "../damage/turretStates.js";
 import type { FloodingIsolationState } from "./constants.js";
+import type { CompiledTorpedoRegistry } from "./registry.js";
 import type { TorpedoSalvoPolicyInputs } from "./salvo.js";
 import type { TorpedoTrack } from "./track.js";
 import type { TargetHitProfile } from "./hit-resolution.js";
@@ -157,6 +158,8 @@ export interface TorpedoContext {
   targets: Record<string, TorpedoTargetContext>;
   /** RUNNING spokes threaded from previous minutes (never terminal). */
   tracks?: readonly TorpedoTrack[];
+  /** the battle's compiled-torpedo records, keyed by torpedo part id (ticket 13b). */
+  torpedoes: CompiledTorpedoRegistry;
 }
 
 export interface ResolveTorpedoesInput {

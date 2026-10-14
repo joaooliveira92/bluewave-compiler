@@ -152,11 +152,11 @@ export function assertEligibilityInputs(inputs: LaunchEligibilityInputs): void {
       setting.settingId,
       "setting id must be a non-empty string",
     );
-  if (!Number.isInteger(setting.speedKnotsBp) || setting.speedKnotsBp <= 0)
+  if (!Number.isInteger(setting.speedMilliKnots) || setting.speedMilliKnots <= 0)
     invariant(
-      "selectedSetting.speedKnotsBp",
-      setting.speedKnotsBp,
-      "setting speed must be a positive integer basis-point knots",
+      "selectedSetting.speedMilliKnots",
+      setting.speedMilliKnots,
+      "setting speed must be a positive integer milli-knots",
     );
   if (!Number.isInteger(setting.rangeM) || setting.rangeM <= 0)
     invariant(

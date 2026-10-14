@@ -61,7 +61,8 @@ import {
   TORPEDO_STUCK_IN_TUBE_SHARE_BP,
   type LauncherDamageState,
 } from "./constants.js";
-import { torpedoModelById, type TorpedoSetting } from "./model.js";
+import type { CompiledTorpedoSpeedSetting } from "@bluewave/armament";
+import { compiledTorpedoOf, type CompiledTorpedoRegistry } from "./registry.js";
 import {
   TORPEDO_LAUNCH_FAILURE,
   TORPEDO_STATE_INVARIANT_FAILED,
@@ -273,9 +274,10 @@ export function resolveTubeLaunches(o: {
   firingSideId: string;
   reservation: TorpedoConsumeResult; // post-atomic-reservation state + accounts
   tubeIndexes: readonly number[]; // the accepted salvo's tube ids (any order)
+  torpedoes: CompiledTorpedoRegistry; // the battle's compiled-torpedo records
   crewQualityBp: number; // crew skill/experience [0, 10_000] bp
   salvoPolicy: TorpedoSalvoPolicyInputs; // INC-3 §11 policy (continuation rule)
-  selectedSetting: TorpedoSetting; // the salvo's selected speed/range setting
+  selectedSetting: CompiledTorpedoSpeedSetting; // the salvo's selected speed/range setting
   launchMinute: number;
   firingSubstep?: number; // default TORPEDO_LAUNCH_SUBSTEP (the §12 declared substep)
   launchPosition: Position; // integer micrometres
@@ -333,7 +335,7 @@ export function resolveTubeLaunches(o: {
     // A tube skipped by a previous failure's abort never attempts (no record).
     if (skippedTubeIds.length > 0) break;
 
-    const model = torpedoModelById(accountByTube.get(tubeId)!);
+    const model = compiledTorpedoOf(o.torpedoes, accountByTube.get(tubeId)!);
     const failureChanceBp = computeLaunchFailureChanceBp({
       launcherDamageState: o.reservation.state.damageState,
       modelReliabilityBp: model.reliabilityBp,
@@ -375,7 +377,7 @@ export function resolveTubeLaunches(o: {
           firingSideId: o.firingSideId,
           tubeId,
           targetContactId: o.targetContactId,
-          torpedoModelId: model.torpedoModelId,
+          torpedoModelId: model.partId,
           reliabilityBp: model.reliabilityBp,
           guidanceCapability: model.guidanceCapability,
           selectedSetting: o.selectedSetting,

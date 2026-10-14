@@ -1,4 +1,3 @@
-import { SHIPPED_TORPEDO_MODELS } from "@bluewave/combat";
 import {
   FlattenedPartSchema,
   LoadoutEntrySchema,
@@ -31,12 +30,7 @@ import {
   resolveRow,
   type Design,
 } from "./helpers/gunReadPath.js";
-
-/** The loaded torpedo's structured diameter, from the combat torpedo catalogue. */
-const torpedoDiameterUm = (id: string): number | undefined => {
-  const model = SHIPPED_TORPEDO_MODELS.find((m) => String(m.torpedoModelId) === id);
-  return model === undefined ? undefined : model.diameterMm * 1000;
-};
+import { torpedoDiameterUm } from "./helpers/torpedoModels.js";
 
 const launcherModel = (
   profiles: readonly NationNavalProfile[] = navalProfiles,
