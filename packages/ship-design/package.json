@@ -23,7 +23,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vp test run",
     "lint": "vp lint .",
-    "lint:fix": "echo 'ok'"
+    "lint:fix": "echo 'ok'",
+    "equivalence": "node ../../scripts/verify-equivalence-determinism.mjs"
   },
   "devDependencies": {
     "@bluewave/combat": "workspace:*",

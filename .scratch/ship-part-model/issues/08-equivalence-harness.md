@@ -1,9 +1,9 @@
 # 08: Equivalence harness and derived-metric report (P1)
 
 **Type:** implementation
-**Status:** open
+**Status:** resolved
 **Blocked by:** 04, 05, 06
-**Frontier:** yes
+**Frontier:** no
 **Requirements:** SPM-R22, SPM-R23, SPM-R24 (structural and semantic) · Stories 40, 41, 42, 44
 
 ## What to build
@@ -29,15 +29,15 @@ That report is the evidence for "nothing changed".
 
 ## Acceptance criteria
 
-- [ ] The harness covers 91/91 designs and 823/823 placements, aggregated across the gun
+- [x] The harness covers 91/91 designs and 823/823 placements, aggregated across the gun
       (03), torpedo (04) and remaining-family (05) slices.
-- [ ] The candidate pipeline runs fit validation (06) before derivation. A design with fit
+- [x] The candidate pipeline runs fit validation (06) before derivation. A design with fit
       findings is reported as such and never compared on derived values that weren't
       validated.
       Ticket 06 closed the barrier at stage level only (`deriveAfterFit`); the harness
       candidate path must use it and own the reporting of `FIT_MAGAZINE_*` unresolved
       relationships (deferred from 06).
-- [ ] The structural gate fails when coverage differs. The semantic gate fails on any
+- [x] The structural gate fails when coverage differs. The semantic gate fails on any
       `changed` row, a `reclassified` row off a D18 path or on a number, or an
       `orderingOnly` row on an undeclared path. Each failure has a fixture test.
-- [ ] Running against current content gives `changed` = 0.
+- [x] Running against current content gives `changed` = 0.
