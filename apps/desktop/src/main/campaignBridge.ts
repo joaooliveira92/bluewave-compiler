@@ -100,6 +100,7 @@ import { inspectPriorities } from "./commands/inspectPriorities.js";
 import { listNewGameOptions } from "./commands/listNewGameOptions.js";
 import { inspectResearchScreen, setResearchPriorityCommand } from "./commands/researchCommands.js";
 import { readUiState, writeUiState } from "./uiState.js";
+import { readMonthlyReports } from "./monthlyReports.js";
 import {
   readDrawingBoardDraft,
   WriteDrawingBoardDraftPayloadSchema,
@@ -322,6 +323,9 @@ export const defaultCommandRegistry: CommandRegistry = {
   copyCampaign: withSchema(SessionIdPayloadSchema, (sessionId) => copyCampaign(sessionId)),
   readUiState: withSchema(SessionIdPayloadSchema, (sessionId) => readUiState(sessionId)),
   writeUiState: withSchema(WriteUiStatePayloadSchema, (payload) => writeUiState(payload)),
+  readMonthlyReports: withSchema(SessionIdPayloadSchema, (sessionId) =>
+    readMonthlyReports(sessionId),
+  ),
   loadCampaign: payloadless(() => loadCampaign(defaultContinuityDeps)),
   listCampaigns: payloadless(() => listCampaigns(defaultContinuityDeps)),
   verifyCampaign: payloadless(() => verifyCampaign(defaultContinuityDeps)),

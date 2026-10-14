@@ -1,5 +1,6 @@
 import type {
   BattleManifest,
+  BattleOutcome,
   BattleResolution,
   CampaignConfiguration,
   CommitMonthResponse,
@@ -9,6 +10,7 @@ import type {
   RandomDecisionRecord,
   RawScriptedForceOrder,
   ReplayBattleBoundaryResponse,
+  StrategicPriority,
   TacticalBattleOutcome,
 } from "@bluewave/campaign-engine";
 import type { BattleHistoryView, WorldMapView } from "@bluewave/campaign-engine";
@@ -259,6 +261,132 @@ export interface WriteUiStateResult {
   readonly uiState: UiState;
 }
 
+/** One real ledger row of a stored monthly report (spec §16 Treasury). */
+export interface MonthlyReportLedgerRow {
+  readonly id: string;
+  readonly description: string;
+  readonly phase: string;
+  /** The row's balance movement (`newBalance − previousBalance`). */
+  readonly amount: number;
+  readonly runningBalance: number;
+}
+
+/** The month's real treasury figures plus the two ledger-derived lines (spec §16). */
+export interface MonthlyReportTreasury {
+  readonly openingTreasury: number;
+  readonly closingTreasury: number;
+  readonly maintenanceCost: number;
+  readonly constructionSpending: number;
+  /** Derived from the real ledger `RESEARCH_EXPENDITURE` category. */
+  readonly researchExpense: number;
+  /** Derived from the real ledger `NAVAL_APPROPRIATION` category. */
+  readonly governmentAllocation: number;
+  /** `closingTreasury − openingTreasury`. */
+  readonly netChange: number;
+  /** The real player ledger rows — render the ledger, never an invented balancing row. */
+  readonly ledgerRows: readonly MonthlyReportLedgerRow[];
+}
+
+/** One `ConstructionProgressed` event's per-project work delta. */
+export interface MonthlyReportConstructionProgress {
+  readonly projectId: string;
+  readonly previousWork: number;
+  readonly newWork: number;
+}
+
+/** A ship identity captured from the authoritative fleet snapshot. */
+export interface MonthlyReportShip {
+  readonly shipId: string;
+  readonly name: string;
+}
+
+export interface MonthlyReportConstruction {
+  /** Per-project work progress from the real `ConstructionProgressed` events. */
+  readonly projects: readonly MonthlyReportConstructionProgress[];
+  /** Ships that left `isUnderConstruction` this month (pre→post fleet delta). */
+  readonly completedShips: readonly MonthlyReportShip[];
+  /** Projects whose status became `ACTIVE` this month (pre→post delta). */
+  readonly newlyActiveProjectIds: readonly string[];
+}
+
+export interface MonthlyReportResearchProgress {
+  readonly techId: string;
+  readonly previousPoints: number;
+  readonly newPoints: number;
+}
+
+export interface MonthlyReportDiscovery {
+  readonly techId: string;
+  readonly researchFieldId: string;
+}
+
+export interface MonthlyReportResearch {
+  /** Per-tech progress from the real `ResearchProgressed` events. */
+  readonly progress: readonly MonthlyReportResearchProgress[];
+  /** Discoveries from the real `TechnologyDiscovered` events. */
+  readonly discoveries: readonly MonthlyReportDiscovery[];
+}
+
+export interface MonthlyReportFleet {
+  /** Fleet additions this month (the newly commissioned ships). */
+  readonly additions: readonly MonthlyReportShip[];
+  /** Active (non-under-construction) ship total on the post-month snapshot. */
+  readonly totalActiveShips: number;
+}
+
+export interface MonthlyReportPeriod {
+  /** The resolved month (`MonthReport.month`). */
+  readonly from: { readonly year: number; readonly month: number };
+  /** The new month (`advanceMonth`). */
+  readonly to: { readonly year: number; readonly month: number };
+}
+
+/**
+ * The thin, real-fields-only derived view of one committed month (spec §16
+ * "Report data model"): the real `CommitMonthResponse` plus the ledger/event/
+ * snapshot derivations. Main builds it from the authoritative month result and
+ * the renderer renders it read-only. No invented fields — every number comes
+ * from `MonthReport` / `financialLedger` / `domainEvents` / `closingSnapshot` /
+ * `buildPrioritiesProjection`. The CUT sections (Diplomacy, research
+ * budget-effectiveness + settings effects, per-ship maintenance effect,
+ * construction "stalled") are deliberately absent, not empty.
+ */
+export interface MonthlyReportEntry {
+  /** The month's save identity (`SaveMetadata.saveId`). */
+  readonly reportId: string;
+  readonly campaignId: string;
+  /** The post-month snapshot revision (`nextTurnNumber`). */
+  readonly turn: number;
+  readonly period: MonthlyReportPeriod;
+  /**
+   * Real persistence metadata (`SaveMetadata.timestamp`) — never `Date.now()`
+   * inside an authoritative path. The report is app-layer and never hashed.
+   */
+  readonly generatedAt: string;
+  readonly treasury: MonthlyReportTreasury;
+  readonly construction: MonthlyReportConstruction;
+  readonly research: MonthlyReportResearch;
+  readonly fleet: MonthlyReportFleet;
+  /** The INC-2 projection over the post-month snapshot (its fingerprints are included). */
+  readonly priorities: readonly StrategicPriority[];
+  /** The real `closingSnapshot.battleOutcomes` (plain text, no tactical UI). */
+  readonly battleOutcomes: readonly BattleOutcome[];
+}
+
+/**
+ * The `monthly-reports.json` sidecar shape (spec §16 "Report history"). The
+ * most recent reports, newest first, pruned to `MONTHLY_REPORTS_LIMIT` at
+ * write. It is **never authoritative**: a sibling of the save directory, not
+ * part of the envelope/hash, never read by `MonthExecutor`.
+ */
+export interface MonthlyReports {
+  readonly reports: readonly MonthlyReportEntry[];
+}
+
+export interface ReadMonthlyReportsResult {
+  readonly reports: readonly MonthlyReportEntry[];
+}
+
 /**
  * Single source of truth for the command name set — `campaignBridge.ts`'s
  * runtime registry derives from this instead of hand-duplicating the list.
@@ -326,6 +454,7 @@ export const CAMPAIGN_COMMAND_NAMES = [
   "submitDiplomacyCommand",
   "readUiState",
   "writeUiState",
+  "readMonthlyReports",
 ] as const;
 
 /**
@@ -547,4 +676,8 @@ export interface CampaignCommandClient {
     command: "writeUiState",
     payload: WriteUiStatePayload,
   ): Promise<BridgeResult<WriteUiStateResult>>;
+  execute(
+    command: "readMonthlyReports",
+    payload: string,
+  ): Promise<BridgeResult<ReadMonthlyReportsResult>>;
 }

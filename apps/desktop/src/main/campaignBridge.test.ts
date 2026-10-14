@@ -74,6 +74,7 @@ const IMPLEMENTED_COMMANDS = new Set([
   "submitDiplomacyCommand",
   "readUiState",
   "writeUiState",
+  "readMonthlyReports",
   "loadCampaign",
   "listCampaigns",
   "verifyCampaign",
@@ -487,6 +488,20 @@ describe("dispatchCampaignCommand", () => {
     expect(result.reason).toBe("SESSION_NOT_FOUND");
   });
 
+  it("rejects a non-string readMonthlyReports payload", async () => {
+    const result = await dispatchCampaignCommand("readMonthlyReports", { sessionId: 123 });
+    expect(result.outcome).toBe("error");
+    if (result.outcome !== "error") return;
+    expect(result.reason).toBe("INVALID_PAYLOAD");
+  });
+
+  it("returns SESSION_NOT_FOUND for readMonthlyReports without a session", async () => {
+    const result = await dispatchCampaignCommand("readMonthlyReports", "no-such-session");
+    expect(result.outcome).toBe("error");
+    if (result.outcome !== "error") return;
+    expect(result.reason).toBe("SESSION_NOT_FOUND");
+  });
+
   it("rejects structurally invalid writeUiState payloads before touching the handler", async () => {
     const longFingerprint = "f".repeat(257);
     const oversizedArray = Array.from({ length: 65 }, (_, i) => `fp-${i}`);
@@ -761,6 +776,13 @@ describe("dispatchCampaignCommand", () => {
       expect(read.outcome).toBe("success");
       if (read.outcome !== "success") return;
       expect(read.value).toEqual(write.value);
+    });
+
+    it("readMonthlyReports returns an empty history before any commit", async () => {
+      const read = await dispatchCampaignCommand("readMonthlyReports", sessionId);
+      expect(read.outcome).toBe("success");
+      if (read.outcome !== "success") return;
+      expect(read.value).toEqual({ reports: [] });
     });
   });
 });

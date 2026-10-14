@@ -1,63 +1,32 @@
 import { Info } from "lucide-react";
-import { campaignNationLabel } from "../../content/presentationContent.js";
+import type { MonthlyReportEntry } from "../../../shared/campaign-command-contract.js";
 import { CardShell } from "../../components/shared/CardShell.js";
 import { CardDescription, CardTitle } from "../../components/ui/card.js";
 import { humanizeId } from "../../lib/humanize-id.js";
-import type { MonthSummary } from "../../lib/month-summary.js";
-import { describeBattle, monthLabel, progressLine, signed } from "./month-report-format.js";
-
-function Report({
-  summary,
-  areaName,
-}: {
-  readonly summary: MonthSummary;
-  readonly areaName: (id: string) => string;
-}) {
-  const progress = progressLine(summary);
-  return (
-    <div className="space-y-2">
-      <p className="font-medium">
-        Treasury {summary.openingTreasury.toLocaleString()} →{" "}
-        {summary.closingTreasury.toLocaleString()}{" "}
-        <span className={summary.netChange < 0 ? "text-destructive" : "text-success"}>
-          ({signed(summary.netChange)})
-        </span>
-      </p>
-      <p className="text-muted-foreground">
-        Fleet maintenance {summary.maintenanceCost.toLocaleString()} · New construction{" "}
-        {summary.constructionSpending.toLocaleString()}
-      </p>
-      {progress !== null && <p>{progress}</p>}
-      {summary.battles.length > 0 && (
-        <ul className="space-y-1" aria-label="Battles this month">
-          {summary.battles.map((battle) => (
-            <li key={battle.battleId}>{describeBattle(battle, campaignNationLabel, areaName)}</li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
+import { monthLabel } from "./month-report-format.js";
+import { MonthlyReportView } from "./components/MonthlyReportView.js";
 
 /**
- * What happened when you last advanced the month, plus the months before it in this session.
- * The history lives in memory only (the engine keeps no month history yet), and the card says so.
+ * What happened when you last advanced the month, plus the earlier months
+ * stored for this campaign in the `monthly-reports.json` sidecar (spec §16
+ * "Report history"; read-only). The report data is derived in main from the
+ * real `CommitMonthResponse`; the card only renders it.
  */
 export function MonthReportCard({
-  history,
+  reports,
   areaName = humanizeId,
   embedded = false,
 }: {
-  readonly history: readonly MonthSummary[];
+  readonly reports: readonly MonthlyReportEntry[];
   readonly areaName?: (id: string) => string;
   /** Render only the body (a host panel supplies the chrome and title). */
   readonly embedded?: boolean;
 }) {
-  const [latest, ...earlier] = history;
+  const [latest, ...earlier] = reports;
   const description =
     latest === undefined
       ? "The monthly report appears here after you advance the month."
-      : `Report for ${monthLabel(latest.month)}.`;
+      : `Report for ${monthLabel(latest.period.from)}.`;
   return (
     <CardShell
       testId="month-report-card"
@@ -75,24 +44,31 @@ export function MonthReportCard({
     >
       {embedded && <p className="text-muted-foreground">{description}</p>}
       {latest === undefined ? (
-        <p className="text-muted-foreground">No months have been advanced yet this session.</p>
+        <p className="text-muted-foreground">No months have been advanced yet in this campaign.</p>
       ) : (
-        <Report summary={latest} areaName={areaName} />
+        <MonthlyReportView report={latest} previous={earlier[0]} areaName={areaName} />
       )}
       {earlier.length > 0 && (
         <details>
           <summary className="cursor-pointer text-muted-foreground">
-            Earlier months this session ({earlier.length})
+            Earlier months ({earlier.length})
           </summary>
           <ul className="mt-2 space-y-3">
-            {earlier.map((summary) => (
-              <li key={`${summary.month.year}-${summary.month.month}`} className="space-y-1">
-                <p className="font-medium">{monthLabel(summary.month)}</p>
-                <Report summary={summary} areaName={areaName} />
+            {earlier.map((report, index) => (
+              <li
+                key={`${report.period.from.year}-${report.period.from.month}`}
+                className="space-y-1"
+              >
+                <p className="font-medium">{monthLabel(report.period.from)}</p>
+                <MonthlyReportView
+                  report={report}
+                  previous={earlier[index + 1]}
+                  areaName={areaName}
+                />
               </li>
             ))}
           </ul>
-          <p className="mt-2 text-muted-foreground">History is kept while the app is open.</p>
+          <p className="mt-2 text-muted-foreground">Earlier months are kept with this campaign.</p>
         </details>
       )}
     </CardShell>

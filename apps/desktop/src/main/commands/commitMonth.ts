@@ -5,6 +5,7 @@ import { SafeInt } from "@bluewave/contracts";
 import { createEnvelope } from "@bluewave/deterministic";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { SaveStore } from "@bluewave/persistence";
+import type { SaveMetadata } from "@bluewave/persistence";
 import { MonthExecutor } from "@bluewave/phase-engine";
 import {
   armamentContentHash,
@@ -15,9 +16,11 @@ import { monthInputOf } from "../monthInput.js";
 import type { BridgeResult } from "../../shared/bridge-contract.js";
 import type { CommitMonthPayload } from "../../shared/campaign-command-contract.js";
 import { getCampaignSession, registerCampaignSession } from "../campaignSessions.js";
+import { appendMonthlyReport, loadMonthlyReports, saveMonthlyReports } from "../monthlyReports.js";
 import { clearPendingEnvelopes, pendingEnvelopesForExecution } from "../pendingCommands.js";
 import { toSaveableState } from "../saveHelpers.js";
 import { collectBattleOutcomes } from "./commitMonth/battleOutcomes.js";
+import { buildMonthlyReportEntry } from "./commitMonth/reportEntry.js";
 import {
   sumByCategory,
   toDomainEvents,
@@ -195,9 +198,10 @@ export async function commitMonth(
   });
 
   const store = new SaveStore();
+  let saveMetadata: SaveMetadata;
   try {
     // The month's input travels with the save that closes it, so replayCampaign can run this month again.
-    store.save(nextState, record.saveDir, undefined, {
+    const saved = store.save(nextState, record.saveDir, undefined, {
       monthInput: monthInputOf(
         pendingCommands,
         result.commandLedger.all,
@@ -205,6 +209,7 @@ export async function commitMonth(
         armamentContentHash(),
       ),
     });
+    saveMetadata = saved.metadata;
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return { outcome: "error", reason: "SAVE_FAILED", diagnostics: [message] };
@@ -247,5 +252,40 @@ export async function commitMonth(
     },
   };
 
-  return { outcome: "success", value: response, diagnostics: [] };
+  // Persist this month's derived report into the `monthly-reports.json`
+  // sidecar (spec §16 "Report history"), after the authoritative save +
+  // session registration. `generatedAt` is the real save metadata timestamp —
+  // never `Date.now()` in an authoritative path (the report is app-layer and
+  // never hashed). The sidecar is non-authoritative history: a failed history
+  // write is surfaced as a diagnostic but never fails an already-persisted
+  // month.
+  const sidecarDiagnostics: string[] = [];
+  try {
+    const entry = buildMonthlyReportEntry({
+      response,
+      month: record.month,
+      nextMonth,
+      turn: Number(nextTurnNumber),
+      reportId: saveMetadata.saveId,
+      generatedAt: saveMetadata.timestamp,
+      campaignId: nextSnapshot.campaignId,
+      playerNationId: record.playerSlotId,
+      playerNationBefore,
+      playerNationAfter,
+      // The canonical post-month snapshot (slot order restored, turn advanced),
+      // not the player-slot-first execution layout, so the stored priorities
+      // basis matches the snapshot that was persisted.
+      postSnapshot: nextSnapshot,
+      ledgerEntries,
+      domainEvents: result.eventLedger.all,
+    });
+    saveMonthlyReports(
+      record.saveDir,
+      appendMonthlyReport(loadMonthlyReports(record.saveDir), entry),
+    );
+  } catch (err) {
+    sidecarDiagnostics.push(err instanceof Error ? err.message : String(err));
+  }
+
+  return { outcome: "success", value: response, diagnostics: sidecarDiagnostics };
 }

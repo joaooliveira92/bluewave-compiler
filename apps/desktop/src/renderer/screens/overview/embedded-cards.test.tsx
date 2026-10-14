@@ -10,7 +10,7 @@ describe("embedded cards (body only, for map-overlay panels)", () => {
   afterEach(cleanup);
 
   it("the month report keeps its test id and description but drops its own title", () => {
-    render(<MonthReportCard history={[]} embedded />);
+    render(<MonthReportCard reports={[]} embedded />);
     expect(screen.getByTestId("month-report-card")).toBeTruthy();
     expect(screen.queryByText("Recent Developments")).toBeNull();
     expect(screen.getByText(/appears here after you advance the month/)).toBeTruthy();
@@ -40,7 +40,7 @@ describe("embedded cards (body only, for map-overlay panels)", () => {
   });
 
   it("the default (not embedded) still shows the titles", () => {
-    render(<MonthReportCard history={[]} />);
+    render(<MonthReportCard reports={[]} />);
     expect(screen.getByText("Recent Developments")).toBeTruthy();
   });
 });

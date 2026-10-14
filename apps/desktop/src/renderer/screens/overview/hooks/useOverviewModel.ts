@@ -1,12 +1,12 @@
 import type { PlayerProjection } from "@bluewave/campaign-engine";
+import type { MonthlyReportEntry } from "../../../../shared/campaign-command-contract.js";
 import type { WorldMapController } from "../../../components/world-map/useWorldMapController.js";
 import { useWorldMapController } from "../../../components/world-map/useWorldMapController.js";
-import type { MonthSummary } from "../../../lib/month-summary.js";
 import { humanizeId } from "../../../lib/humanize-id.js";
 import { useCampaignProjection } from "../../../lib/use-campaign-projection.js";
 import { useMinWidth } from "../../../lib/use-min-width.js";
-import { useMonthHistory } from "../../../shell/CampaignShellContext.js";
 import { useDensity } from "../../../shell/DensityContext.js";
+import { useMonthlyReports } from "../useMonthlyReports.js";
 import { useNationRail, type NationRailLoad } from "../useNationRail.js";
 import { usePriorities, type PrioritiesState } from "../usePriorities.js";
 
@@ -26,7 +26,8 @@ export interface OverviewModel {
   readonly priorityCount: number | null;
   readonly priorities: PrioritiesState;
   readonly nationRail: NationRailLoad;
-  readonly monthHistory: readonly MonthSummary[];
+  /** The stored Monthly Naval Estimates reports for this campaign, newest first. */
+  readonly monthReports: readonly MonthlyReportEntry[];
   readonly map: WorldMapController;
   /** True when the viewport is wide enough for panels to float over the map (CC-9). */
   readonly wide: boolean;
@@ -34,15 +35,15 @@ export interface OverviewModel {
 
 /**
  * Loads everything the Overview screen shows (projection, priorities, the
- * Diplomacy & War inspect view for the rail, session month history, and the
- * world-map controller) and derives the presentation facts the panels need
- * (area-name resolution, density, viewport width) — so the screen itself only
- * gates on load state and composes the layout.
+ * Diplomacy & War inspect view for the rail, the stored monthly-report
+ * history, and the world-map controller) and derives the presentation facts
+ * the panels need (area-name resolution, density, viewport width) — so the
+ * screen itself only gates on load state and composes the layout.
  */
 export function useOverviewModel(sessionId: string): OverviewModel {
   const priorities = usePriorities(sessionId);
   const nationRail = useNationRail(sessionId);
-  const monthHistory = useMonthHistory();
+  const monthReports = useMonthlyReports(sessionId);
   const map = useWorldMapController(sessionId);
   const { density } = useDensity();
   const wide = useMinWidth(COMMAND_OVERLAY_MIN_WIDTH);
@@ -61,7 +62,7 @@ export function useOverviewModel(sessionId: string): OverviewModel {
     priorityCount: priorities.status === "ready" ? priorities.priorities.length : null,
     priorities,
     nationRail,
-    monthHistory,
+    monthReports: monthReports.reports,
     map,
     wide,
   };

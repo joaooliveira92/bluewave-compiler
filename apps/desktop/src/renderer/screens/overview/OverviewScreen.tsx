@@ -41,7 +41,7 @@ export function OverviewScreen({ sessionId, onNavigate }: OverviewScreenProps) {
     priorityCount,
     priorities,
     nationRail,
-    monthHistory,
+    monthReports,
     map,
     wide,
   } = useOverviewModel(sessionId);
@@ -67,9 +67,9 @@ export function OverviewScreen({ sessionId, onNavigate }: OverviewScreenProps) {
   );
   const monthReport = (
     <OverviewMonthReportPanel
-      history={monthHistory}
+      reports={monthReports}
       areaName={areaName}
-      defaultOpen={roomy && monthHistory.length > 0}
+      defaultOpen={roomy && monthReports.length > 0}
     />
   );
   const nationsPanel = (

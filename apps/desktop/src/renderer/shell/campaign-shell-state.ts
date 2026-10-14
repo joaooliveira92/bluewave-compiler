@@ -1,4 +1,3 @@
-import { appendMonthSummary, type MonthSummary } from "../lib/month-summary.js";
 import type { PrimaryAction } from "./primary-action.js";
 import type { NavigationHistory } from "./navigation-history.js";
 import { currentEntry, initialHistory, visit } from "./navigation-history.js";
@@ -42,11 +41,6 @@ export interface CampaignShellState {
   readonly saveMessage: string | null;
   readonly primaryAction: PrimaryAction | null;
   readonly committing: boolean;
-  /**
-   * Reports of the months committed in this session, newest first. Kept in memory only: the engine
-   * does not persist a month history yet, so it starts empty each time the campaign is opened.
-   */
-  readonly monthHistory: readonly MonthSummary[];
 }
 
 export type CampaignShellMode =
@@ -110,7 +104,6 @@ export type CampaignShellEvent =
   | {
       readonly type: "month-committed";
       readonly campaign: CampaignOverview;
-      readonly summary: MonthSummary;
     }
   | { readonly type: "campaign-refreshed"; readonly campaign: CampaignOverview }
   | { readonly type: "month-commit-failed"; readonly message: string };
@@ -125,7 +118,6 @@ export function initialCampaignShellState(): CampaignShellState {
     saveMessage: null,
     primaryAction: null,
     committing: false,
-    monthHistory: [],
   };
 }
 
@@ -147,7 +139,6 @@ export function reduceCampaignShell(
         campaign: event.campaign,
         loading: false,
         error: null,
-        monthHistory: [],
         history: visit(state.history, "overview"),
       };
     case "campaign-open-failed":
@@ -185,7 +176,6 @@ export function reduceCampaignShell(
         ...state,
         committing: false,
         campaign: event.campaign,
-        monthHistory: appendMonthSummary(state.monthHistory, event.summary),
       };
     case "campaign-refreshed":
       // A late refresh must not resurrect a closed campaign or replace a different one.

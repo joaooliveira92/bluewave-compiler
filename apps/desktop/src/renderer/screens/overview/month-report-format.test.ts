@@ -1,32 +1,36 @@
+import type { BattleOutcome, StrategicPriority } from "@bluewave/campaign-engine";
 import { describe, expect, it } from "vite-plus/test";
-import type { MonthBattleSummary, MonthSummary } from "../../lib/month-summary.js";
-import { describeBattle, monthLabel, progressLine, signed } from "./month-report-format.js";
+import { comparePriorities, describeBattle, monthLabel, signed } from "./month-report-format.js";
 
 const nation = (id: string) => ({ uk: "Britain", france: "France" })[id] ?? id;
 const area = (id: string) => ({ malta: "Malta" })[id] ?? id;
 
-const battle = (over: Partial<MonthBattleSummary> = {}): MonthBattleSummary => ({
+const battle = (over: Partial<BattleOutcome> = {}): BattleOutcome => ({
   battleId: "b",
   areaId: "malta",
   attackerId: "uk",
   defenderId: "france",
   winnerId: "uk",
-  attackerLosses: 1,
-  defenderLosses: 2,
+  loserId: "france",
+  warScoreDelta: 2,
+  attackerLosses: ["s1"],
+  defenderLosses: ["f1", "f2"],
+  explanation: [],
   ...over,
 });
 
-const summary = (over: Partial<MonthSummary> = {}): MonthSummary => ({
-  month: { year: 1880, month: 2 },
-  openingTreasury: 0,
-  closingTreasury: 0,
-  netChange: 0,
-  maintenanceCost: 0,
-  constructionSpending: 0,
-  battles: [],
-  technologiesDiscovered: 0,
-  constructionUpdates: 0,
-  researchUpdates: 0,
+const priority = (
+  fingerprint: string,
+  over: Partial<StrategicPriority> = {},
+): StrategicPriority => ({
+  id: fingerprint,
+  type: "monthly_deficit",
+  severity: "warning",
+  title: `Priority ${fingerprint}`,
+  summary: "s",
+  reason: "r",
+  destination: "overview",
+  fingerprint,
   ...over,
 });
 
@@ -53,7 +57,7 @@ describe("describeBattle", () => {
   });
 
   it("calls an undecided battle a draw, never a win", () => {
-    const text = describeBattle(battle({ winnerId: null }), nation, area);
+    const text = describeBattle(battle({ winnerId: null, loserId: null }), nation, area);
     expect(text).toContain("fought to a draw");
     expect(text).not.toContain("defeated");
   });
@@ -65,16 +69,32 @@ describe("describeBattle", () => {
   });
 });
 
-describe("progressLine", () => {
-  it("lists only what happened, pluralised", () => {
-    expect(progressLine(summary({ constructionUpdates: 2, technologiesDiscovered: 1 }))).toBe(
-      "2 construction updates · 1 technology discovered",
-    );
-    expect(progressLine(summary({ researchUpdates: 1 }))).toBe("1 research update");
+describe("comparePriorities", () => {
+  it("marks every current priority as new against an empty previous report", () => {
+    const { created, resolved, continuing } = comparePriorities([priority("a")], []);
+    expect(created.map((p) => p.fingerprint)).toEqual(["a"]);
+    expect(resolved).toEqual([]);
+    expect(continuing).toEqual([]);
   });
 
-  it("is null for a month with no progress to report", () => {
-    expect(progressLine(summary())).toBeNull();
+  it("splits new, resolved and continuing by fingerprint", () => {
+    const { created, resolved, continuing } = comparePriorities(
+      [priority("a"), priority("b")],
+      [priority("b"), priority("c")],
+    );
+    expect(created.map((p) => p.fingerprint)).toEqual(["a"]);
+    expect(resolved.map((p) => p.fingerprint)).toEqual(["c"]);
+    expect(continuing.map((p) => p.fingerprint)).toEqual(["b"]);
+  });
+
+  it("reports nothing continuing when a priority simply changed severity (same fingerprint)", () => {
+    const { created, resolved, continuing } = comparePriorities(
+      [priority("a", { severity: "critical" })],
+      [priority("a", { severity: "warning" })],
+    );
+    expect(created).toEqual([]);
+    expect(resolved).toEqual([]);
+    expect(continuing.map((p) => p.fingerprint)).toEqual(["a"]);
   });
 });
 

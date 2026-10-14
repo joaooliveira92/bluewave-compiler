@@ -387,10 +387,14 @@ ADR-0128.
 **Desktop side-tracks (recorded, not dropped):**
 
 - **Game-onboarding first month** (`.scratch/game-onboarding-first-month/`):
-  INC-1..INC-11 IMPLEMENTED DONE (commits `4a5eb20`..`a1a3b2b`). **Frontier
-  INC-12 (Monthly Naval Estimates report + history sidecar)** — renders real
-  `CommitMonthResponse` faithfully + monthly-reports.json keyed by `campaignId`,
-  tolerant read, pruned to 12 at write.
+  **INC-1..INC-14 IMPLEMENTED DONE.** **INC-12 (Monthly Naval Estimates report +
+  `monthly-reports.json` history sidecar) DONE 2026-10-14 — PASS** (report
+  `.ai/reports/game-onboarding-inc12-naval-estimates-report.md`): the real
+  `CommitMonthResponse` rendered faithfully (Treasury/Construction/Research/
+  Priorities/Fleet/Battle Outcomes; cut sections absent by type), a per-campaign
+  sidecar (atomic, tolerant, keyed by `campaignId` via save-dir location, pruned
+  to 12, never authoritative), and Overview's Recent Developments reads it. This
+  effort's frontier is now clear.
 - **Fleet movement strategy map** (`.scratch/fleet-movement-strategy-map/`):
   SCOPED 2026-08-19 (spec 29 742 bytes, 6 INC tickets, research notes landed).
   **Frontier INC-1 (campaign geometry seam & coastline asset promotion)** —

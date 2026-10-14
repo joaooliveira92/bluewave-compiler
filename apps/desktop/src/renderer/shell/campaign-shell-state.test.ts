@@ -1,25 +1,11 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import type { MonthSummary } from "../lib/month-summary.js";
 import {
   campaignShellMode,
   currentShellScreen,
   initialCampaignShellState,
   reduceCampaignShell,
 } from "./campaign-shell-state.js";
-
-const monthSummary = (month: number, netChange = -56): MonthSummary => ({
-  month: { year: 1900, month },
-  openingTreasury: 1000,
-  closingTreasury: 1000 + netChange,
-  netChange,
-  maintenanceCost: 16,
-  constructionSpending: 0,
-  battles: [],
-  technologiesDiscovered: 0,
-  constructionUpdates: 0,
-  researchUpdates: 0,
-});
 
 const campaign = {
   month: { year: 1900, month: 1 },
@@ -205,7 +191,6 @@ describe("campaign shell state", () => {
     const committed = reduceCampaignShell(started, {
       type: "month-committed",
       campaign: { ...campaign, revision: 2 },
-      summary: monthSummary(2),
     });
     expect(committed.committing).toBe(false);
     expect(committed.campaign?.revision).toBe(2);
@@ -321,7 +306,7 @@ describe("campaign-refreshed guard", () => {
   });
 });
 
-describe("month history", () => {
+describe("month commit", () => {
   const opened = reduceCampaignShell(initialCampaignShellState(), {
     type: "campaign-opened",
     campaign,
@@ -330,28 +315,23 @@ describe("month history", () => {
     reduceCampaignShell(state, {
       type: "month-committed",
       campaign: { ...campaign, revision: month },
-      summary: monthSummary(month),
     });
 
-  it("starts empty and records each committed month, newest first", () => {
-    expect(opened.monthHistory).toEqual([]);
-    const after = commit(commit(opened, 2), 3);
-    expect(after.monthHistory.map((m) => m.month.month)).toEqual([3, 2]);
+  it("advances the campaign revision and clears the committing flag", () => {
+    const started = reduceCampaignShell(opened, { type: "month-commit-started" });
+    expect(started.committing).toBe(true);
+    const after = commit(commit(started, 2), 3);
+    expect(after.committing).toBe(false);
+    expect(after.campaign?.revision).toBe(3);
   });
 
-  it("starts afresh when a campaign is opened, and is cleared when it closes", () => {
-    const withHistory = commit(opened, 2);
-    const reopened = reduceCampaignShell(withHistory, { type: "campaign-opened", campaign });
-    expect(reopened.monthHistory).toEqual([]);
-    const closed = reduceCampaignShell(withHistory, { type: "campaign-closed" });
-    expect(closed.monthHistory).toEqual([]);
-  });
-
-  it("does not add a month to the history when the commit fails", () => {
+  it("leaves the campaign unchanged when the commit fails", () => {
     const failed = reduceCampaignShell(commit(opened, 2), {
       type: "month-commit-failed",
       message: "boom",
     });
-    expect(failed.monthHistory).toHaveLength(1);
+    expect(failed.campaign?.revision).toBe(2);
+    expect(failed.committing).toBe(false);
+    expect(failed.saveMessage).toBe("boom");
   });
 });

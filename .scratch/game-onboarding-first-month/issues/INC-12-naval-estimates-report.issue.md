@@ -28,15 +28,35 @@
 
 **Blocked by:** INC-1, INC-2, INC-3
 
-**Status:** ready-for-agent
+**Status:** resolved (2026-10-14)
 
-- [ ] Report renders the real response sections faithfully; no cut section
+- [x] Report renders the real response sections faithfully; no cut section
       exists anywhere
-- [ ] Battle Outcomes is its own subsection (plain text, no tactical UI)
-- [ ] `monthly-reports.json` persists the last 12 reports + priority
+- [x] Battle Outcomes is its own subsection (plain text, no tactical UI)
+- [x] `monthly-reports.json` persists the last 12 reports + priority
       fingerprints (atomic write, tolerant read, never authoritative)
-- [ ] Report `generatedAt` comes from save metadata, never `Date.now()` in an
+- [x] Report `generatedAt` comes from save metadata, never `Date.now()` in an
       authoritative path
-- [ ] Overview's Recent Developments reads the history sidecar
-- [ ] Goldens 10/10 unchanged; component/engine tests cover the sections +
+- [x] Overview's Recent Developments reads the history sidecar
+- [x] Goldens unchanged (11/11); component/engine tests cover the sections +
       the sidecar
+
+## Resolution (2026-10-14)
+
+Implemented entirely under `apps/desktop/**` + the shared desktop contract, mirroring
+the INC-3 `ui-state.json` sidecar pattern. `main/monthlyReports.ts` owns the sidecar
+(atomic tmp→rename, tolerant read, prune-12, sibling of the save ids, never in the
+envelope/hash); `main/commands/commitMonth.ts` appends one `MonthlyReportEntry` per
+successful commit (`generatedAt` = `SaveMetadata.timestamp`) built by the pure
+`commands/commitMonth/reportEntry.ts`; a new `readMonthlyReports` bridge command serves
+the renderer read-only. Overview's "Recent Developments" (`MonthReportCard` +
+`MonthlyReportView` + six section components) now renders the stored report, replacing
+the in-memory month history (`lib/month-summary.ts` deleted). Cut sections are absent by
+type, not empty.
+
+Evidence: `.ai/reports/game-onboarding-inc12-naval-estimates-report.md`.
+Desktop 2010 passed; typecheck 40/40; lint 0/0; format clean; goldens 11/11;
+cross-process + equivalence byte-identical. `pnpm check` stops only on a pre-existing
+unrelated e2e failure (`e2e/ship-types.spec.ts`, shipbuilding armour), reproduced at
+HEAD without this change. This completes the game-onboarding-first-month INC frontier
+(INC-1..INC-14); next desktop frontier is `fleet-movement-strategy-map` INC-1.
