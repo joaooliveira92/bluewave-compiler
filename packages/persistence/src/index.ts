@@ -18,6 +18,15 @@ export {
 } from "./errors.js";
 export type { PersistenceError, PersistenceErrorFields } from "./errors.js";
 export { cleanup, RecoveryManager } from "./recovery.js";
+export {
+  detectSaveVersion,
+  migrateSaveDirectory,
+  restampState,
+  SAVE_MIGRATIONS,
+  type MigrateSaveDirectoryResult,
+  type SaveMigrationKind,
+  type SaveMigrationStep,
+} from "./saveMigration.js";
 export { StorableCampaignStateSchema } from "./schemas.js";
 export { fromStorableSnapshot } from "./snapshotSerialization.js";
 export type { StorableCampaignSnapshot } from "./snapshotSerialization.js";

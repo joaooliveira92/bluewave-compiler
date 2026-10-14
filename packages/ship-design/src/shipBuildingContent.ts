@@ -21,6 +21,10 @@ import { type NationNavalProfile, resolveNavalProfile } from "./nationProfile.js
 import type { AuthoredArmamentContent } from "./armamentContent.js";
 import type { StarterDesign } from "./shipTypeRoster.js";
 import type { DesignDraft } from "./compileShared.js";
+import type { CompiledPartModel, ReferenceDesignLoadoutData } from "@bluewave/content-schema";
+import { buildProductionPartModel } from "./compileProduction.js";
+import { platformSlots } from "./partCompatibility.js";
+import { rebuildDraft } from "./partCatalogueReaders.js";
 
 /** A raw reference-design entry as authored in `reference-designs.yaml` (its `starterFor` is optional). */
 export interface RawReferenceDesign {
@@ -66,6 +70,14 @@ export interface ShipBuildingData {
   readonly armament?: AuthoredArmamentContent;
   /** Reference designs (optional): the starter designs the AI may base a procurement candidate on. */
   readonly referenceDesigns?: readonly RawReferenceDesign[];
+  /**
+   * The compiled part model and the authoritative reference-design loadouts
+   * (ship-part-model ticket 11d). When both are present, reference designs are
+   * rebuilt from their loadouts — the parts are authoritative and the legacy
+   * `referenceDesigns` array is the harness baseline only.
+   */
+  readonly partModel?: CompiledPartModel;
+  readonly designLoadouts?: readonly ReferenceDesignLoadoutData[];
 }
 
 /** Everything a caller needs, built once. `environmentFor(month)` is pure: same data and month, same environment. */
@@ -105,6 +117,43 @@ export function unlockedTechIds(
   return new Set(techs.filter((t) => t.year <= year).map((t) => t.id));
 }
 
+/**
+ * Rebuild the authoritative reference designs from their parts loadouts (ticket 11d). The
+ * inverse readers reconstruct each legacy `DesignDraft` from the part model, so the catalogues
+ * and the AI read exactly the activated parts content. A loadout that cannot rebuild is a
+ * content error, never a silently dropped design.
+ */
+export function referenceDesignsFromLoadouts(
+  loadouts: readonly ReferenceDesignLoadoutData[],
+  model: CompiledPartModel,
+): RawReferenceDesign[] {
+  const production = buildProductionPartModel({
+    parts: Object.values(model.partIndex.byId),
+    slotTemplates: model.slotTemplates,
+    platforms: model.platforms,
+  });
+  return loadouts.map((loadout) => {
+    const slots = platformSlots(production.compatibility, loadout.loadout.platform) ?? [];
+    const rebuilt = rebuildDraft({
+      designId: loadout.id,
+      header: loadout.header,
+      loadout: loadout.loadout,
+      partOf: production.partOf,
+      slotOf: (slotId) => slots.find((slot) => slot.id === slotId),
+    });
+    if (rebuilt.draft === null || rebuilt.issues.length > 0) {
+      throw new Error(`reference design '${loadout.id}' does not rebuild from its parts loadout`);
+    }
+    return {
+      id: loadout.id,
+      name: loadout.name,
+      month: loadout.month,
+      ...(loadout.starterFor === undefined ? {} : { starterFor: loadout.starterFor }),
+      draft: rebuilt.draft,
+    };
+  });
+}
+
 export function buildShipBuildingContent(data: ShipBuildingData): ShipBuildingContent {
   // A pack that has a study section must have all of it (DERIVED_DESIGN_DISCOUNT_CONTRACT_MISSING otherwise).
   const study = data.balance.study === undefined ? null : checkStudyBalance(data.balance.study);
@@ -125,6 +174,12 @@ export function buildShipBuildingContent(data: ShipBuildingData): ShipBuildingCo
     data.balance.environment.yardWorkPerTonneMonth,
   );
   const profiles = data.navalProfiles ?? [];
+  // The authoritative source of reference designs is the parts loadouts when the pack carries
+  // them; the legacy `referenceDesigns` array remains the equivalence-harness baseline.
+  const referenceDesigns =
+    data.partModel !== undefined && data.designLoadouts !== undefined
+      ? referenceDesignsFromLoadouts(data.designLoadouts, data.partModel)
+      : (data.referenceDesigns ?? []);
   const environmentFor = (month: string, nationId?: string): WorkshopEnvironment => {
     const profile = nationId === undefined ? null : resolveNavalProfile(profiles, nationId, month);
     const selection = profile === null ? null : catalogueForNation(data.components, profile, month);
@@ -169,7 +224,7 @@ export function buildShipBuildingContent(data: ShipBuildingData): ShipBuildingCo
     navalProfiles: profiles,
     armament: data.armament ?? null,
     navalProfileFor: (nationId, month) => resolveNavalProfile(profiles, nationId, month),
-    starterDesigns: (data.referenceDesigns ?? [])
+    starterDesigns: referenceDesigns
       .filter((r): r is RawReferenceDesign & { starterFor: string } => r.starterFor !== undefined)
       .map((r) => ({
         id: r.id,

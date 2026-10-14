@@ -694,6 +694,26 @@ function legacyExceptionsOnLauncherOnly(part: {
       };
 }
 
+/**
+ * Where a flattened part's values came from (ADR-0147, I-12): the file that declares
+ * it and, for a variant, the prototype it inherits from with the spec fields and
+ * quantity components it took unchanged from the prototype's **base** spec (the
+ * prototype's revisions are never inherited; ADR-0154 §14). Declared before the
+ * envelope because authored parts may carry it (the content codemod's already-flattened
+ * output is accepted as authoritative).
+ */
+export const PartOriginSchema = Schema.Struct({
+  sourceFile: Schema.NonEmptyString,
+  prototype: Schema.optional(
+    Schema.Struct({
+      id: stableId,
+      sourceFile: Schema.NonEmptyString,
+      inheritedSpec: Schema.Array(Schema.NonEmptyString),
+      inheritedQuantities: Schema.Array(stableId),
+    }),
+  ),
+});
+
 /** The envelope fields shared by the authored and the flattened part of one family. */
 function envelopeFields<const F extends PartFamily>(family: F) {
   return {
@@ -713,6 +733,14 @@ function envelopeFields<const F extends PartFamily>(family: F) {
     capabilities: Schema.optional(CapabilitiesSchema),
     metadata: Schema.optional(PartMetadataSchema),
     provenance: ProvenanceSchema,
+    /**
+     * Where the record was flattened from. Authored parts omit it; the flatten
+     * stage fills it. A record that already carries it (the content codemod's
+     * deterministic output) is accepted as already flattened, so the generated
+     * parts can be declared as authoritative content without re-inheriting
+     * prototypes.
+     */
+    origin: Schema.optional(PartOriginSchema),
   };
 }
 
@@ -774,24 +802,6 @@ export const PartSchema = Schema.Union([
 // ---------------------------------------------------------------------------
 // Flattened parts and the part index (SPM-R10, SPM-R11, SPM-R14)
 // ---------------------------------------------------------------------------
-
-/**
- * Where a flattened part's values came from (ADR-0147, I-12): the file that declares
- * it and, for a variant, the prototype it inherits from with the spec fields and
- * quantity components it took unchanged from the prototype's **base** spec (the
- * prototype's revisions are never inherited; ADR-0154 §14).
- */
-export const PartOriginSchema = Schema.Struct({
-  sourceFile: Schema.NonEmptyString,
-  prototype: Schema.optional(
-    Schema.Struct({
-      id: stableId,
-      sourceFile: Schema.NonEmptyString,
-      inheritedSpec: Schema.Array(Schema.NonEmptyString),
-      inheritedQuantities: Schema.Array(stableId),
-    }),
-  ),
-});
 
 /**
  * One family member of the flattened union: no `extends` (I-3), the full spec, the
@@ -1030,8 +1040,24 @@ export const DesignLoadoutSchema = Schema.Struct({
   loadout: LoadoutSchema,
 });
 
+/**
+ * An authoritative reference design in the parts representation (ticket 11d): the
+ * legacy identity fields plus the `header` and `loadout` the production compile path
+ * rebuilds a `DesignDraft` from. This replaces the legacy draft-based
+ * `ReferenceDesignSchema` once content is activated.
+ */
+export const ReferenceDesignLoadoutSchema = Schema.Struct({
+  id: stableId,
+  name: Schema.NonEmptyString,
+  month,
+  starterFor: Schema.optional(Schema.NonEmptyString),
+  header: DesignHeaderSchema,
+  loadout: LoadoutSchema,
+});
+
 export type DesignHeaderData = typeof DesignHeaderSchema.Type;
 export type DesignLoadoutData = typeof DesignLoadoutSchema.Type;
+export type ReferenceDesignLoadoutData = typeof ReferenceDesignLoadoutSchema.Type;
 export type CapabilityData = typeof CapabilitySchema.Type;
 export type EngineeringData = typeof EngineeringSchema.Type;
 export type PartData = typeof PartSchema.Type;

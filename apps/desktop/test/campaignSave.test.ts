@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { Schema } from "effect";
 import { SafeInt } from "@bluewave/contracts";
-import { SaveStore } from "@bluewave/persistence";
+import { CURRENT_COMPATIBILITY_VERSION, SaveStore } from "@bluewave/persistence";
 import type { CampaignSnapshot, CampaignState, NationState } from "@bluewave/campaign";
 import { createEnvelope, canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
 import { loadCampaignSave } from "../src/main/campaignSave.js";
@@ -63,7 +63,7 @@ function buildSnapshot(): CampaignSnapshot {
     designs: new Map(),
     designFamilies: new Map(),
     rulesetVersion: "1.0.0",
-    compatibilityVersion: "1.2.0",
+    compatibilityVersion: CURRENT_COMPATIBILITY_VERSION,
   };
 }
 

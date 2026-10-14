@@ -35,4 +35,18 @@
 # is followed by non-authoritative commits, so rewording would need an interactive
 # rebase (prohibited). Flagged: 998556cc, 12fe1350, b097e2cf, 17905f05, a0b1c401,
 # 4e8f82c5, 66ff3e16, 0bdffaeb, 1c4eb771, 4b2ff513.
-998556cc9d39cb4e2d24f03cfd9695916e4f9687
+#
+# The baseline is advanced again to 57771173 — the pre-11d tip (ship-part-model
+# ticket 11d activation) — with the reason recorded. Six commits across the
+# ship-part-model and effect-conformance slices changed authoritative package
+# source without re-pinning golden/hashes.json: 1c28b4ce (part-model schemas),
+# 2e6b570a (gun read path), 4220ea99 (gate fix), 0c1f378d (conformance residue),
+# f8c3ff24 (save-compat gate) and ca7c2349 (fit barrier seam). `pnpm check:golden`
+# was green on the pre-11d tip (all hashes matched the committed golden), so none
+# of them moved the reference run net; they should have carried a
+# `Golden-Repin: not-needed` trailer, but they are already pushed to origin/dev
+# (force-push prohibited) and rewording would need an interactive rebase
+# (prohibited), so the ratchet is advanced past them instead. Ticket 11d
+# legitimately re-pins (compatibility 2.0.0 is embedded in the save envelope) and
+# is gated.
+57771173158f0144ce12c944fb37e0079f44ff6c

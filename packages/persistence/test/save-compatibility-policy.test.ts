@@ -71,12 +71,12 @@ describe("save-compatibility policy (ADR-0113)", () => {
   });
 
   it("locks CURRENT_COMPATIBILITY_VERSION to the current release constant", () => {
-    // The first public release pins the v1 format. A deliberate bump (see
-    // ADR-0113) must update this test, add a per-version fixture and register a
-    // migration or a documented rejection — never edit the constant silently.
-    // 1.1.0 -> 1.2.0 widens the dockyard-project status vocabulary (ADR-0129);
-    // no released save exists, so the old version is a documented rejection.
-    expect(CURRENT_COMPATIBILITY_VERSION).toBe("1.2.0");
+    // A deliberate bump (see ADR-0113) must update this test, add a per-version
+    // fixture and register a migration or a documented rejection — never edit the
+    // constant silently. 1.2.0 -> 2.0.0 changes the ship-part design data model
+    // (ADR-0154 §11, ticket 11d): the part-model version is now current and 1.2.0
+    // is migrated only by the offline developer tool.
+    expect(CURRENT_COMPATIBILITY_VERSION).toBe("2.0.0");
   });
 
   it("round-trips a snapshot saved at the current compatibility version", () => {
@@ -148,23 +148,32 @@ describe("save-compatibility policy (ADR-0113)", () => {
     },
   );
 
-  it("declares 2.0.0 without making it current (ticket 11 activates it)", () => {
+  it("declares the part-model version as the current release constant (ticket 11d activates it)", () => {
     expect(PART_MODEL_COMPATIBILITY_VERSION).toBe("2.0.0");
-    expect(CURRENT_COMPATIBILITY_VERSION).not.toBe(PART_MODEL_COMPATIBILITY_VERSION);
+    expect(CURRENT_COMPATIBILITY_VERSION).toBe(PART_MODEL_COMPATIBILITY_VERSION);
   });
 
-  it("refuses a 1.2.0 campaign when 2.0.0 is injected as current, leaving the file byte-identical", () => {
-    store.save(createFixtureState(), tmpDir);
+  it("refuses a 1.2.0 campaign at the current 2.0.0 version, leaving the file byte-identical", () => {
+    const legacy = createFixtureState();
+    const legacySnapshot = { ...legacy.snapshot, compatibilityVersion: "1.2.0" };
+    const legacyEnvelope = createEnvelope("campaign-snapshot", "1.2.0", legacySnapshot);
+    const legacyRawHash = sha256Hex(
+      canonicalSerialize({ snapshot: legacySnapshot, envelope: legacyEnvelope }),
+    );
+    store.save(
+      { snapshot: legacySnapshot, envelope: legacyEnvelope, rawHash: legacyRawHash },
+      tmpDir,
+    );
     const campaignPath = join(tmpDir, store.getActiveSaveId(tmpDir)!, "campaign.json");
     const before = readFileSync(campaignPath);
 
     const diagnostics = new DiagnosticCollector();
-    const loaded = new SaveStore(PART_MODEL_COMPATIBILITY_VERSION).load(tmpDir, diagnostics);
+    const loaded = store.load(tmpDir, diagnostics);
 
     expect(loaded).toBeNull();
     expect(diagnostics.errors.map((d) => d.code)).toEqual([COMPATIBILITY_MISMATCH_CODE]);
     expect(diagnostics.errors[0]!.message).toContain('"1.2.0"');
-    expect(diagnostics.errors[0]!.message).toContain(PART_MODEL_COMPATIBILITY_VERSION);
+    expect(diagnostics.errors[0]!.message).toContain(CURRENT_COMPATIBILITY_VERSION);
     expect(readFileSync(campaignPath).equals(before)).toBe(true);
   });
 });

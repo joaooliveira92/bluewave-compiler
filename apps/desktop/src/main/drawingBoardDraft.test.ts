@@ -79,14 +79,20 @@ describe("Drawing Board draft sidecar", () => {
     const path = join(saveDir, DRAWING_BOARD_DRAFT_FILENAME);
     const before = readFileSync(path, "utf8");
 
-    expect(loadDrawingBoardDraft(saveDir, "2.0.0")).toBeNull();
+    // A draft written under the current 2.0.0 is not restored under 3.0.0.
+    expect(loadDrawingBoardDraft(saveDir, "3.0.0")).toBeNull();
     expect(existsSync(path)).toBe(false);
-    expect(readFileSync(`${path}.1.2.0`, "utf8")).toBe(before);
+    expect(readFileSync(`${path}.2.0.0`, "utf8")).toBe(before);
   });
 
-  it("treats an unstamped legacy draft as written under 1.2.0", () => {
+  it("treats an unstamped legacy draft as written under 1.2.0 (refused at 2.0.0)", () => {
     const stored = { schema: "drawing_board_draft_v1", savedAt: "x", presetId: reference.id, log };
     writeFileSync(join(saveDir, DRAWING_BOARD_DRAFT_FILENAME), JSON.stringify(stored));
-    expect(loadDrawingBoardDraft(saveDir)).toMatchObject({ presetId: reference.id });
+    // The sidecar only restores a draft whose version matches the current engine
+    // version; the unstamped legacy draft is 1.2.0 and 2.0.0 is current.
+    expect(loadDrawingBoardDraft(saveDir, "1.2.0")).toMatchObject({ presetId: reference.id });
+    writeFileSync(join(saveDir, DRAWING_BOARD_DRAFT_FILENAME), JSON.stringify(stored));
+    expect(loadDrawingBoardDraft(saveDir)).toBeNull();
+    expect(existsSync(join(saveDir, `${DRAWING_BOARD_DRAFT_FILENAME}.1.2.0`))).toBe(true);
   });
 });

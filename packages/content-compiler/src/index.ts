@@ -48,6 +48,12 @@ export interface CompilerInput {
   slotTemplateFiles?: string[];
   platformFiles?: string[];
   /**
+   * Authoritative reference designs in the parts representation (ship-part-model
+   * ticket 11d): each is a header + loadout the production compile path rebuilds
+   * a draft from. Optional; a pack without them has no `designLoadouts`.
+   */
+  designLoadoutFiles?: string[];
+  /**
    * Campaign-file collections (the authored campaign surface). Optional like the
    * ship-building groups: a content-pack-only `bwc compile` leaves them undefined
    * and its artifact stays byte-compatible; `content:build`/`content:check`
@@ -92,6 +98,8 @@ export interface ShipBuildingCatalogue {
   referenceDesigns: unknown[];
   /** The flattened part index, slot templates and platforms; absent with no part model. */
   partModel?: CompiledPartModel;
+  /** Authoritative reference designs in the parts representation; absent without them. */
+  designLoadouts?: unknown[];
 }
 
 /**

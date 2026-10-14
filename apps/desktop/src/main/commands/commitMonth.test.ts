@@ -11,7 +11,7 @@ import type {
 import { SafeInt } from "@bluewave/contracts";
 import { createEnvelope } from "@bluewave/deterministic";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
-import { SaveStore } from "@bluewave/persistence";
+import { CURRENT_COMPATIBILITY_VERSION, SaveStore } from "@bluewave/persistence";
 import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test";
 import {
   clearCampaignSessionsForTest,
@@ -216,12 +216,12 @@ describe("commitMonth", () => {
       expect(updated.state.envelope).toEqual({
         algorithm: "sha256",
         artifactKind: "campaign-snapshot",
-        compatibilityVersion: "1.2.0",
-        bodyHash: "96935e12e9d4bf117578411d0fee190ba2cdce253a9e6e34192db10d74dbc24c",
+        compatibilityVersion: CURRENT_COMPATIBILITY_VERSION,
+        bodyHash: "501472dccac73b5352a0b56b871c74ed6e89a237db45178e21c14bcbf5a57feb",
         bodyLength: 87677,
       });
       expect(updated.state.rawHash).toBe(
-        "4881b62ba4acca3a8cf636ad52cceae04b6a7bc8ab528666952fcc58fc0f48eb",
+        "f8018aab8f3e0ec111400cf19ed3fad0c916c48ae8dbedd79c958cb9223d94a7",
       );
       const expectedActiveWars = updated.state.snapshot.wars.wars.filter(
         (w) => w.status !== "ENDED",
@@ -380,7 +380,7 @@ describe("commitMonth", () => {
         designs,
         designFamilies: new Map(),
         rulesetVersion: "1.0",
-        compatibilityVersion: "1.2.0",
+        compatibilityVersion: CURRENT_COMPATIBILITY_VERSION,
       };
     }
 
@@ -677,7 +677,7 @@ describe("mapBattleOutcome (pre-battle-snapshot war-score re-derivation, INC-2 f
       designs: new Map(),
       designFamilies: new Map(),
       rulesetVersion: "1.0",
-      compatibilityVersion: "1.2.0",
+      compatibilityVersion: CURRENT_COMPATIBILITY_VERSION,
     } as CampaignSnapshot;
   }
 

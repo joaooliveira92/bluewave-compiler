@@ -269,6 +269,59 @@ The 1880 content has 91 reference designs with 823 placements (230 gun placement
     - **Deferred.** Production activation, the pipeline switch and the save bump remain 11d;
       this decision stages content only.
 
+21. **Activation (2026-10-14, ticket 11d).** The deterministic codemod output (11c) becomes
+    authoritative content and the production compile path runs through the fit barrier.
+    - **Content.** The generated parts (`ship-building/parts/*.yaml`), platforms, slot
+      templates and one `DesignReference` per design (`ship-building/design-loadouts/*.yaml`)
+      are declared in `pack.json` under `shipBuilding.parts`/`slotTemplates`/`platforms`/
+      `designLoadouts` and compiled into the artifact (`shipBuilding.partModel` 306 parts, 5
+      platforms, 11 slot templates; 91 loadouts). The legacy `reference-designs/` stay declared
+      as the equivalence baseline; production reads the loadouts.
+    - **The codemod's flattened records are accepted as authored parts.** `PartSchema` admits an
+      optional `origin`; a record that already carries one is accepted by the flatten stage as-is
+      (prototype lineage read from `origin.prototype`) instead of re-inheriting a prototype. This
+      lets the generated tree be the authoritative parts source without a second, hand-authored
+      representation.
+    - **`designLoadouts` is a new compiler collection**, strictly decoded with
+      `ReferenceDesignLoadoutSchema` (id, name, month, optional `starterFor`, `header`, `loadout`),
+      normalized in file order, and carried as `shipBuilding.designLoadouts` (optional, so a pack
+      without it keeps its body hash).
+    - **The torpedo waiver's `forPart` is a deferred cross-reference.** `DQ-TORPEDO-001` names a
+      torpedo part; torpedoes arrive at P4. Until a pack declares a `torpedo` part, an unknown
+      `forPart` is not an error (the waiver is only evaluated against a nested torpedo entry, and
+      no P2 loadout carries one). Once a torpedo part is declared, the check is an error again.
+    - **Production barrier.** `compileDesignFromLoadout` (`compileProduction.ts`) rebuilds the
+      draft from `header`+`loadout` via the inverse readers, runs `validateLoadoutFit`, and reaches
+      `compileDesign` only through `deriveAfterFit`; a loadout that does not fit or cannot rebuild
+      exposes fit information and no derived metric. `buildShipBuildingContent` rebuilds reference
+      designs from the loadouts (`referenceDesignsFromLoadouts`) when the pack carries them, and
+      the desktop loader reads `partModel`/`designLoadouts` from the artifact. Tests
+      (`compileProduction.test.ts`, `productionPartsContent.test.ts`) prove all 91 designs / 823
+      placements compile from the activated content equal to the legacy compile, that the four D17
+      designs execute through the barrier, and that an invalid loadout yields no metrics.
+    - **Compatibility 2.0.0 and the offline migration.** `CURRENT_COMPATIBILITY_VERSION` becomes
+      `2.0.0` and `apps/desktop` follows it (ADR-0134). The product still refuses a mismatched save
+      (ADR-0113 §6, no runtime translation); `saveMigration.ts` adds the version-keyed transform
+      and `tools/migrate-dev-saves` is the offline, explicitly-versioned developer tool. It detects
+      the source version, migrates the supported 1.2.0 state by re-stamping the version and
+      recomputing the envelope + `rawHash` (no field but the version changes; 1.0.0/1.1.0 stay a
+      documented rejection), refuses future/unknown/malformed saves, validates before publication,
+      writes atomically with the original preserved as `.tmp_migrated_<id>.from-1.2.0`, and is
+      idempotent. Fixtures cover supported-old (1.2.0 corpus), already-current (2.0.0 corpus),
+      malformed, unknown-prior and future saves.
+    - **Golden re-pin.** The compatibility version is embedded in the save envelope, so the
+      reference run moves: `initialSnapshotHash` `081cce36→6d3f417b`, `closingSnapshotHash`
+      `5539aa54→5ce0a529`, `commandLedgerHash` `fed75149→3ccd7598`, `replayVerificationHash`
+      `fa8aa389→f29a1dc8`; `contentArtifactHash`, the event/financial/random ledgers and
+      `battleGenerationHash` are unchanged. `scripts/golden-repin.baseline` advances to the pre-11d
+      tip (57771173), grandfathering six pre-existing commits that changed authoritative source
+      without a trailer (verified: the reference run was green before 11d).
+    - **Inherited placeholder provenance.** The non-gun catalogue (plants, armour materials,
+      fittings, launchers) had no authored provenance; the parts migration surfaces it as
+      `PLACEHOLDER`. The 23 affected records are admitted on the justified
+      `placeholder-allowlist.json` pending a sourcing pass — a gate change recorded here, not a
+      migration difference.
+
 ## Consequences
 
 - One mechanism covers nine part families, platforms and ship types.

@@ -422,6 +422,8 @@ describe("cross-references fail with the file and field path", () => {
     [
       "an unknown legacy-exception forPart",
       [
+        // The counterpart torpedo part is declared, so the `forPart` reference is checked.
+        part("torpedo_14in", {}),
         // A legacy exception is admissible on a launcher only (ADR-0154 §10).
         part("a", {
           family: "torpedo_launcher",

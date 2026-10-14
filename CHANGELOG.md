@@ -6,7 +6,18 @@ to `main` (see `AGENTS.md`).
 
 ## Unreleased
 
-_No unreleased changes yet._
+### Changed
+
+- **Ship-building content moves to one part model (save compatibility 2.0.0).** Ships are now
+  compiled from platforms, slots and parts instead of per-placement legacy records. Every existing
+  reference design keeps its current displacement, speed, armament, protection, cost and build
+  time; only the nine central-battery ironclads are represented as batteries rather than invented
+  multi-gun turrets.
+- **Saves from before 2.0.0 are refused with a clear message and left untouched.** The design data
+  model changed shape, so an older campaign cannot be interpreted honestly and is not translated at
+  load time. A workspace draft from an older version is preserved (renamed) and the workspace starts
+  from the default design; nothing you authored is overwritten. An offline developer tool migrates
+  development fixtures only.
 
 ## 1.2.0 — 2026-10-12
 

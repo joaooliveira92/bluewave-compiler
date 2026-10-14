@@ -203,6 +203,9 @@ function toMutableBundle(decoded: CompiledContentBundle): ContentBundle {
       },
       referenceDesigns: [...catalogue.referenceDesigns],
       ...(catalogue.partModel !== undefined ? { partModel: catalogue.partModel } : {}),
+      ...(catalogue.designLoadouts !== undefined
+        ? { designLoadouts: [...catalogue.designLoadouts] }
+        : {}),
     };
   }
   if (decoded.campaign !== undefined) {

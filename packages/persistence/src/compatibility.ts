@@ -11,12 +11,17 @@ export { COMPATIBILITY_MISMATCH_CODE } from "./errors.js";
 // ACCELERATED, AWAITING_CAPACITY, IMPOUNDED). Pre-change saves are REJECTED
 // with PERSISTENCE_COMPATIBILITY_MISMATCH (no released save exists, so no
 // migration engine ships; ADR-0113 section 5 documented rejection).
-export const CURRENT_COMPATIBILITY_VERSION = "1.2.0";
+// ship-part-model P2 (tickets 10/11d, SPM-R21): bumped 1.2.0 -> 2.0.0 in the
+// same change that rewrites ship-building content to the parts pipeline and
+// switches production compilation. The design data model changes shape, so
+// older saves are refused before decoding. An offline developer tool
+// (`saveMigration.ts`) migrates development fixtures only; no runtime
+// translation path ships (ADR-0113, ADR-0154 section 11).
+export const CURRENT_COMPATIBILITY_VERSION = "2.0.0";
 
-// ship-part-model P2 (ticket 10, SPM-R21): the design data model changes shape
-// at 2.0.0. The declaration is defined here but NOT current: ticket 11 flips
-// CURRENT_COMPATIBILITY_VERSION to this value in the same change that switches
-// content and pipeline. Until then it is only injected by tests.
+// Retained as the named 2.0.0 declaration ticket 10 introduced; it is now the
+// current release constant. Kept so callers that name the part-model version
+// explicitly keep compiling.
 export const PART_MODEL_COMPATIBILITY_VERSION = "2.0.0";
 
 export class CompatibilityChecker {

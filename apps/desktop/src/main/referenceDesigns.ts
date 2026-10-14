@@ -1,4 +1,4 @@
-import type { DesignDraft } from "@bluewave/ship-design";
+import { referenceDesignsFromLoadouts, type DesignDraft } from "@bluewave/ship-design";
 import type { ShipBuildingCatalogue } from "@bluewave/content-compiler";
 
 import { ContentArtifactError, readContentArtifact } from "./contentArtifact.js";
@@ -15,9 +15,9 @@ export interface RawReferenceDesignFile {
 
 /**
  * Every reference design, read from the compiled content artifact (ADR-0122) —
- * never from raw YAML. The artifact preserves the authored discovery order
- * (UK-first, starters then historical), so the first starter stays the
- * historical default (ADR-0109).
+ * never from raw YAML. When the pack carries the parts model and design loadouts
+ * (ship-part-model ticket 11d), the loadouts are authoritative and the draft is
+ * rebuilt from them; the legacy `referenceDesigns` array is the harness baseline.
  */
 export function readReferenceDesigns(): RawReferenceDesignFile[] {
   const { bundle } = readContentArtifact(resolveGeneratedContentDir());
@@ -26,6 +26,12 @@ export function readReferenceDesigns(): RawReferenceDesignFile[] {
     throw new ContentArtifactError(
       "CONTENT_ARTIFACT_INVALID",
       "The compiled content artifact carries no ship-building catalogue.",
+    );
+  }
+  if (catalogue.partModel !== undefined && catalogue.designLoadouts !== undefined) {
+    return referenceDesignsFromLoadouts(
+      catalogue.designLoadouts as Parameters<typeof referenceDesignsFromLoadouts>[0],
+      catalogue.partModel,
     );
   }
   return catalogue.referenceDesigns as RawReferenceDesignFile[];

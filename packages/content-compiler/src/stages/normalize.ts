@@ -27,6 +27,7 @@ export interface NormalizeOutput {
   referenceDesigns: Record<string, unknown>[];
   /** The flattened part model; already codepoint-ordered by the flatten stage. */
   partModel?: CompiledPartModel;
+  designLoadouts: Record<string, unknown>[];
   fleets: Record<string, unknown>[];
   economies: Record<string, unknown>[];
   constructions: Record<string, unknown>[];
@@ -87,6 +88,9 @@ export class NormalizeStage implements CompilerStage<FlattenOutput, NormalizeOut
       // first starter stays the historical default.
       referenceDesigns: [...((input.referenceDesigns ?? []) as Record<string, unknown>[])],
       ...(input.partModel !== undefined ? { partModel: input.partModel } : {}),
+      // Loadouts keep the codemod's per-nation file order (nation codepoint order, then
+      // id order within a nation); `starterFor` still marks the AI default starter.
+      designLoadouts: [...((input.designLoadouts ?? []) as Record<string, unknown>[])],
       // Campaign-file collections sort canonically: entity collections by id,
       // per-nation collections by nationId, diplomacy by its pair id (stable for
       // records without one).

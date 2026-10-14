@@ -1,7 +1,7 @@
 # 11: One-shot content codemod, pipeline switch and save-compatibility activation (P2)
 
 **Type:** implementation
-**Status:** in progress (sliced 2026-10-14: 11a–11d below; 11d is the atomic activation)
+**Status:** resolved (11a–11d all landed; 11d is the atomic activation)
 **Blocked by:** 09, 10
 **Frontier:** no
 **Requirements:** SPM-R20, SPM-R21 (activation), SPM-R24 (campaign goldens), SPM-R26 (P2 gate) · Stories 29, 30, 33, 48
@@ -130,3 +130,29 @@ violate the single-change rule (AC 5).
   (29 tests) plus `scripts/verify-codemod-determinism.mjs` (wired into `pnpm preflight`).
 - **Deferred to 11d:** production activation, the pipeline switch, the save bump, the
   changelog, the equivalence/golden re-pin record and the snap.
+
+### 11d (2026-10-14) — implemented
+
+- **Activated content.** The 11c codemod output is committed under
+  `content/production/1880/ship-building/` (`parts/` 306, `platforms.yaml`, `slot-templates.yaml`,
+  `design-loadouts/` 91) and declared in `pack.json` (`parts`/`slotTemplates`/`platforms`/
+  `designLoadouts`). The artifact's `shipBuilding.partModel` carries 306 parts / 5 platforms / 11
+  slot templates plus 91 `designLoadouts`; the content lock is refreshed (0.5.0, bodyHash
+  `49469d8d…`) and the 23 inherited non-gun placeholders are on the justified allowlist.
+- **Compiler.** `PartSchema` accepts the codemod's already-flattened records (optional `origin`,
+  passed through by the flatten stage); `designLoadouts` is a new strictly-decoded collection.
+  The `DQ-TORPEDO-001` `forPart` reference is deferred until a pack declares a torpedo part (P4).
+- **Production barrier.** `compileDesignFromLoadout` rebuilds a draft from `header`+`loadout`,
+  fits, and derives only through `deriveAfterFit`; `buildShipBuildingContent` rebuilds reference
+  designs from the loadouts. `compileProduction.test.ts` and `productionPartsContent.test.ts`
+  prove all 91 designs / 823 placements compile from the activated content equal to the legacy
+  compile, that the four D17 designs execute through the barrier, and that an invalid loadout
+  yields fit information and no derived metrics.
+- **Compatibility 2.0.0 + offline migration.** `CURRENT_COMPATIBILITY_VERSION` and the desktop
+  version become `2.0.0`; `saveMigration.ts` + `tools/migrate-dev-saves` add the offline,
+  version-keyed migration with fixtures for supported-old (1.2.0), already-current (2.0.0),
+  malformed, unknown-prior and future saves. See ADR-0154 §21.
+- **Equivalence and goldens.** `pnpm check:equivalence` is byte-identical across processes
+  (`changed` 0, `orderingOnly` 0, D18 reclassified only); the golden is re-pinned for the four
+  version-bearing hashes and `scripts/golden-repin.baseline` advances to the pre-11d tip.
+- `pnpm check` is green.

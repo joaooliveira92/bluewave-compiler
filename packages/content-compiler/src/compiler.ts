@@ -82,6 +82,7 @@ function withFileContents(input: CompilerInput): CompilerInput {
     ...(input.partFiles ?? []),
     ...(input.slotTemplateFiles ?? []),
     ...(input.platformFiles ?? []),
+    ...(input.designLoadoutFiles ?? []),
     ...(input.navalProfileFiles ?? []),
     ...(input.referenceDesignFiles ?? []),
     ...(input.fleetFiles ?? []),

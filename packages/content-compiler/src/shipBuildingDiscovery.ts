@@ -26,6 +26,7 @@ export interface ShipBuildingFileGroups {
   partFiles: string[];
   slotTemplateFiles: string[];
   platformFiles: string[];
+  designLoadoutFiles: string[];
 }
 
 /** Fixed ship-building catalogue files, one file per collection. */
@@ -46,6 +47,8 @@ const NAVAL_PROFILE_DIR = "ship-building/naval-profiles";
 const REFERENCE_DESIGN_DIR = "ship-building/reference-designs";
 /** The ship part catalogue (ship-part-model SPM-R1): any number of files, one family or theme each. */
 const PART_DIR = "ship-building/parts";
+/** Authoritative reference designs in the parts representation (ship-part-model ticket 11d). */
+const DESIGN_LOADOUT_DIR = "ship-building/design-loadouts";
 
 export function discoverShipBuildingFiles(contentDir: string): ShipBuildingFileGroups {
   const groups: ShipBuildingFileGroups = {
@@ -62,6 +65,7 @@ export function discoverShipBuildingFiles(contentDir: string): ShipBuildingFileG
     partFiles: [],
     slotTemplateFiles: [],
     platformFiles: [],
+    designLoadoutFiles: [],
   };
 
   for (const [key, rel] of FIXED_FILES) {
@@ -73,6 +77,7 @@ export function discoverShipBuildingFiles(contentDir: string): ShipBuildingFileG
   groups.navalProfileFiles = listYamlFiles(contentDir, NAVAL_PROFILE_DIR).map(safePath);
   groups.referenceDesignFiles = listReferenceDesignFiles(contentDir).map(safePath);
   groups.partFiles = listYamlFiles(contentDir, PART_DIR).map(safePath);
+  groups.designLoadoutFiles = listYamlFiles(contentDir, DESIGN_LOADOUT_DIR).map(safePath);
   return groups;
 }
 

@@ -112,6 +112,19 @@ export function compilePartModel(
   const flattened: FlattenedPart[] = [];
   for (const part of parts) {
     const sourceFile = context.sources.parts.get(part.id) ?? "parts.yaml";
+    // A record that already carries `origin` was flattened by the deterministic content
+    // codemod (ticket 11c); it is accepted as-is rather than re-inheriting a prototype.
+    if (part.origin !== undefined) {
+      const decoded = validateAgainstSchema(
+        part,
+        FlattenedPartSchema,
+        `FlattenedPart '${part.id}'`,
+        sourceFile,
+        collector,
+      );
+      if (decoded !== undefined) flattened.push(decoded);
+      continue;
+    }
     const prototype = part.extends === undefined ? undefined : byId.get(part.extends);
     const prototypeFile =
       prototype === undefined ? undefined : (context.sources.parts.get(prototype.id) ?? sourceFile);
@@ -257,6 +270,12 @@ function checkPartReferences(
       "Name a technology declared in the pack's technologies",
     );
 
+  // `DQ-TORPEDO-001` names its counterpart torpedo part. Torpedo parts arrive in ship-part-model
+  // P4; until a pack declares any, the reference is a deferred cross-reference (the waiver is only
+  // evaluated against a nested torpedo entry, and no P2 loadout carries one). Once a pack declares
+  // torpedo parts, an unknown `forPart` is an error again.
+  const hasTorpedoParts = parts.some((part) => part.family === "torpedo");
+
   for (const part of parts) {
     if (part.extends !== undefined && !byId.has(part.extends)) {
       unknownPart(part, "extends", part.extends);
@@ -264,11 +283,13 @@ function checkPartReferences(
     (part.lifecycle.supersedes ?? []).forEach((target, index) => {
       if (!byId.has(target)) unknownPart(part, `lifecycle.supersedes.${index}`, target);
     });
-    (part.legacyExceptions ?? []).forEach((exception, index) => {
-      if (!byId.has(exception.forPart)) {
-        unknownPart(part, `legacyExceptions.${index}.forPart`, exception.forPart);
-      }
-    });
+    if (hasTorpedoParts) {
+      (part.legacyExceptions ?? []).forEach((exception, index) => {
+        if (!byId.has(exception.forPart)) {
+          unknownPart(part, `legacyExceptions.${index}.forPart`, exception.forPart);
+        }
+      });
+    }
     (part.lifecycle.requires ?? []).forEach((techId, index) => {
       if (!technologyIds.has(techId)) {
         unknownTechnology(part, `lifecycle.requires.${index}`, techId);
@@ -561,13 +582,15 @@ function buildIndex(
   const variants = new Map<string, string[]>();
   const supersededBy = new Map<string, string[]>();
   for (const part of authored) {
-    if (part.extends !== undefined) push(variants, part.extends, part.id);
+    const prototypeId = part.extends ?? part.origin?.prototype?.id;
+    if (prototypeId !== undefined) push(variants, prototypeId, part.id);
     for (const target of part.lifecycle.supersedes ?? []) push(supersededBy, target, part.id);
   }
   const lineage: Record<string, CompiledPartModel["partIndex"]["lineage"][string]> = {};
   for (const part of authored) {
+    const prototypeId = part.extends ?? part.origin?.prototype?.id;
     lineage[part.id] = {
-      ...(part.extends !== undefined ? { prototype: part.extends } : {}),
+      ...(prototypeId !== undefined ? { prototype: prototypeId } : {}),
       variants: sortedIds(variants.get(part.id)),
       supersedes: sortedIds(part.lifecycle.supersedes),
       supersededBy: sortedIds(supersededBy.get(part.id)),

@@ -86,6 +86,7 @@ const EXPECTED = {
   partFiles: ["ship-building/parts/alpha.yaml", "ship-building/parts/zeta.yaml"],
   slotTemplateFiles: [],
   platformFiles: [],
+  designLoadoutFiles: [],
 };
 
 // Prior art: `packages/persistence/test/persistence.test.ts` "lists equal-timestamp
@@ -127,6 +128,7 @@ describe("discoverShipBuildingFiles", () => {
         partFiles: [],
         slotTemplateFiles: [],
         platformFiles: [],
+        designLoadoutFiles: [],
       });
     } finally {
       rmSync(dir, { recursive: true, force: true });

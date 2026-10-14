@@ -114,10 +114,14 @@ describe("content:gate over the production pack (CAH-PROV-3)", () => {
     const dir = tempDir();
     cpSync(contentDir, dir, { recursive: true });
     addPlaceholderArea(dir);
+    // Keep the pack's own justified allowlist and add the new area entry.
+    const allowlistPath = resolve(dir, "placeholder-allowlist.json");
+    const existing = JSON.parse(readFileSync(allowlistPath, "utf8")) as { allow?: unknown[] };
     writeFileSync(
-      resolve(dir, "placeholder-allowlist.json"),
+      allowlistPath,
       JSON.stringify({
         allow: [
+          ...(existing.allow ?? []),
           {
             collection: "areas",
             recordId: "cah_placeholder_area",

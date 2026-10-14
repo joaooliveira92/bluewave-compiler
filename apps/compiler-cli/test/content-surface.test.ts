@@ -96,7 +96,7 @@ describe("content:check / content:build over the production pack", () => {
     }
 
     const manifestJson = JSON.parse(readFileSync(manifestPath, "utf8")) as Record<string, unknown>;
-    expect(manifestJson["contentVersion"]).toBe("0.4.0");
+    expect(manifestJson["contentVersion"]).toBe("0.5.0");
     expect(typeof manifestJson["doNotEdit"]).toBe("string");
     expect(typeof manifestJson["bodyHash"]).toBe("string");
   });

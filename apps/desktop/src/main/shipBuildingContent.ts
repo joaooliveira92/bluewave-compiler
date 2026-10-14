@@ -50,6 +50,14 @@ function loadShipBuilding(): LoadedShipBuilding {
     navalProfiles: catalogue.navalProfiles as unknown as NationNavalProfile[],
     armament: catalogue.armament as unknown as AuthoredArmamentContent,
     referenceDesigns: catalogue.referenceDesigns as RawReferenceDesign[],
+    ...(catalogue.partModel !== undefined ? { partModel: catalogue.partModel } : {}),
+    ...(catalogue.designLoadouts !== undefined
+      ? {
+          designLoadouts: catalogue.designLoadouts as NonNullable<
+            ShipBuildingData["designLoadouts"]
+          >,
+        }
+      : {}),
   };
   loaded = {
     data,

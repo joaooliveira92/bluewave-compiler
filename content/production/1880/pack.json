@@ -1,6 +1,6 @@
 {
   "name": "bluewave-1880-production",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "type": "production",
   "files": {
     "rulesets": ["rulesets.yaml"],
@@ -59,6 +59,34 @@
       "ship-building/reference-designs/russia/starters.yaml",
       "ship-building/reference-designs/spain/starters.yaml",
       "ship-building/reference-designs/usa/starters.yaml"
+    ],
+    "parts": [
+      "ship-building/parts/ammunition.yaml",
+      "ship-building/parts/armour_material.yaml",
+      "ship-building/parts/fitting.yaml",
+      "ship-building/parts/gun.yaml",
+      "ship-building/parts/gun_mount.yaml",
+      "ship-building/parts/propulsion_plant.yaml",
+      "ship-building/parts/sensor.yaml",
+      "ship-building/parts/torpedo_launcher.yaml"
+    ],
+    "slotTemplates": ["ship-building/slot-templates.yaml"],
+    "platforms": ["ship-building/platforms.yaml"],
+    "designLoadouts": [
+      "ship-building/design-loadouts/austria_hungary.yaml",
+      "ship-building/design-loadouts/brazil.yaml",
+      "ship-building/design-loadouts/france.yaml",
+      "ship-building/design-loadouts/germany.yaml",
+      "ship-building/design-loadouts/italy.yaml",
+      "ship-building/design-loadouts/japan.yaml",
+      "ship-building/design-loadouts/netherlands.yaml",
+      "ship-building/design-loadouts/ottoman_empire.yaml",
+      "ship-building/design-loadouts/portugal.yaml",
+      "ship-building/design-loadouts/qing.yaml",
+      "ship-building/design-loadouts/russia.yaml",
+      "ship-building/design-loadouts/spain.yaml",
+      "ship-building/design-loadouts/uk.yaml",
+      "ship-building/design-loadouts/usa.yaml"
     ]
   }
 }

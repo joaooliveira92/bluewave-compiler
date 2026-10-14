@@ -1,0 +1,155 @@
+// The production parts content compiles (ship-part-model ticket 11d). This reads the activated
+// authoritative content — the content codemod's parts, platforms, slot templates and design
+// loadouts, now declared in the 1880 pack — and compiles every reference design from its loadout
+// through `compileDesignFromLoadout` (the fit barrier), asserting the result equals the legacy
+// compile. It is the proof that production compiles from activated parts content, not from the
+// legacy placement lists.
+
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import {
+  FlattenedPartSchema,
+  PlatformSchema,
+  ReferenceDesignLoadoutSchema,
+  SlotTemplateSchema,
+  decodeStrict,
+  parseYamlSafe,
+  type FlattenedPart,
+  type PlatformData,
+  type ReferenceDesignLoadoutData,
+  type SlotTemplateData,
+} from "@bluewave/content-schema";
+import { canonicalSerialize } from "@bluewave/deterministic";
+import { describe, expect, it } from "vite-plus/test";
+import { buildProductionPartModel, compileDesign, compileDesignFromLoadout } from "../src/index.js";
+import { nationalContext, readReferenceDesignEntries } from "./helpers/earlyContext.js";
+
+const root = join(import.meta.dirname, "..", "..", "..", "content", "production", "1880");
+const shipBuilding = join(root, "ship-building");
+
+function readYaml(path: string): Record<string, unknown> {
+  const collector = { addError: () => undefined, hasErrors: false } as never;
+  const parsed = parseYamlSafe(readFileSync(path, "utf8"), path, collector);
+  if (!parsed.success) throw new Error(`bad YAML: ${path}`);
+  return parsed.data as Record<string, unknown>;
+}
+
+const parts: FlattenedPart[] = readdirSync(join(shipBuilding, "parts"))
+  .filter((name) => name.endsWith(".yaml"))
+  .flatMap((name) =>
+    (readYaml(join(shipBuilding, "parts", name))["parts"] as unknown[]).map((record) =>
+      decodeStrict(FlattenedPartSchema, record),
+    ),
+  );
+const platforms: PlatformData[] = (
+  readYaml(join(shipBuilding, "platforms.yaml"))["platforms"] as unknown[]
+).map((record) => decodeStrict(PlatformSchema, record));
+const slotTemplates: SlotTemplateData[] = (
+  readYaml(join(shipBuilding, "slot-templates.yaml"))["slotTemplates"] as unknown[]
+).map((record) => decodeStrict(SlotTemplateSchema, record));
+const loadouts: ReferenceDesignLoadoutData[] = readdirSync(join(shipBuilding, "design-loadouts"))
+  .filter((name) => name.endsWith(".yaml"))
+  .flatMap((name) =>
+    (readYaml(join(shipBuilding, "design-loadouts", name))["designs"] as unknown[]).map((record) =>
+      decodeStrict(ReferenceDesignLoadoutSchema, record),
+    ),
+  );
+
+const model = buildProductionPartModel({ parts, slotTemplates, platforms });
+const legacyById = new Map(readReferenceDesignEntries().map((d) => [d.id, d] as const));
+
+describe("production parts content → compile (ticket 11d)", () => {
+  it("carries the staged plan: 306 parts, 11 slot templates, 5 platforms, 91 loadouts", () => {
+    expect(parts).toHaveLength(306);
+    expect(slotTemplates).toHaveLength(11);
+    expect(platforms).toHaveLength(5);
+    expect(loadouts).toHaveLength(91);
+    for (const loadout of loadouts) {
+      expect(legacyById.has(loadout.id), loadout.id).toBe(true);
+    }
+  });
+
+  it("compiles every activated design through the barrier and matches the legacy compile", () => {
+    const partOf = new Map(parts.map((p) => [p.id, p] as const));
+    const placementFamilies = new Set(["gun_mount", "torpedo_launcher", "fitting", "sensor"]);
+    let placements = 0;
+    for (const loadout of loadouts) {
+      placements += loadout.loadout.entries.filter((e) => {
+        const part = partOf.get(e.part);
+        return part !== undefined && placementFamilies.has(part.family);
+      }).length;
+      const result = compileDesignFromLoadout({
+        designId: loadout.id,
+        header: loadout.header,
+        loadout: loadout.loadout,
+        model,
+        month: loadout.month,
+        nation: { nationId: loadout.header.nation },
+        ctx: nationalContext(loadout.month, loadout.header.nation),
+      });
+      expect(result.status, loadout.id).toBe("ACCEPTED");
+      if (result.status !== "ACCEPTED") continue;
+      const legacy = legacyById.get(loadout.id)!;
+      const legacyCompiled = compileDesign(
+        legacy.draft,
+        nationalContext(loadout.month, legacy.draft.nationId),
+      );
+      expect(canonicalSerialize(result.compiled), loadout.id).toBe(
+        canonicalSerialize(legacyCompiled),
+      );
+    }
+    expect(placements).toBe(823);
+  });
+
+  it("executes the four D17 designs through the production barrier and pins their central batteries", () => {
+    const d17 = new Set(["redoutable_1878", "kaiser_1875", "sachsen_1878", "mesudiye_1875"]);
+    const expected: Record<string, number> = {
+      redoutable_1878: 2,
+      kaiser_1875: 2,
+      sachsen_1878: 2,
+      mesudiye_1875: 3,
+    };
+    for (const loadout of loadouts.filter((l) => d17.has(l.id))) {
+      const central = loadout.loadout.entries.filter((entry) =>
+        entry.part.includes("_central_battery_"),
+      );
+      expect(central, loadout.id).toHaveLength(expected[loadout.id]!);
+      const result = compileDesignFromLoadout({
+        designId: loadout.id,
+        header: loadout.header,
+        loadout: loadout.loadout,
+        model,
+        month: loadout.month,
+        nation: { nationId: loadout.header.nation },
+        ctx: nationalContext(loadout.month, loadout.header.nation),
+      });
+      expect(result.status, loadout.id).toBe("ACCEPTED");
+    }
+  });
+
+  it("rejects an activated loadout that does not fit, exposing no derived metric", () => {
+    const loadout = loadouts[0]!;
+    const broken = {
+      ...loadout.loadout,
+      entries: loadout.loadout.entries.map((entry) =>
+        entry.params?.["installedKw"] === undefined
+          ? entry
+          : { ...entry, params: { installedKw: 99_999_999 } },
+      ),
+    };
+    const result = compileDesignFromLoadout({
+      designId: loadout.id,
+      header: loadout.header,
+      loadout: broken,
+      model,
+      month: loadout.month,
+      nation: { nationId: loadout.header.nation },
+      ctx: nationalContext(loadout.month, loadout.header.nation),
+    });
+    expect(result.status).toBe("REJECTED");
+    if (result.status === "REJECTED" || result.status === "NOT_EVALUABLE") {
+      expect(result.findings.length).toBeGreaterThan(0);
+      expect(Object.hasOwn(result, "compiled")).toBe(false);
+    }
+  });
+});

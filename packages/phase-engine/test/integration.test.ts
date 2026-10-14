@@ -8,7 +8,7 @@ import { CommandIdempotencyMap, CommandLifecycle } from "@bluewave/commands";
 import { SafeInt } from "@bluewave/contracts";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
-import { SaveStore } from "@bluewave/persistence";
+import { CURRENT_COMPATIBILITY_VERSION, SaveStore } from "@bluewave/persistence";
 import { buildFixtureContentBundle, nationsYaml } from "@bluewave/test-support";
 import { afterAll, beforeAll, describe, expect, it } from "vite-plus/test";
 import { MonthExecutor, PhaseRegistry, ReplayVerifier } from "../src/index.js";
@@ -117,7 +117,7 @@ function compileCampaign(fixtureDir: string): CampaignState {
       contentBundle: bundle,
       contentHash,
       rulesetVersion: "1.0",
-      compatibilityVersion: "1.2.0",
+      compatibilityVersion: CURRENT_COMPATIBILITY_VERSION,
     },
     signal,
     collector,
@@ -516,7 +516,7 @@ describe("Full-slice integration", () => {
       designs: new Map(),
       designFamilies: new Map(),
       rulesetVersion: "1.0",
-      compatibilityVersion: "0.1.0",
+      compatibilityVersion: CURRENT_COMPATIBILITY_VERSION,
     };
 
     const collector = new DiagnosticCollector();
@@ -833,7 +833,7 @@ describe("Full-slice integration", () => {
       designs: new Map(),
       designFamilies: new Map(),
       rulesetVersion: "1.0",
-      compatibilityVersion: "0.1.0",
+      compatibilityVersion: CURRENT_COMPATIBILITY_VERSION,
     };
 
     const executor = new MonthExecutor();

@@ -18,6 +18,7 @@ import type {
 } from "@bluewave/campaign";
 import { buildManifest } from "@bluewave/combat";
 import { SafeInt } from "@bluewave/contracts";
+import { CURRENT_COMPATIBILITY_VERSION } from "@bluewave/persistence";
 
 export const BATTLE_AREA = "a-1";
 export const ATTACKER_NATION = "GBR";
@@ -269,6 +270,6 @@ export function makeBattleSnapshot(opts: BattleSnapshotOptions = {}): CampaignSn
     designFamilies: new Map(),
     strategicWeather: [],
     rulesetVersion: "0.1.0",
-    compatibilityVersion: "1.2.0",
+    compatibilityVersion: CURRENT_COMPATIBILITY_VERSION,
   };
 }

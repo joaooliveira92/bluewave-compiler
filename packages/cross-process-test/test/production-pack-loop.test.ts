@@ -8,7 +8,7 @@ import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
 import { CampaignCompiler } from "@bluewave/campaign/compiler";
 import type { CampaignState, CampaignSnapshot, NationState } from "@bluewave/campaign";
 import type { CommandEnvelope, BudgetProjectCommand } from "@bluewave/commands";
-import { SaveStore } from "@bluewave/persistence";
+import { CURRENT_COMPATIBILITY_VERSION, SaveStore } from "@bluewave/persistence";
 import { MonthExecutor, ReplayVerifier } from "@bluewave/phase-engine";
 import { mkdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -93,7 +93,7 @@ function compileProductionPack(): { state: CampaignState; contentHash: string } 
       contentBundle: artifact.bundle,
       contentHash: artifact.envelope.bodyHash,
       rulesetVersion: "1.0",
-      compatibilityVersion: "1.2.0",
+      compatibilityVersion: CURRENT_COMPATIBILITY_VERSION,
     },
     signal,
     collector,
