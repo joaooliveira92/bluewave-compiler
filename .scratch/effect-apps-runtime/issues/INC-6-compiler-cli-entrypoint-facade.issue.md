@@ -1,7 +1,7 @@
 # INC-6 — compiler-cli entrypoint facade
 
 **Type:** implementation
-**Status:** open
+**Status:** resolved
 **Blocked by:** INC-1
 **Frontier:** no
 
@@ -29,3 +29,29 @@ dispatch program over a `ManagedRuntime`, while the `run*` internals stay synchr
   follow in later slices — this ticket delivers the entrypoint facade.
 - `Runtime.makeRunMain`'s exit-code mapping does not match the six-code contract, so
   map explicitly and set `process.exitCode`.
+
+## Answer
+
+Resolved 2026-10-14 on branch `feat/effect-apps-runtime`, behaviour-preserving.
+
+**What landed.** `apps/compiler-cli/src/main.ts` is split into `runCli(args): number`
+(the former synchronous dispatch, returning the mapped code instead of calling
+`process.exit`) and a `main()` facade that builds one `ManagedRuntime`
+(`ManagedRuntime.make(Layer.empty)`), runs `Effect.gen(() => runCli(...))`,
+disposes the runtime, then exits with the code. The `run*` internals and the
+`parseOptions*` functions are unchanged; `Runtime.makeRunMain` defaults are not
+used (the six-code contract is preserved via the existing `exitCodes` map). A
+thrown/rejected program exits `1` (matching the former uncaught behaviour) after
+writing the stack to stderr.
+
+**Validation.**
+- `pnpm --filter @bluewave/compiler-cli typecheck`.
+- Exit codes unchanged (smoke, built `dist/main.js`): `--help`→0, unknown
+  command→1, `content:check`→0, `validate`→0.
+- `pnpm --filter @bluewave/compiler-cli test`: **109 passed** (no test imports
+  `main.ts`; `commands`/`options` are unchanged).
+
+**Deferred.** The CLI service set (`CliFileSystem`, `ContentCompilerService`,
+`CampaignCompilerService`, `CampaignPersistence`, `CombatService`) is not yet
+extracted — this ticket delivers the entrypoint facade; service extraction is
+incremental (a later slice / the CLI services decision).
