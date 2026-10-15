@@ -4,6 +4,7 @@
 // canonical serializer, the fail-closed parse path, and the guarded roots.
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { fileURLToPath } from "node:url";
 
 import {
   AUTHORITATIVE_ROOTS,
@@ -45,6 +46,6 @@ void test("fails closed on a parse error", () => {
 
 void test("guards the authoritative roots and the real tree is clean", () => {
   assert.ok(AUTHORITATIVE_ROOTS.includes("packages/campaign-engine/src"));
-  const repoRoot = new URL("../..", import.meta.url).pathname;
+  const repoRoot = fileURLToPath(new URL("../..", import.meta.url));
   assert.deepEqual(scanCanonicalSerialization(repoRoot), []);
 });

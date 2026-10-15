@@ -39,6 +39,45 @@ parts:
       volumeLitrePerKw: 180
       weightMilliKgPerKw: 195000
   - family: propulsion_plant
+    id: compound_locomotive_tb
+    lifecycle:
+      availableFrom: 1880-01
+      availableUntil: null
+      requires:
+        - mac_compound_engine
+    name: compound_locomotive_tb
+    origin:
+      sourceFile: ship-building/plants.yaml
+    parameters:
+      installedKw:
+        max: 600
+        min: 150
+        step: 1
+    provenance:
+      confidence: LOW
+      kind: game_conversion
+      note: Read from legacy plant 'compound_locomotive_tb', whose sources are YAML comments only.
+      sourceStatus: PLACEHOLDER
+      sources: []
+    provides: propulsion_plant
+    quantities: []
+    revisions: []
+    spec:
+      fuelType: COAL
+      reliabilityBp: 8000
+      sfcGramPerKwh:
+        points:
+          - - 0
+            - 1905
+          - - 2000
+            - 1665
+          - - 6000
+            - 1500
+          - - 10000
+            - 1598
+      volumeLitrePerKw: 60
+      weightMilliKgPerKw: 46000
+  - family: propulsion_plant
     id: locomotive_boiler_tb
     lifecycle:
       availableFrom: 1890-01

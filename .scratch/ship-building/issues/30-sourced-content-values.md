@@ -1,7 +1,7 @@
 # 30: Replace the remaining unsourced content values (release gate)
 
 **Type:** research + content
-**Status:** open
+**Status:** open (blocked: owner decision-request outstanding)
 **Blocked by:** none
 **Frontier:** yes (but a release gate, not a feature)
 
@@ -33,6 +33,17 @@ The revision constants (`revision:` in `balance.yaml`, ADR-0070) and the treasur
 Each replaced value cites its source in a comment and in a research note with a confidence label; the ratchet ceiling is lowered in the same change; the cost calibration tests still pass.
 
 ## Comments
+
+### 2026-10-15 orchestrator (research pass 3, `.ai/reports/decision-request-ship-building-ticket-30.md`)
+
+A third research pass (Jane's, *The Engineer*/*Engineering*, INA/IESS Transactions, HathiTrust, Google Books,
+Grace's Guide, Admiralty gunnery manuals, ordnance handbooks) confirmed the residual values are unsourced in
+accessible literature: the light/medium mount footprint+volume, the 12-in/25 barbette, torpedo-tube volume/cost,
+magazine capacity, rangefinder mass, and the electrical/quarters/funnel/pumps/ventilation masses live only in
+non-digitised Admiralty dockyard records and NMM plan catalogues. No PLACEHOLDER marker is removable and no
+ratchet ceiling can fall. Closing the gate now needs an owner decision (accept the residuals as documented
+ESTIMATEs vs keep the gate open) — recorded in the decision request above. Owner decision: **keep the gate open**;
+the frontier advanced to tickets 37 (done) and 39 (done).
 
 ### 2026-10-09 orchestrator (research pass, `docs/research/ship-building-content-sourcing.md`)
 Applied: deck footprints of the 13.5-in, 12-in Mk VIII, 10-in and 9.2-in mounts from Brassey barbette diameters (SECONDARY, area derived);

@@ -10,6 +10,32 @@ designs:
     starterFor: B
     name: Numancia (1864/1880, broadside ironclad)
     month: 1880-01
+    historical: true
+    provenance:
+      completionDate:
+        value: "17.12.1864 (iron-hulled broadside ironclad)"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (spain/sp_bb_numancia.htm)" }]
+      displacementBasis:
+        value: "7,189 t normal"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (spain/sp_bb_numancia.htm)" }]
+      armourScheme:
+        value: "wrought iron; belt 130 (ends 10), battery 120"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (spain/sp_bb_numancia.htm)" }]
+      armamentConfiguration:
+        value: "as of 1880 (after 1876 refit): 2x1 254 mm (10-in) Armstrong 300-pdr RML + 8x1 160 mm (6.3-in) Palliser RML; no torpedoes as built (356 mm added 1900)"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (spain/sp_bb_numancia.htm)" }]
+      machineryOutput:
+        value: "1 HRCR, 8 rectangular boilers; 3,700 ihp"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (spain/sp_bb_numancia.htm)" }]
+      speed:
+        value: "10 kn"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (spain/sp_bb_numancia.htm)" }]
     draft:
       nationId: spain
       requirement:

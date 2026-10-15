@@ -10,6 +10,32 @@ designs:
     starterFor: B
     name: Kaiser Max (1876, central-battery ironclad)
     month: 1880-01
+    historical: true
+    provenance:
+      completionDate:
+        value: "26.10.1876 (Don Juan d'Austria 26.6.1876, Prinz Eugen 11.1878)"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (austrohungary/ah_bb_kaiser_max.htm)" }]
+      displacementBasis:
+        value: "3,548 t normal"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (austrohungary/ah_bb_kaiser_max.htm)" }]
+      armourScheme:
+        value: "wrought iron on 254 mm teak; belt 205 (ends 120-102), casemate 125, bulkheads 115"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (austrohungary/ah_bb_kaiser_max.htm)" }]
+      armamentConfiguration:
+        value: "8x1 209 mm (8.2-in) G. L/20 C.68 (broadside casemate); 4x1 87 mm G. L/24 M.75 + 2x1 66 mm G. L/18; no torpedo tubes as built (4x350 mm added 1880)"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (austrohungary/ah_bb_kaiser_max.htm)" }]
+      machineryOutput:
+        value: "1 x 2-cyl HRCR, 4 rectangular boilers; 2,755 ihp"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (austrohungary/ah_bb_kaiser_max.htm)" }]
+      speed:
+        value: "13.3 kn"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (austrohungary/ah_bb_kaiser_max.htm)" }]
     draft:
       nationId: austria_hungary
       requirement:

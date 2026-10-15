@@ -392,3 +392,201 @@ covers "arrangements for ... electric lighting", which may or may not include th
   1881 6-pdr brief conflicts with the gun weight).
 - Volume (height) of an RN dynamo set; only a French set's height was found.
 - Royal Navy crew space per man.
+
+---
+
+## Research pass 3 (fresh sources)
+
+Third pass for ticket 30, aimed at the residual "no source found" items of pass 2 (section "Still unsourced
+(pass 2)") against sources **not** used in passes 1-2. Research only: no content, code or ticket was edited.
+Researched 2026-10-15 from archive.org OCR full texts (`_djvu.txt`), downloaded to a scratch dir and grepped;
+page numbers are the printed running headers unless noted. The one value read from an OCR-garbled table is marked.
+
+Method note (what did **not** work, so a later pass does not retry it): archive.org's full-text search API
+(`ia-fts.archive.org`), the `page_production/scrape.json` endpoint and the Google Books API all refused
+unauthenticated queries from this environment, so there is **no corpus-wide full-text search** — every hit below
+comes from downloading a candidate item and grepping it. Grace's Guide (`gracesguide.co.uk`) is reachable with a
+browser user-agent, but its MediaWiki search API returned non-JSON and its gun pages are stubs; no dimensioned
+page was found. HathiTrust full-view and the digitised Admiralty dockyard records (Sheer Draughts, Books of
+Reference, weight schedules, ADM papers) are not full-text-searchable online and were **not** consulted.
+
+### Sources added in pass 3
+
+| Key     | Source                                                                                                                                      | archive.org id / retrieval                                                                 | Directly read |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ | ------------- |
+| [MG80]  | _Manual of Gunnery for Her Majesty's Fleet_, Admiralty, 1880                                                                                 | `manualroyalnavygunnery1880` (`ManualRoyalNavyGunnery1880_djvu.txt`)                        | yes           |
+| [TSO86] | _A Treatise of the Manufacture of Guns and Text-book of Service Ordnance_, 3rd ed., Royal Gun Factory, 1886                                  | `1886-treatise-on-the-mfr-of-guns-and-textbook-of-svc-ord-1886`                             | yes (OCR)     |
+| [H6P92] | _Handbook of the 6-pr Hotchkiss Quick-firing Gun (Land Service)_, War Office, 1892                                                          | `6-pr-hotchkiss-hdbk-1892` (`_6-pr Hotchkiss Hdbk 1892_djvu.txt`)                           | yes (OCR)     |
+| [MMW96] | _The Mechanism of Men-of-War; being a description of the machinery to be found in modern fighting ships_, 1896                              | `cu31924030902864` (also `mechanismofmenof00oldk`)                                          | yes           |
+| [MN00]  | _Canons à Tir Rapide et Mitrailleuses Maxim-Nordenfelt_, Usine Maxim-Nordenfelt, Erith, 1900                                                | `maxim-nordenfeld-manual` (`Maxim Nordenfeld Manual_djvu.txt`)                              | yes (OCR)     |
+| [HNG98] | US Navy, _Hand-book of Naval Gunnery_, 1898                                                                                                 | `handbooknavalgu00deptgoog`                                                                 | yes (OCR)     |
+| [TB02]  | _Textbook of Gunnery, Parts 1 & 2_, 1902                                                                                                    | `1902-textbook-of-gunnery-part-1-and-part-2-1902`                                           | yes (OCR)     |
+| [BH10]  | Bethell, _Modern Guns and Gunnery_, 3rd ed., 1910                                                                                           | `1910-modern-guns-and-gunnery-bethell-1910`                                                 | yes (OCR)     |
+| [TINA94] | _Transactions of the Institution of Naval Architects_, vol. 35, 1894                                                                       | `transactionsroy02unkngoog`                                                                 | yes           |
+| [TINA98] | _Transactions of the Institution of Naval Architects_, 1898                                                                                | `transactionsroy00archgoog`                                                                 | yes           |
+| [TINA02] | _Transactions of the Institution of Naval Architects_, 1902                                                                                | `transactionsroy01archgoog`                                                                 | yes           |
+| [TINA03] | _Transactions of the Institution of Naval Architects_, 1903                                                                                | `transactionsroy06unkngoog`                                                                | yes           |
+| [ME98]  | _Marine Engineering_, vol. 2 iss. 4, April 1898                                                                                             | `marine-engineering_1898-04`                                                                | yes           |
+| [IESS33] | _Transactions of the Institution of Engineers and Shipbuilders in Scotland_, vol. 33, 1890                                                  | `...scotland-vol-33`                                                                        | yes           |
+| [SLEE80] | Sleeman, _Torpedoes and Torpedo Warfare_ (Project Gutenberg text)                                                                          | `torpedoesandtorp44990gut` (`44990-8.txt`)                                                   | yes           |
+| [ONI8p3] | (re-used) US ONI _General Information Series_ VIII, 1889                                                                                    | `generalinformati3525unit`                                                                  | yes           |
+| [B03p3] | (re-used) _Brassey's Naval Annual 1903_                                                                                                     | `CASGA_120409`                                                                              | yes           |
+| [B04p3] | (re-used) _Brassey's Naval Annual 1904_                                                                                                     | `CASGA_120410`                                                                              | yes           |
+| [WIKI]  | Wikipedia, "Barr and Stroud" (secondary, for the 1891-92 Admiralty trial/contract dates only)                                              | `en.wikipedia.org`                                                                          | yes (SECONDARY) |
+
+### P3.1 Light and medium mount deck footprint and internal volume (BL 6-in/26, QF 6-in/40, QF 4.7-in, 12-pdr, 6-pdr, 3-pdr, Nordenfelt, Maxim)
+
+**Still unsourced.** No pedestal base diameter, bolt circle, shield width or casemate plan dimension for any of
+these eight mounts was found in any source read in pass 3. What the fresh sources actually contain is descriptive
+or is the wrong kind of number:
+
+| Item                                                       | Value found                                                                                                                                                                          | Source      | Status                                                                          |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------- | ------------------------------------------------------------------------------- |
+| 6-pdr Hotchkiss gun mass (RN's own 6-pdr type)             | gun **821 lb = 372 kg** ("Total weight of gun (without shoulder-piece)")                                                                                                              | [H6P92]     | VERIFIED (OCR); content `gun_kg` 385 kg from navweaps is within 3.5 %            |
+| 6-pdr Hotchkiss recoil carriage (land, without shield)     | **6 cwt 1 qr 14 lb = 714 lb = 324 kg**                                                                                                                                                | [H6P92]     | VERIFIED (OCR); land service, not an RN pedestal                                 |
+| 6-pdr Hotchkiss shield for the embrasure pattern           | **20 cwt 9 lb = 2,249 lb = 1,020 kg**; for the cone pattern ~8 cwt (896 lb = 406 kg)                                                                                                  | [H6P92]     | VERIFIED (OCR, partial); land pattern, heavier than any naval shield             |
+| 6-pdr Hotchkiss mean height of trunnions above sill        | **22.55 in (573 mm)** embrasure; **48.85 in (1,241 mm)** cone                                                                                                                         | [H6P92]     | VERIFIED (OCR); a height, not a footprint                                        |
+| 6-pdr-class QF gun + recoil mount, foreign (Maxim-Nordenfelt Erith) | 57 mm: gun **338 kg**, mount ("affût à recul") **124 kg**; 75 mm: gun 915 kg, mount 1,068 kg; 12 cm: gun 2,542 kg, mount 2,034 kg                                               | [MN00]      | SECONDARY, manufacturer's own 1900 catalogue; OCR label/value mapping uncertain for the 12 cm row, clear for the 57 mm row |
+| Elswick-quarterdeck / casemate 6-in, Majestic               | "separate 6-inch nickel-steel casemates, with 3-inch shields" (pass 2 already had this); still no dimension                                                                            | [MG80], [TSO86] | VERIFIED descriptive only                                                    |
+| Shield front area used for a hit-probability worked example | "a gun-shield **4 ft. 6 ins. high, by 5 ft. wide**"                                                                                                                                    | [BH10] p. 39 | VERIFIED, but the worked example is the **18-pdr field gun** — not a naval mount |
+| Casemate / barbette descriptions                            | the RN barbette system is described as pear-shaped towers "standing about 6 ft above the deck", joined to the lower protected body by an armoured trunk, carrying a revolving platform | [MG80] pp. 302-304 | VERIFIED descriptive; corroborates the pass-1 5.0 m depth ESTIMATE, adds no exact plan |
+
+The one numeric datum that could touch a content key is the foreign 57 mm mount mass (124 kg) from [MN00]. It is a
+1900 competitor's catalogue, it is not the RN 6-pdr mounting, and the OCR label/value mapping is not certain, so it
+is **not** a basis for a content change. The land-service [H6P92] weights are the same Hotchkiss gun the RN used
+but the wrong carriage. No value in this set can replace the `470 * (gun_kg + mount_per_barrel_kg)` footprint or
+the `3 * (gun_kg + mount_per_barrel_kg)` volume rule.
+
+Corroboration of the *shape* of the problem: [BH10]'s shield (4.5 ft x 5 ft = 2.09 m²) is for a field gun; a naval
+QF shield of similar width would put a 4.7-in mount at roughly 1.8-2.5 m², i.e. in the range the existing
+heuristic already produces (4.7-in 6,130 kg x 470 mm²/kg = 2.88 m²). That is an observation, not a source.
+
+### P3.2 BL 12-in/25 (Collingwood) barbette plan dimensions and volume
+
+**Still unsourced.** [MG80] pp. 302-304 describes the RN barbette system and the 1870s pear-shaped towers
+(the "Téméraire" pattern) but prints no barbette plan dimension for any ship. [TSO86] has no barbette plan table.
+[TINA94] (its Royal Sovereign/Hood weight-and-stability paper) discusses barbette ships in weight and stability
+terms but prints no barbette diameter. [B03p3] pp. 356-357 (re-checked) carry the Royal Sovereign / Majestic / standard-12-in
+barbette diameters already recorded in pass 1, but no Collingwood figure. The pass-1 proposal to leave
+`gun_bl_12in_25` at 35,015,000 mm² / 223,500 L per barrel (or copy the Royal Sovereign pear 66.5 m² / 332 m³)
+therefore stands; it cannot be upgraded from ESTIMATE.
+
+### P3.3 Torpedo-tube volume and cost (14-in Whitehead, above-water trainable and submerged)
+
+**Still unsourced.** [SLEE80] describes the above-water carriage ("an iron carriage…", section "Projecting a
+Torpedo from above Water") but gives no weight, volume or cost. [ONI8p3] pp. ~18650-18675 describes the French
+gunpowder-discharge tube (the gunpowder tube "occupies less space, weighs less"; 8.2 ft training arc; 19-ft and
+14-ft torpedoes) but prints no absolute space or weight. [HNG98] and the [TINA94]-[TINA03] volumes add nothing. The content
+`volumeLitre: "(2500 + 600 * torpedoes_per_tube) * tubes"` and the cost-per-tube estimate cannot be replaced.
+
+### P3.4 Magazine capacities and masses; stowage volume per round; the 0.5 mL/g rule
+
+**Still unsourced.** Fresh sources checked for a "rounds per cubic foot" or magazine-space rule: [HNG98]
+(pages on magazines are about Maxim/1-pdr feed boxes, not ship magazines), [TB02] (magazine appears only in
+ballistics worked examples), [TSO86], [MG80]. None prints a magazine capacity or a stowage volume per round.
+The two "firm" numbers in content (magazine masses = 0, cited to White pp. 409-410) are unaffected; the unsourced
+part remains the `cap_litre` capacities and the `roundVolumeMl = 0.5 mL/g` rule. Note for the orchestrator: an
+alternative arithmetic derivation is possible (round volume = shell mass / steel density + charge mass /
+propellant density + a packing allowance), but it would be a derived SECONDARY figure, not a sourced one, and would
+still carry a packing factor that no source pins down — it is **not** recommended as a way to remove the marker.
+
+### P3.5 Rangefinder mass (Barr & Stroud FA Mk 1)
+
+**Still unsourced.** The one range-finder mass in any source read in any pass is [MG80] p. 219: General Berdan's
+telemeter **No. 7 weighs 154 lbs (69.9 kg)**, has a base of about 52 in and telescopes 44 in long — a pre-1893
+instrument, and the manual calls naval range-finders "much to be desired" at that date. [WIKI] (SECONDARY) confirms
+the Barr & Stroud chronology (1891 Admiralty approach for a short-base rangefinder, 1892 contract for six) but gives
+no mass. The two UK range-finder handbooks on archive.org (`1916ukhandbookrf`, `1933ukhandbookrf`) and the 1950s
+Barr & Stroud instruction booklet are all lend-restricted (text not downloadable), so no FA-series weight could be
+read. Content `weightKg: "300"` stays PLACEHOLDER; the Berdan 69.9 kg figure is an analogue only.
+
+### P3.6 Ship's electrical plant, quarters, funnel, pumps and ventilation
+
+**Partly corroborated, still unsourced for the missing dimensions.** [MMW96] (first-class cruiser, pp. 69-71)
+confirms the 1890s RN installation directly: shore currents from **three Siemens dynamos of 400 A at 80 V, each
+driven directly by a Willans compound engine at about 420 rpm**, with four 25,000-candle-power searchlights and
+forced-draught/ventilating fans. That matches Blake's 400-A sets ([B92] p. 107, pass 1) and the ONI [ONI10]
+weight/floor-space table (pass 2), but [MMW96] gives no set height, no funnel/pump/ventilation mass and no crew
+space. The only "plant space" number found is a **forced-draught/ventilation capacity of 10,000 cubic feet of air
+per minute** ([MMW96]); the only "plant mass" numbers are the ONI10 table already in pass 2. A Royal Navy
+space-per-man figure was still not found; the only statute in evidence remains the merchant rule (72 cu ft / 12
+sq ft per man, White p. 58, pass 2).
+
+### P3.7 Plant volume per kW, part-load SFC curve shape, reliability, locomotive-boiler SFC
+
+**Still unsourced.** Deliberately searched for a machinery-space paper in [TINA94], [TINA98], [TINA02], [TINA03],
+[ME98] and [IESS33]: none carries a "space (or volume) per ihp/kW" table. [TSO86] and [MG80] are gunnery, not
+machinery. The existing `volumeLitrePerKw` values (180/150/110/60) and the part-load curve shapes and the
+`reliabilityBp` values stay ESTIMATE/PLACEHOLDER. `locomotive_boiler_tb.sfcGramPerKwh` (1500 base) is already
+flagged ESTIMATE in-file and stays so; no locomotive-boiler trial coal rate was found.
+
+### Proposed content changes (pass 3)
+
+No residual value can be replaced by a sourced figure in this pass, so the only honest proposals are comment-level
+and corroboration-level. **Any row marked "no change" must not have its PLACEHOLDER removed.**
+
+| File / key                                                     | Old                                                                    | Proposed (content units)                                                                                                            | Status                                                                                     |
+| -------------------------------------------------------------- | ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| components `gun_bl_135in_30.volumeLitre` comment               | "sourced area x 5.0 m depth (depth backed out from … 650 t …)"          | optionally add "[MG80] pp. 302-304: RN barbette towers ~6 ft above deck over an armoured trunk" to the rationale                    | VERIFIED descriptive; **no value change** (comment-only, does not remove the marker)        |
+| components `gun_bl_12in_25` footprint/volume                   | 35,015,000 mm² / 223,500 L per barrel                                   | no change (pass-1 proposal to keep or copy the Royal Sovereign pear stands)                                                          | ESTIMATE (Collingwood barbette dimensions still not found)                                 |
+| components `gun_bl_6in_26`, `gun_qf_6in_40`, `gun_qf_47in`, `gun_qf_12pdr`, `gun_qf_6pdr`, `gun_hotchkiss_3pdr`, `gun_nordenfelt_1in`, `gun_maxim_303` footprint + volume | `470 * …` / `3 * …` heuristics                                          | no change; keep PLACEHOLDER                                                                                                         | UNRESOLVED (no plan dimension in any pass-3 source)                                        |
+| components `gun_qf_6pdr.constants.gun_kg`                      | 385                                                                     | 385 (no change); optional comment cross-check [H6P92] p. ~8 "821 lb = 372 kg"                                                       | VERIFIED cross-check (land-service handbook, same Hotchkiss gun)                           |
+| components `gun_qf_6pdr.constants.mount_per_barrel_kg`         | 300                                                                     | no change. [H6P92] land recoil carriage 324 kg and [MN00] foreign 57 mm mount 124 kg bracket the value but neither is the RN pedestal | VERIFIED land / SECONDARY foreign; not applicable as a replacement                          |
+| components `tube_14in_above_water` / `tube_14in_submerged` volume + cost | `(2500 + 600 * torpedoes_per_tube)` / `cost_per_tube_micro` | no change; keep both PLACEHOLDER                                                                                                    | UNRESOLVED                                                                                 |
+| components magazine header (line 953)                          | "PLACEHOLDER (no source): magazine capacities and masses"               | no change; keep                                                                                                                     | UNRESOLVED (capacity only; mass already sourced as 0 via White pp. 409-410)                |
+| components `rangefinder_optical.weightKg` (line 1011)          | 300, mass PLACEHOLDER                                                   | no change; keep. Only analogue found is the 1880 Berdan No. 7 telemeter, 154 lb (69.9 kg), [MG80] p. 219                             | UNRESOLVED                                                                                 |
+| components `dynamo_small` (line 1031 header)                   | 60 kW, 1,200 kg, 2,000,000 mm², 2,500 L                                 | pass-2 Option A (re-rate to the RN 400-A set: 32 kW, 5,207 kg, 2,606,000 mm², ~4,700 L, height 1,800 mm) is now corroborated by [MMW96] pp. 69-71 for the set rating; the **header marker still covers quarters, funnel, pumps and ventilation and cannot be removed** | weight/footprint VERIFIED ([ONI10] p. 190); volume/height SECONDARY analogue; header keeps marker |
+| components `quarters_crew`, `funnel_single`, `pumps_damage_control`, `ventilation_plant` | masses 0 / volumes as-is                                    | no change; keep the general-equipment PLACEHOLDER (line 1031). RN space-per-man still not found                                     | UNRESOLVED                                                                                 |
+| plants `*` volume/part-load/reliability and `locomotive_boiler_tb.sfcGramPerKwh` | as-is                                                   | no change; keep plants.yaml marker (line 4)                                                                                         | UNRESOLVED                                                                                 |
+
+### Marker accounting (pass 3) and the ratchet in `packages/ship-design/test/placeholders.test.ts`
+
+Current ceilings (after pass 1 was applied and the pre-1880 armament pass was added): **components 50, balance 5,
+plants 1, hull-forms 0, reference-designs 0** — and the test requires the counts to equal the ceilings exactly, so a
+lowering must be applied in the same change as the marker removal.
+
+This pass removes **zero** markers. The residual 25 `components.yaml` markers that ticket 30 owns are:
+
+| Item                                   | Marker lines (components.yaml) | Removable now? |
+| -------------------------------------- | ------------------------------ | -------------- |
+| `gun_bl_12in_25`                       | 452, 458                       | no             |
+| `gun_bl_6in_26`                        | 632, 638                       | no             |
+| `gun_qf_6in_40`                        | 668, 674                       | no             |
+| `gun_qf_47in`                          | 704, 710                       | no             |
+| `gun_qf_12pdr`                         | 740, 746                       | no             |
+| `gun_qf_6pdr`                          | 776, 782                       | no             |
+| `gun_hotchkiss_3pdr`                   | 812, 818                       | no             |
+| `gun_nordenfelt_1in`                   | 848, 854                       | no             |
+| `gun_maxim_303`                        | 885, 891                       | no             |
+| `tube_14in_above_water` (vol + cost)   | 915, 916                       | no             |
+| `tube_14in_submerged` (vol + cost)     | 939, 940                       | no             |
+| magazine section header                | 953                            | no (capacity unsourced) |
+| `rangefinder_optical`                  | 1011                           | no             |
+| general-equipment section header       | 1031                           | no             |
+
+(The other 25 `components.yaml` markers are the pre-1880 RML/BL and foreign coastal guns, which ticket 30 does not
+own.) `balance.yaml`'s 5 markers are the ticket-30 header line 3 ("EVERYTHING ELSE is a PLACEHOLDER gameplay
+constant") plus the four SB-3/INC-3 PLACEHOLDER BALANCE TARGETs at lines 462, 468, 474 and 479 (documented design
+values, not ticket-30 residuals); `plants.yaml`'s single marker is the header line 4. So the ceilings **stay at
+components 50 / balance 5 / plants 1 / hull-forms 0 / reference-designs 0**, and no line in `components.yaml`,
+`plants.yaml` or `balance.yaml` can have its `PLACEHOLDER` string removed on the strength of this pass.
+
+### Deferred / blocked
+
+- **Every residual item above is blocked on a non-digitised source class**: RN Admiralty dockyard records (Sheer
+  Draughts, Books of Reference, the contract weight schedules), ship-plans held by the National Maritime Museum /
+  Royal Museums Greenwich, and the armament makers' (Elswick/Armstrong, Vickers, Maxim-Nordenfelt) drawing
+  catalogues. None of these is full-text searchable online; a pass 3 that only greps archive.org cannot reach them.
+- **What would unblock each item** (for an orchestrator decision, not silently resolved):
+  - light/medium mount footprint + volume: a dimensioned SB mount drawing or a Brassey/Naval Annual "weights of
+    mountings" table not yet located; otherwise accept the heuristic as a documented ESTIMATE (which means changing
+    the PLACEHOLDER label to a justified ESTIMATE — an ADR-level decision, not a research result).
+  - Collingwood 12-in/25 barbette: a Collingwood/Admiral-class plan.
+  - torpedo-tube volume + cost: a torpedo establishment cost return (Commons estimates) and a tube drawing.
+  - magazine capacity / round volume: an Admiralty magazine-space regulation or an ammunition stowage table.
+  - rangefinder mass: a Barr & Stroud / Admiralty fire-control instrument list.
+  - electrical plant height, crew space, funnel/pump/ventilation mass: an RN machinery weight schedule or an
+    "accommodation" regulation.
+  - plant volume/part-load/reliability: machinery trial returns and a machinery-space table.
+- Two earlier **open conflicts are unchanged** and are not resolved here: the QF 4.7-in navweaps "about 8 tons"
+  scope, and whether the 10-in/9.2-in revolving weights ([G97] pp. 148, 150) include gun-shield armour.

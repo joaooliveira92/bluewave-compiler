@@ -3,6 +3,7 @@
 // dynamic import, require), the permitted ones, and the fail-closed parse path.
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { fileURLToPath } from "node:url";
 
 import { STAGE_ROOT, findStageIo, scanStageIo } from "../assert-no-stage-io.mjs";
 
@@ -30,6 +31,6 @@ void test("fails closed on a parse error", () => {
 
 void test("guards the stage directory and the real tree is clean", () => {
   assert.equal(STAGE_ROOT, "packages/content-compiler/src/stages");
-  const repoRoot = new URL("../..", import.meta.url).pathname;
+  const repoRoot = fileURLToPath(new URL("../..", import.meta.url));
   assert.deepEqual(scanStageIo(repoRoot), []);
 });

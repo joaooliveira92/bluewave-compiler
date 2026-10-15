@@ -10,6 +10,32 @@ designs:
     starterFor: B
     name: Fusō (1878, central-battery ironclad)
     month: 1880-01
+    historical: true
+    provenance:
+      completionDate:
+        value: "1.1878"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (japan/jap_bb_fuso78.htm)" }]
+      displacementBasis:
+        value: "3,717 t normal"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (japan/jap_bb_fuso78.htm)" }]
+      armourScheme:
+        value: "wrought iron; belt 229-114 (2.36 m high), battery 229, bulkheads 152"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (japan/jap_bb_fuso78.htm)" }]
+      armamentConfiguration:
+        value: "4x1 235 mm (9.45-in) RKL/22 C/72 + 2x1 173 mm (6.7-in) RKL/25 C/72; 4x1 79 mm RKL/27 + 2x1 75 mm KL/11; no torpedo tubes as built (2x350 mm 1885)"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (japan/jap_bb_fuso78.htm)" }]
+      machineryOutput:
+        value: "2 Penn HTC, 8 cylindrical boilers; 3,500 ihp"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (japan/jap_bb_fuso78.htm)" }]
+      speed:
+        value: "13 kn"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (japan/jap_bb_fuso78.htm)" }]
     draft:
       nationId: japan
       requirement:

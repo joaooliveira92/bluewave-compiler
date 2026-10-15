@@ -4,6 +4,7 @@
 // and the allowlist semantics.
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { fileURLToPath } from "node:url";
 
 import {
   ALLOWLIST,
@@ -45,6 +46,6 @@ void test("every allowlist entry carries a reason", () => {
 });
 
 void test("the real tree is clean", () => {
-  const repoRoot = new URL("../..", import.meta.url).pathname;
+  const repoRoot = fileURLToPath(new URL("../..", import.meta.url));
   assert.deepEqual(scanLibraryConsole(repoRoot), []);
 });

@@ -1,8 +1,11 @@
 ## Agent workflow (governs every Bluewave sprint)
 
-- **Branch:** all work lands on the `dev` branch. Do not develop on `main`;
-  deliver via a PR from `dev` (or a short-lived feature branch) into `main` at a
-  release boundary.
+- **Branch discipline (ADR-0165):** `dev` is PR-gated — **never commit on
+  `dev`**. One dedicated worktree per session, on a short-lived branch; reach
+  `dev` only through a pull request that passes the required checks, and `main`
+  only by a release PR from `dev`. A pre-commit hook
+  (`scripts/check-branch-discipline.mjs`) refuses a commit on `dev`/`main`;
+  branch protection enforces it server-side (the incident it closes is ADR-0044).
 - **Session start:** sync the branch (`git pull --rebase` on `dev`) and run
   `pnpm preflight` before the first edit — red on an in-progress merge or conflict
   markers in tracked files (the 2026-10-06 `origin/dev` divergence cost a whole

@@ -1656,6 +1656,65 @@ designs:
     starterFor: DD
   - header:
       hull:
+        beam: 3100
+        blockCoeffBp: 2150
+        depthToMainDeck: 2150
+        designMarginBp: 300
+        draught: 1600
+        growthReserveBp: 0
+        hullFormId: torpedo_boat_form
+        lengthWl: 26300
+        limitDisplacementKg: null
+        materialId: mild_steel
+        structuralSchemeId: mixed
+        subdivisionGrade: 2
+        targetDisplacementKg: 28000
+      machinery:
+        foulingBp: 0
+        fuelCapacityKg: 2000
+        fuelStationPermille: 600
+        fuelZoneId: SUPERSTRUCTURE
+      nation: uk
+      protection:
+        bunkerProtectionBp: 0
+        citadelLengthMm: 0
+        torpedoWarheadKg: 12
+      requirement:
+        accommodationStandard: SPARTAN
+        category: DD
+        crewQualityBp: 10000
+        cruiseSpeedMilliKnots: 10000
+        designThreatId: qf_12pdr
+        modernizationExpectation: NONE
+        protectionGoal: NONE
+        requiredRangeNm: 300
+        requiredSpeedMilliKnots: 20000
+    id: tb2_1879
+    loadout:
+      entries:
+        - id: tubes
+          mountCount: 1
+          part: uk_tube_14in_aw_mk4
+          slot: superstructure.torpedo_launcher
+          stationPermille: 580
+        - id: quarters
+          mountCount: 1
+          params:
+            blocks: 1
+          part: quarters_crew
+          slot: fwd_magazine.accommodation
+          stationPermille: 130
+        - mountCount: 1
+          params:
+            installedKw: 343
+          part: compound_locomotive_tb
+          slot: central_machinery.propulsion_plant
+          stationPermille: 450
+      platform: torpedo_boat_form
+    month: 1880-01
+    name: TB2 (1879, first-class torpedo boat)
+  - header:
+      hull:
         beam: 12000
         blockCoeffBp: 5000
         depthToMainDeck: 7000

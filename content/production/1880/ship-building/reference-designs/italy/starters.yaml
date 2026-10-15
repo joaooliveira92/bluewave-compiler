@@ -8,6 +8,32 @@ designs:
     name: Principe Amedeo (1874, central-battery ironclad)
     month: 1880-01
     starterFor: B
+    historical: true
+    provenance:
+      completionDate:
+        value: "15.12.1874 (Palestro 11.7.1875)"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (italy/it_bb_principe_amedeo.htm)" }]
+      displacementBasis:
+        value: "5,761 t normal / 6,020 t full (Principe Amedeo)"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (italy/it_bb_principe_amedeo.htm)" }]
+      armourScheme:
+        value: "wrought iron; belt 220, battery 140, CT 60 (no separate deck given)"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (italy/it_bb_principe_amedeo.htm)" }]
+      armamentConfiguration:
+        value: "1x1 279 mm (11-in) Armstrong 25-ton RML + 6x1 254 mm (10-in) Armstrong 18-ton RML No1, all six 254s in one central casemate; no torpedoes"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (italy/it_bb_principe_amedeo.htm)" }]
+      machineryOutput:
+        value: "1 HSE, 6 cylindrical boilers; 6,117 ihp"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (italy/it_bb_principe_amedeo.htm)" }]
+      speed:
+        value: "12.2 kn (Palestro 12.9 kn)"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (italy/it_bb_principe_amedeo.htm)" }]
     draft:
       nationId: italy
       requirement:

@@ -5,6 +5,7 @@
 // (including its occurrence-count ratchet), and the guarded scopes.
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { fileURLToPath } from "node:url";
 
 import {
   ALLOWLIST,
@@ -112,7 +113,7 @@ void test("partitionAllowlist reports no stale entry when every count is consume
 });
 
 void test("scanBoundaryDecodeCasts fails closed on a stale entry when strict", () => {
-  const repoRoot = new URL("../..", import.meta.url).pathname;
+  const repoRoot = fileURLToPath(new URL("../..", import.meta.url));
   const stale = { "apps/compiler-cli/src/commands.ts": { "JSON.parse(x) as Gone": { count: 1 } } };
   assert.throws(
     () => scanBoundaryDecodeCasts(repoRoot, SCOPES.cli, stale, true),
@@ -121,14 +122,14 @@ void test("scanBoundaryDecodeCasts fails closed on a stale entry when strict", (
 });
 
 void test("the real tree passes every scope (allowlisted sites excluded)", () => {
-  const repoRoot = new URL("../..", import.meta.url).pathname;
+  const repoRoot = fileURLToPath(new URL("../..", import.meta.url));
   for (const roots of Object.values(SCOPES)) {
     assert.deepEqual(scanBoundaryDecodeCasts(repoRoot, roots), []);
   }
 });
 
 void test("the cli scope is load-bearing: every allowlisted site is a real cast", () => {
-  const repoRoot = new URL("../..", import.meta.url).pathname;
+  const repoRoot = fileURLToPath(new URL("../..", import.meta.url));
   const raw = scanBoundaryDecodeCasts(repoRoot, SCOPES.cli, {});
   assert.ok(raw.length > 0, "the cli scope must guard at least one site");
   const observed = new Map();

@@ -315,6 +315,7 @@ cost:
     krupp: 120000
   machineryCostPerKwMicro:
     compound_cylindrical: 10700000 # GBP 8 per ihp (1888) = 10.7 per kW (Trafalgar), ESTIMATE
+    compound_locomotive_tb: 10700000 # ESTIMATE: a compound engine (as compound_cylindrical) with a locomotive boiler; no separate sourced price for the 1879 torpedo-boat plant (White 1894 gives mass, not cost)
     triple_expansion_cylindrical: 8000000 # GBP 6 per ihp, between 8 (1888) and 4.5 (1893-95), ESTIMATE
     triple_expansion_watertube: 9000000 # ESTIMATE
     locomotive_boiler_tb: 7100000 # Havock machinery GBP 18,674 / 3,500 ihp = 5.3 per ihp (Brassey 1894, VERIFIED)

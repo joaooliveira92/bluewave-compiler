@@ -75,4 +75,20 @@
 # to origin/dev (force-push prohibited), so the ratchet is advanced past it
 # instead as the documented fallback. Ticket 17b's own commit carries a
 # `Golden-Repin: not-needed` trailer.
-a9eae22140e5361b43a0a5f98c89abe76e52cfdc
+#
+# The baseline is advanced again to 1f34161b — the last flagged commit — during
+# production-hardening ticket 01 (landing the Effect runtime migration on `dev`).
+# One commit changed authoritative package source without re-pinning
+# golden/hashes.json: 1f34161b (ship-part-model ticket 16, visual traits and the
+# render adapter — `content-compiler/src/stages/flatten.ts`,
+# `content-schema/src/index.ts`, `ship-parts.ts`, `visual-traits.ts`). The
+# reference run (`packages/cross-process-test/src/run-child.ts`) compiles an
+# in-code synthetic fixture that declares no ship-building/design collection, so
+# the additive visual-traits schema and their flatten step are never exercised:
+# `pnpm check:golden` reports all 11 hashes match the committed golden and
+# `pnpm check:determinism`/`check:equivalence` are byte-identical, so no
+# reference hash moved. It should have carried a `Golden-Repin: not-needed`
+# trailer; it was already pushed to origin/dev (force-push prohibited) and
+# rewording a non-HEAD commit would need an interactive rebase (prohibited), so
+# the ratchet is advanced past it instead as the documented fallback.
+1f34161b332f77af9155f78b5d01046dd86a9ea1

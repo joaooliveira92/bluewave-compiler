@@ -22,6 +22,7 @@ function migrateOnce() {
     cwd: pkg,
     encoding: "utf8",
     timeout: 300000,
+    shell: process.platform === "win32",
   });
   const match = /CODEMOD_TREE_SHA256 ([0-9a-f]{64})/.exec(out);
   if (match === null) throw new Error("codemod determinism: tree hash not found in test output");
