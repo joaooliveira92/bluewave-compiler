@@ -1,7 +1,7 @@
 # 30: Replace the remaining unsourced content values (release gate)
 
 **Type:** research + content
-**Status:** open
+**Status:** claimed
 **Blocked by:** none
 **Frontier:** yes (but a release gate, not a feature)
 
