@@ -1,7 +1,7 @@
 import type {
-  ComponentDef,
   DesignDraft,
   DraftEdit,
+  PartCatalogueEntry,
   PlacementSpec,
   ZoneId,
 } from "@bluewave/ship-design";
@@ -27,17 +27,17 @@ const SIDED_CATEGORIES: readonly string[] = [
   "DUAL_PURPOSE_GUN",
   "TORPEDO_TUBE",
 ];
-export const hasSide = (def: ComponentDef | undefined): boolean =>
-  def !== undefined && SIDED_CATEGORIES.includes(def.category);
+export const hasSide = (entry: PartCatalogueEntry | undefined): boolean =>
+  entry !== undefined && SIDED_CATEGORIES.includes(entry.category);
 
 const words = (s: string) => s.replaceAll("_", " ").toLowerCase();
 const refuse = (reason: string): PlanEdit => ({ ok: false, reason });
 
-function zoneProblem(def: ComponentDef | undefined, zoneId: ZoneId | null): string | null {
+function zoneProblem(entry: PartCatalogueEntry | undefined, zoneId: ZoneId | null): string | null {
   if (zoneId === null) return "There is no zone at that point.";
-  const allowed = def?.allowedZones;
+  const allowed = entry?.allowedZones;
   if (allowed !== undefined && !allowed.includes(zoneId))
-    return `${def?.displayName ?? "That fitting"} cannot go in the ${words(zoneId)} zone.`;
+    return `${entry?.displayName ?? "That fitting"} cannot go in the ${words(zoneId)} zone.`;
   return null;
 }
 
@@ -53,11 +53,11 @@ export function nextInstanceId(
 
 /** Place a new fitting at a plan target: refused when no zone is there or the zone is not allowed for the component. */
 export function placeEdit(
-  def: ComponentDef,
+  entry: PartCatalogueEntry,
   target: PlanTarget,
   draft: Pick<DesignDraft, "placements">,
 ): PlanEdit {
-  const problem = zoneProblem(def, target.zoneId);
+  const problem = zoneProblem(entry, target.zoneId);
   if (problem !== null || target.zoneId === null)
     return refuse(problem ?? "There is no zone at that point.");
   return {
@@ -65,11 +65,11 @@ export function placeEdit(
     edit: {
       kind: "add_placement",
       placement: {
-        instanceId: nextInstanceId(draft, def.id),
-        componentId: def.id,
+        instanceId: nextInstanceId(draft, entry.id),
+        componentId: entry.id,
         zoneId: target.zoneId,
         stationPermille: target.stationPermille,
-        ...(hasSide(def) ? { side: target.side } : {}),
+        ...(hasSide(entry) ? { side: target.side } : {}),
       },
     },
   };
@@ -78,10 +78,10 @@ export function placeEdit(
 /** Move a fitting to a plan target, also setting its side when it has one, as one undoable edit. */
 export function moveEdit(
   placement: PlacementSpec,
-  def: ComponentDef | undefined,
+  entry: PartCatalogueEntry | undefined,
   target: PlanTarget,
 ): PlanEdit {
-  const problem = zoneProblem(def, target.zoneId);
+  const problem = zoneProblem(entry, target.zoneId);
   if (problem !== null || target.zoneId === null)
     return refuse(problem ?? "There is no zone at that point.");
   const move: DraftEdit = {
@@ -90,7 +90,7 @@ export function moveEdit(
     zoneId: target.zoneId,
     stationPermille: target.stationPermille,
   };
-  const sideChanged = hasSide(def) && (placement.side ?? "CENTRE") !== target.side;
+  const sideChanged = hasSide(entry) && (placement.side ?? "CENTRE") !== target.side;
   return {
     ok: true,
     edit: sideChanged
@@ -105,7 +105,7 @@ export function moveEdit(
 /** Nudge a fitting along the hull by `deltaPermille` (clamped to the hull), following the zone it moves into. */
 export function nudgeEdit(
   placement: PlacementSpec,
-  def: ComponentDef | undefined,
+  entry: PartCatalogueEntry | undefined,
   zones: readonly ZoneSpan[],
   deltaPermille: number,
 ): PlanEdit {
@@ -113,7 +113,7 @@ export function nudgeEdit(
   if (station === placement.stationPermille)
     return refuse("The fitting is already at the end of the hull.");
   const zoneId = zoneAtStation(zones, station);
-  const problem = zoneProblem(def, zoneId);
+  const problem = zoneProblem(entry, zoneId);
   if (problem !== null || zoneId === null)
     return refuse(problem ?? "There is no zone at that point.");
   return {

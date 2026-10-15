@@ -97,7 +97,7 @@ export function sectionFacts(
   const meta = SECTIONS[id];
   const zone = zones.find((z) => z.id === meta.zoneId);
   const lengthWlM = Number(draft.hull.lengthWl) / 1000;
-  const defs = new Map(content.components.map((c) => [c.id, c]));
+  const entries = new Map(content.catalogue.map((e) => [e.id, e]));
   const weights = new Map(view.compiled.components.map((c) => [c.instanceId, c.weightKg]));
   const arcs = new Map(
     (view.compiled.weapons?.mounts ?? []).map((m) => [m.instanceId, m.effectiveBeamArcDeg]),
@@ -106,12 +106,12 @@ export function sectionFacts(
   const fittings: SectionFitting[] = [];
   draft.placements.forEach((p, placementIndex) => {
     if (p.zoneId !== meta.zoneId) return;
-    const def = defs.get(p.componentId);
-    const kind = def ? fittingKind(def.category, def.tags) : "other";
+    const entry = entries.get(p.componentId);
+    const kind = entry ? fittingKind(entry.category, entry.tags) : "other";
     fittings.push({
       n: fittings.length + 1,
       instanceId: p.instanceId,
-      name: def?.displayName ?? p.componentId,
+      name: entry?.displayName ?? p.componentId,
       kind,
       stationPermille: p.stationPermille,
       side: p.side ?? "CENTRE",

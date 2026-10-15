@@ -35,7 +35,7 @@ export function BatteryPanel({
   /** The mount the drawing has pinned, so the control shows its pressed state. */
   readonly selectedInstanceId?: string | null;
 }) {
-  const defOf = (id: string) => content.components.find((c) => c.id === id);
+  const defOf = (id: string) => content.catalogue.find((e) => e.id === id);
   return (
     <Panel title="Batteries">
       {cards.length === 0 ? (

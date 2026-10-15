@@ -1,9 +1,4 @@
-import type {
-  ComponentDef,
-  DesignDraft,
-  MountSide,
-  PartCatalogueEntry,
-} from "@bluewave/ship-design";
+import type { DesignDraft, MountSide, PartCatalogueEntry } from "@bluewave/ship-design";
 import { Move, SquarePlus, type LucideIcon } from "lucide-react";
 import { useState } from "react";
 import { Button } from "../../../ui/button.js";
@@ -214,20 +209,20 @@ function PlanToolPicker({
 export function PlanToolOptions({
   tool,
   draft,
-  defOf,
+  entryOf,
   onNudge,
   onSide,
   notice,
 }: {
   readonly tool: PlanTool;
   readonly draft: DesignDraft;
-  readonly defOf: (componentId: string) => ComponentDef | undefined;
+  readonly entryOf: (componentId: string) => PartCatalogueEntry | undefined;
   readonly onNudge: (deltaPermille: number) => void;
   readonly onSide: (side: MountSide) => void;
   readonly notice: string | null;
 }) {
   const selected = draft.placements.find((p) => p.instanceId === tool.instanceId);
-  const selectedDef = selected ? defOf(selected.componentId) : undefined;
+  const selectedEntry = selected ? entryOf(selected.componentId) : undefined;
   return (
     <div className="space-y-2" role="group" aria-label="Plan tool options">
       {tool.mode === "move" && selected !== undefined && (
@@ -250,7 +245,7 @@ export function PlanToolOptions({
               {delta < 0 ? "◀" : ""} {Math.abs(delta)}‰ {delta > 0 ? "▶" : ""}
             </Button>
           ))}
-          {hasSide(selectedDef) && (
+          {hasSide(selectedEntry) && (
             <SelectField
               className="w-36"
               label="Side of the selected fitting"

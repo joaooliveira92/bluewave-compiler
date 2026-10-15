@@ -1,10 +1,5 @@
 import { useState } from "react";
-import type {
-  ComponentDef,
-  DesignDraft,
-  MountSide,
-  PartCatalogueEntry,
-} from "@bluewave/ship-design";
+import type { DesignDraft, MountSide, PartCatalogueEntry } from "@bluewave/ship-design";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { beforeAll, describe, expect, it, vi } from "vite-plus/test";
 import { PlanModeButtons, PlanToolOptions } from "./PlanToolbar.js";
@@ -14,8 +9,6 @@ beforeAll(() => {
   Element.prototype.scrollIntoView = vi.fn();
 });
 
-const gun = { id: "gun_a", displayName: "Gun A", category: "MAIN_GUN" } as ComponentDef;
-const pump = { id: "pump", displayName: "Pump", category: "AUXILIARY" } as unknown as ComponentDef;
 const gunEntry: PartCatalogueEntry = {
   id: "gun_a",
   displayName: "Gun A",
@@ -24,6 +17,7 @@ const gunEntry: PartCatalogueEntry = {
   requires: [],
   tags: [],
   fcClass: null,
+  parameters: {},
   entryUnits: null,
   rounds: null,
 };
@@ -35,6 +29,7 @@ const pumpEntry: PartCatalogueEntry = {
   requires: [],
   tags: [],
   fcClass: null,
+  parameters: {},
   entryUnits: null,
   rounds: null,
 };
@@ -49,7 +44,6 @@ const draft = {
     },
   ],
 } as unknown as DesignDraft;
-const defOf = (id: string) => (id === "gun_a" ? gun : id === "pump" ? pump : undefined);
 const entryOf = (id: string) => (id === "gun_a" ? gunEntry : id === "pump" ? pumpEntry : undefined);
 
 const ModeButtons = ({
@@ -172,7 +166,7 @@ describe("PlanModeButtons", () => {
 describe("PlanToolOptions", () => {
   const base = {
     draft,
-    defOf,
+    entryOf,
     onNudge: vi.fn<(d: number) => void>(),
     onSide: vi.fn<(s: MountSide) => void>(),
     notice: null,

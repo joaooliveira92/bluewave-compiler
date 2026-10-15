@@ -18,7 +18,7 @@ const options = (edit: (e: DraftEdit) => void) => ({
   month: ref.month,
   frame: model.frame,
   zones: model.zones,
-  defOf: model.defOf,
+  entryOf: model.entryOf,
   edit,
 });
 

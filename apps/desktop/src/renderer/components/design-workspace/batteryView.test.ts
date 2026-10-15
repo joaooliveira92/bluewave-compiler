@@ -13,7 +13,7 @@ const content = loadDrawingBoardContent();
 const ref = content.references.find((r) => r.id === "majestic_like")!;
 const view = buildWorkshopView(ref.draft, content.environmentFor(ref.month));
 const cards = batteryCards(view, ref.draft);
-const defOf = (id: string) => content.components.find((c) => c.id === id);
+const defOf = (id: string) => content.catalogue.find((c) => c.id === id);
 
 describe("batteryCards", () => {
   it("groups the battleship's guns into main then secondary batteries with conventional names", () => {

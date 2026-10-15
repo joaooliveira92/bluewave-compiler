@@ -61,7 +61,7 @@ describe("systems view model", () => {
     const placed = next.placements.find(
       (p) => p.instanceId === (edit as { placement: { instanceId: string } }).placement.instanceId,
     )!;
-    const def = content.components.find((c) => c.id === available!.componentId)!;
+    const def = content.catalogue.find((c) => c.id === available!.componentId)!;
     if (def.allowedZones !== undefined) expect(def.allowedZones).toContain(placed.zoneId);
   });
 

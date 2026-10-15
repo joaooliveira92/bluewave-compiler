@@ -49,9 +49,9 @@ describe("componentFacts", () => {
     expect(componentFacts(entry, undefined).placed).toBeNull();
   });
   it("groups the catalogue by category without losing or duplicating a component", () => {
-    const groups = componentsByCategory(content.components);
+    const groups = componentsByCategory(content.catalogue);
     expect(groups.flatMap((g) => g.items.map((i) => i.id)).sort()).toEqual(
-      content.components.map((c) => c.id).sort(),
+      content.catalogue.map((c) => c.id).sort(),
     );
     expect(new Set(groups.map((g) => g.category)).size).toBe(groups.length);
   });

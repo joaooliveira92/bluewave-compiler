@@ -10,7 +10,7 @@ import {
 
 const content = loadDrawingBoardContent();
 const start = content.references[0]!.draft;
-const cat = (id: string) => content.components.find((c) => c.id === id)?.category;
+const cat = (id: string) => content.catalogue.find((c) => c.id === id)?.category;
 const project = (donePct: number, status = "ACTIVE"): RevisionProject => ({
   projectId: "p1",
   className: "Test",

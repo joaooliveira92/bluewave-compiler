@@ -79,7 +79,7 @@ export function ArmamentEditor({
   const [linked, setLinked] = useState(false);
   const [replaceTo, setReplaceTo] = useState("");
 
-  const defOf = (componentId: string) => content.components.find((c) => c.id === componentId);
+  const entryOf = (componentId: string) => content.catalogue.find((e) => e.id === componentId);
   const nextId = (componentId: string) => {
     let n = 1;
     while (draft.placements.some((p) => p.instanceId === `${componentId}_${n}`)) n++;
@@ -91,7 +91,7 @@ export function ArmamentEditor({
 
   const setNumber = (m: ArmamentMount, param: "barrels" | "rounds", value: number) => {
     const edits = linkedTargets(m).flatMap((t): DraftEdit[] => {
-      const range = defOf(t.componentId)?.parameters?.[param];
+      const range = entryOf(t.componentId)?.parameters?.[param];
       if (range === undefined) return [];
       const clamped = Math.min(range.max, Math.max(range.min, Math.round(value)));
       const current = param === "barrels" ? t.barrels : t.rounds;
@@ -162,12 +162,12 @@ export function ArmamentEditor({
     );
   }
 
-  const def = selected === null ? undefined : defOf(selected.componentId);
+  const entry = selected === null ? undefined : entryOf(selected.componentId);
   const conflicts = selected === null ? [] : conflictsFor(selected.instanceId, findings);
   const replaceCandidates =
-    def === undefined
+    entry === undefined
       ? []
-      : content.components.filter((c) => c.category === def.category && c.id !== def.id);
+      : content.catalogue.filter((e) => e.category === entry.category && e.id !== entry.id);
 
   return (
     <Panel title="Batteries">
@@ -240,9 +240,9 @@ export function ArmamentEditor({
               label={`Barrel count of ${selected.instanceId}`}
               shortLabel="Barrel count"
               value={selected.barrels}
-              min={def?.parameters?.barrels?.min}
-              max={def?.parameters?.barrels?.max}
-              step={def?.parameters?.barrels?.step}
+              min={entry?.parameters?.barrels?.min}
+              max={entry?.parameters?.barrels?.max}
+              step={entry?.parameters?.barrels?.step}
               onCommit={(v) => setNumber(selected, "barrels", v)}
             />
             {selected.rounds !== null && (
@@ -251,9 +251,9 @@ export function ArmamentEditor({
                 shortLabel="Ammunition per gun"
                 unit="rounds"
                 value={selected.rounds}
-                min={def?.parameters?.rounds?.min}
-                max={def?.parameters?.rounds?.max}
-                step={def?.parameters?.rounds?.step}
+                min={entry?.parameters?.rounds?.min}
+                max={entry?.parameters?.rounds?.max}
+                step={entry?.parameters?.rounds?.step}
                 onCommit={(v) => setNumber(selected, "rounds", v)}
               />
             )}

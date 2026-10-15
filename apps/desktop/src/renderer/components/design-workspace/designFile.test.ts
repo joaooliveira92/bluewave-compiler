@@ -39,4 +39,13 @@ describe("design files", () => {
     expect(designFileName("  Torpedo Cruiser / 1880! ")).toBe("torpedo-cruiser-1880.bwdesign");
     expect(designFileName("???")).toBe("design.bwdesign");
   });
+  it("keeps a stable component identity across export/import (17b-2)", () => {
+    // The parts-derived catalogue is authoritative for the designer, but design-file identity
+    // keeps hashing the legacy components: the same draft encodes byte-identically and imports
+    // with no drift, so a saved design's identity is stable across the catalogue migration.
+    const first = exportDesign(ref.draft, content.components, view.compiled);
+    const second = exportDesign(ref.draft, content.components, view.compiled);
+    expect(first).toBe(second);
+    expect(importDesign(first, content.components)).toMatchObject({ ok: true, notes: [] });
+  });
 });

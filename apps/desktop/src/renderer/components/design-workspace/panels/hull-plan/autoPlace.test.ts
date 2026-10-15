@@ -7,7 +7,7 @@ const content = loadDrawingBoardContent();
 const ref = content.references.find((r) => r.id === "majestic_like")!;
 const ctx = content.environmentFor(ref.month).ctx;
 const zones = content.hullForms.find((f) => f.id === ref.draft.hull.hullFormId)!.zones;
-const pump = content.components.find((c) => c.id === "pumps_damage_control")!;
+const pump = content.catalogue.find((c) => c.id === "pumps_damage_control")!;
 const trimAfter = (e: DraftEdit) =>
   Math.abs(compileDesign(applyEdit(ref.draft, e), ctx).stability!.trimBp);
 const blocking = (e: DraftEdit | null) =>

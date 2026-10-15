@@ -49,9 +49,9 @@ export function placeForEntity(entity: ShipEntity, ctx: RoutingContext): Inspect
     case "fitting": {
       const placed = ctx.draft.placements.find((p) => p.instanceId === entity.instanceId);
       if (!placed) return null;
-      const def = ctx.content.components.find((c) => c.id === placed.componentId);
-      if (!def) return null;
-      return CATEGORY_PLACE[def.category];
+      const entry = ctx.content.catalogue.find((e) => e.id === placed.componentId);
+      if (!entry) return null;
+      return CATEGORY_PLACE[entry.category];
     }
   }
 }

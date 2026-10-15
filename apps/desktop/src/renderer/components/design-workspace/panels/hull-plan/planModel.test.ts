@@ -45,15 +45,15 @@ describe("planModel", () => {
     const m = model();
     expect(m.zones).toBe(form.zones);
     const placed = ref.draft.placements[0]!;
-    expect(m.defOf(placed.componentId)?.id).toBe(placed.componentId);
-    expect(m.defOf("not_a_component")).toBeUndefined();
+    expect(m.entryOf(placed.componentId)?.id).toBe(placed.componentId);
+    expect(m.entryOf("not_a_component")).toBeUndefined();
   });
 
   it("offers only the components available by the reference month", () => {
     const m = model();
     expect(m.available.every((c) => c.introduction.fromMonth <= ref.month)).toBe(true);
     expect(m.available.map((c) => c.id)).toEqual(
-      content.components.filter((c) => c.introduction.fromMonth <= ref.month).map((c) => c.id),
+      content.catalogue.filter((c) => c.introduction.fromMonth <= ref.month).map((c) => c.id),
     );
   });
 
@@ -67,7 +67,7 @@ describe("planModel", () => {
     const m = model();
     const placed = ref.draft.placements[0]!;
     const target = m.targets.get(placed.instanceId)!;
-    expect(target.name).toBe(m.defOf(placed.componentId)?.displayName ?? placed.componentId);
+    expect(target.name).toBe(m.entryOf(placed.componentId)?.displayName ?? placed.componentId);
     expect(m.entityName({ kind: "fitting", instanceId: placed.instanceId })).toContain(target.name);
     expect(m.entityName({ kind: "section", id: "forecastle" })).toBe(SECTIONS.forecastle.name);
     expect(m.entityName({ kind: "ship" })).toBe("whole ship");
@@ -77,7 +77,7 @@ describe("planModel", () => {
   it("collects only funnel-tagged placements as funnels", () => {
     const m = model();
     const funnelIds = new Set(
-      content.components.filter((c) => c.tags.includes("funnel")).map((c) => c.id),
+      content.catalogue.filter((c) => c.tags.includes("funnel")).map((c) => c.id),
     );
     expect(m.placedFunnels.map((f) => f.instanceId)).toEqual(
       ref.draft.placements.filter((p) => funnelIds.has(p.componentId)).map((p) => p.instanceId),

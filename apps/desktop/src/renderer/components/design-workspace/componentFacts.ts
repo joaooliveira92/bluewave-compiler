@@ -1,4 +1,4 @@
-import type { ComponentDef, ComponentSummary, PartCatalogueEntry } from "@bluewave/ship-design";
+import type { ComponentSummary, PartCatalogueEntry } from "@bluewave/ship-design";
 
 export interface ComponentFacts {
   readonly name: string;
@@ -32,12 +32,12 @@ export function componentFacts(
 
 /** Components grouped by category in catalogue order, for the add-component menu. */
 export function componentsByCategory(
-  components: readonly ComponentDef[],
-): { readonly category: string; readonly items: readonly ComponentDef[] }[] {
-  const groups = new Map<string, ComponentDef[]>();
-  for (const c of components) {
-    const key = words(c.category);
-    groups.set(key, [...(groups.get(key) ?? []), c]);
+  entries: readonly PartCatalogueEntry[],
+): { readonly category: string; readonly items: readonly PartCatalogueEntry[] }[] {
+  const groups = new Map<string, PartCatalogueEntry[]>();
+  for (const entry of entries) {
+    const key = words(entry.category);
+    groups.set(key, [...(groups.get(key) ?? []), entry]);
   }
   return [...groups].map(([category, items]) => ({ category, items }));
 }

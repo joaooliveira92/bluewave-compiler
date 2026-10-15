@@ -1,4 +1,4 @@
-import type { ComponentDef, PlacementSpec } from "@bluewave/ship-design";
+import type { PartCatalogueEntry, PlacementSpec } from "@bluewave/ship-design";
 import { describe, expect, it } from "vite-plus/test";
 import {
   fittingPoint,
@@ -31,8 +31,19 @@ const zones = [
   { id: "AFT_SERVICE", startPermille: 500, endPermille: 1000 },
   { id: "MISSION", startPermille: 300, endPermille: 1000 },
 ];
-const def = (over: Partial<ComponentDef>): ComponentDef =>
-  ({ id: "gun_a", displayName: "Gun A", category: "MAIN_GUN", ...over }) as ComponentDef;
+const def = (over: Partial<PartCatalogueEntry>): PartCatalogueEntry => ({
+  id: "gun_a",
+  displayName: "Gun A",
+  category: "MAIN_GUN",
+  introduction: { fromMonth: "1880-01", obsoleteMonth: null },
+  requires: [],
+  tags: [],
+  fcClass: null,
+  parameters: {},
+  entryUnits: null,
+  rounds: null,
+  ...over,
+});
 const placement = (over: Partial<PlacementSpec> = {}): PlacementSpec => ({
   instanceId: "gun_a_1",
   componentId: "gun_a",

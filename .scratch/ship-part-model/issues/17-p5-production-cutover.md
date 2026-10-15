@@ -138,10 +138,26 @@ projection when absent — `content.ts` `catalogueView`). These read-only consum
 `systems-view.ts` `addSystemEdit`'s `allowedZones` stay on `content.components`;
 `planModel.defOf` is kept for the out-of-scope edit path (`useHullPlanEditing`).
 
-**17b-2 remains:** switch `planModel.defOf`/`allowedZones` and the remaining edit/AI suggestion
-paths (`placement-edits`, `PlacementsPanel` add/params, `auto-place`, `useHullPlanEditing`,
-`useDrawingBoard`, `optionDelta`/`buildWorkshopView`) once `allowedZones` has a home; then
-`content.components` can be retired from the designer.
+**17b-2 landed (this commit):** the designer's **edit** paths now read the parts-derived
+catalogue view, finishing the read-only migration of 17b-1. `PartCatalogueEntry` gains the
+legacy `parameters` map (rebuilt from `entryUnits` + `rounds`) and an optional `allowedZones`,
+so the zones rule, the parameter editors and the add menu read the parts; the parts-less
+fallback (`legacyCatalogueView`) carries the legacy fields unchanged. `planModel.defOf` is
+retired in favour of `entryOf`; `placement-edits`, `auto-place`, `useHullPlanEditing`,
+`PlanToolbar`, `PlacementsPanel`, `ArmamentEditor`, `BatteryPanel`/`batteryView`,
+`RevisionPanel`, `ShipbuildingWorkspace`, `selection`, `systems-view`, `section-facts` and
+`funnelPlacements` all read `content.catalogue`.
+
+The **compile engine** (`compileDesign`) and the **AI candidate generator** (`suggest`, `ai`)
+still read the nation-filtered `ctx.catalogue`: the part model is nation-agnostic and carries
+evaluated quantities, not the formula strings and arbitrary parameter ranges the legacy compile
+reads, so a parts→`ComponentDef` projection and the nation filter are not available until 17c.
+Design-file identity also stays on the legacy components (its `componentHash` contract). See
+ADR-0160. No golden or equivalence hash moved (`check:golden` 11/11, `check:equivalence`
+byte-identical); the commit carries `Golden-Repin: not-needed`.
+
+**17b-3 remains:** retire `content.components` from the designer once design-file identity and
+the nation-filtered reads have a home, then 17c/17d as below.
 
 **Known, unresolved (not introduced by 17b-1):** `pnpm check:golden-repin` is red on `dev` — the
 committed 17a commit `a9eae221` changed authoritative ship-design source without a same-commit

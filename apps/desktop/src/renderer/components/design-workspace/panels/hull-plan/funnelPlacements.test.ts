@@ -3,8 +3,8 @@ import { describe, expect, it } from "vite-plus/test";
 import { funnelPlacements } from "./funnelPlacements.js";
 import { content } from "./test-fixtures.js";
 /** A component the catalogue tags as a funnel, and one it does not. */
-const funnel = content.components.find((c) => c.tags.includes("funnel"))!;
-const other = content.components.find((c) => !c.tags.includes("funnel"))!;
+const funnel = content.catalogue.find((c) => c.tags.includes("funnel"))!;
+const other = content.catalogue.find((c) => !c.tags.includes("funnel"))!;
 
 const draft = (placements: DesignDraft["placements"]): DesignDraft =>
   ({ placements }) as unknown as DesignDraft;

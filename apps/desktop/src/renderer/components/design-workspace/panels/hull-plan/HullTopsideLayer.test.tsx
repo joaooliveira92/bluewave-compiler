@@ -5,7 +5,7 @@ import { HullTopsideLayer } from "./HullTopsideLayer.js";
 import { content, frame, hullForm as form } from "./test-fixtures.js";
 
 const sup = form.zones.find((z) => z.id === "SUPERSTRUCTURE")!;
-const funnel = content.components.find((c) => c.tags.includes("funnel"))!;
+const funnel = content.catalogue.find((c) => c.tags.includes("funnel"))!;
 const draft = {
   placements: [
     { instanceId: "f1", componentId: funnel.id, zoneId: "CENTRAL_MACHINERY", stationPermille: 560 },

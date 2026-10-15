@@ -54,6 +54,8 @@ const key = (e: PartCatalogueEntry) =>
     requires: e.requires,
     tags: e.tags,
     fcClass: e.fcClass,
+    parameters: Object.fromEntries(Object.entries(e.parameters).sort()),
+    allowedZones: e.allowedZones ?? null,
     entryUnits: e.entryUnits,
     rounds: e.rounds,
   });
@@ -88,5 +90,13 @@ describe("family-level catalogue view (17b-1)", () => {
     const again = buildPartCatalogueView(model).map((e) => e.id);
     expect(again).toEqual(first);
     expect([...first].sort()).toEqual(first);
+  });
+
+  it("the parts-less fallback carries allowedZones and parameters unchanged (17b-2)", () => {
+    const base = components[0]!;
+    const withZones = { ...base, allowedZones: ["TURRET"] as const };
+    const [entry] = legacyCatalogueView([withZones]);
+    expect(entry!.allowedZones).toEqual(["TURRET"]);
+    expect(entry!.parameters).toEqual(base.parameters);
   });
 });

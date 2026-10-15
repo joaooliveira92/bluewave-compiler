@@ -1,9 +1,9 @@
 import {
   applyEdit,
   compileDesign,
-  type ComponentDef,
   type DesignDraft,
   type DraftEdit,
+  type PartCatalogueEntry,
   type ShipContext,
 } from "@bluewave/ship-design";
 import { placeEdit, type PlanEdit } from "./placement-edits.js";
@@ -26,7 +26,7 @@ export const AUTO_PLACE_STATIONS: readonly number[] = Array.from(
  * Pure and deterministic: it compiles each candidate with the board's own rules. Refused when no station qualifies.
  */
 export function autoPlace(
-  def: ComponentDef,
+  entry: PartCatalogueEntry,
   draft: DesignDraft,
   zones: readonly ZoneSpan[],
   ctx: ShipContext,
@@ -37,7 +37,7 @@ export function autoPlace(
   let best: { edit: DraftEdit; trim: number; station: number } | null = null;
   for (const station of AUTO_PLACE_STATIONS) {
     const r = placeEdit(
-      def,
+      entry,
       { stationPermille: station, zoneId: zoneAtStation(zones, station), side: "CENTRE" },
       draft,
     );
@@ -51,7 +51,7 @@ export function autoPlace(
   if (best === null)
     return {
       ok: false,
-      reason: `No station takes ${def.displayName} without a new blocking problem.`,
+      reason: `No station takes ${entry.displayName} without a new blocking problem.`,
     };
   return { ok: true, edit: best.edit, stationPermille: best.station };
 }

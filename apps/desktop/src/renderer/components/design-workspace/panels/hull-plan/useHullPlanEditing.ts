@@ -1,6 +1,11 @@
 import { useRef, useState } from "react";
 import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from "react";
-import type { ComponentDef, DesignDraft, MountSide, PlacementSpec } from "@bluewave/ship-design";
+import type {
+  DesignDraft,
+  MountSide,
+  PartCatalogueEntry,
+  PlacementSpec,
+} from "@bluewave/ship-design";
 import type { DrawingBoardContent } from "../../content.js";
 import type { Edit } from "../types.js";
 import type { PlanFrame } from "./geometry.js";
@@ -28,7 +33,7 @@ export interface UseHullPlanEditingOptions {
   readonly month: string;
   readonly frame: PlanFrame;
   readonly zones: readonly ZoneSpan[];
-  readonly defOf: (componentId: string) => ComponentDef | undefined;
+  readonly entryOf: (componentId: string) => PartCatalogueEntry | undefined;
   readonly edit: Edit;
   /** The plan tool, switched from the board toolbar; the plan keeps its own only when shown on its own. */
   readonly givenTool?: PlanTool;
@@ -66,7 +71,7 @@ export function useHullPlanEditing({
   month,
   frame,
   zones,
-  defOf,
+  entryOf,
   edit,
   givenTool,
   onTool,
@@ -93,7 +98,7 @@ export function useHullPlanEditing({
   const moveTo = (p: PlacementSpec, svgX: number, svgY: number, under: PlanTool = tool) => {
     const target = planTarget(frame, zones, svgX, svgY);
     run(
-      moveEdit(p, defOf(p.componentId), target),
+      moveEdit(p, entryOf(p.componentId), target),
       `Moved ${p.instanceId} to ${whereOf(target)}.`,
       under,
     );
@@ -108,9 +113,10 @@ export function useHullPlanEditing({
   const onPlanClick = (svgX: number, svgY: number) => {
     if (tool.mode === "place") {
       const target = planTarget(frame, zones, svgX, svgY);
-      const def = defOf(tool.componentId);
-      if (!def) setNotice("Choose a component to place first.");
-      else run(placeEdit(def, target, draft), `Placed ${def.displayName} at ${whereOf(target)}.`);
+      const entry = entryOf(tool.componentId);
+      if (!entry) setNotice("Choose a component to place first.");
+      else
+        run(placeEdit(entry, target, draft), `Placed ${entry.displayName} at ${whereOf(target)}.`);
     } else if (tool.mode === "move") {
       // A click on a fitting picks it; a click elsewhere moves the picked one there.
       const hit = fittingAt(frame, draft, svgX, svgY);
@@ -187,17 +193,17 @@ export function useHullPlanEditing({
   const onNudge = (delta: number) => {
     if (selected)
       run(
-        nudgeEdit(selected, defOf(selected.componentId), zones, delta),
+        nudgeEdit(selected, entryOf(selected.componentId), zones, delta),
         `Moved ${selected.instanceId} ${Math.abs(delta)}‰ ${delta < 0 ? "toward the bow" : "toward the stern"}.`,
       );
   };
   const onAutoPlace = () => {
-    const def = defOf(tool.componentId);
-    if (!def) return setNotice("Choose a component to place first.");
-    const r = autoPlace(def, draft, zones, content.environmentFor(month).ctx);
+    const entry = entryOf(tool.componentId);
+    if (!entry) return setNotice("Choose a component to place first.");
+    const r = autoPlace(entry, draft, zones, content.environmentFor(month).ctx);
     run(
       r,
-      `Placed ${def.displayName} at ${r.ok ? r.stationPermille : "?"}‰, where the ship stays most level.`,
+      `Placed ${entry.displayName} at ${r.ok ? r.stationPermille : "?"}‰, where the ship stays most level.`,
     );
   };
   const onSide = (side: MountSide) => {

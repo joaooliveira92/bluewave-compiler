@@ -108,7 +108,7 @@ export function RevisionPanel({
       </Panel>
     );
   }
-  const categories = new Map(content.components.map((c) => [c.id, c.category]));
+  const categories = new Map(content.catalogue.map((e) => [e.id, e.category]));
   const categoryOf = (id: string) => categories.get(id);
   const exact = real !== null && real.projectId === project.projectId;
   const kinds: ChangeKind[] = exact

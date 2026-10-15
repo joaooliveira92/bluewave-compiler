@@ -154,7 +154,7 @@ export function DrawingBoard({
     month: state.month,
     frame: planModelData.frame,
     zones: planModelData.zones,
-    defOf: planModelData.defOf,
+    entryOf: planModelData.entryOf,
     edit: actions.edit,
     givenTool: planTool,
     onTool: setPlanTool,

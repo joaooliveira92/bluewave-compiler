@@ -91,9 +91,9 @@ export function addSystemEdit(
   draft: DesignDraft,
   content: DrawingBoardContent,
 ): DraftEdit | null {
-  const def = content.components.find((c) => c.id === componentId);
-  if (def === undefined) return null;
-  const zoneId = (def.allowedZones?.[0] ?? "SUPERSTRUCTURE") as ZoneId;
+  const entry = content.catalogue.find((e) => e.id === componentId);
+  if (entry === undefined) return null;
+  const zoneId = (entry.allowedZones?.[0] ?? "SUPERSTRUCTURE") as ZoneId;
   let n = 1;
   while (draft.placements.some((p) => p.instanceId === `${componentId}_${n}`)) n++;
   return {

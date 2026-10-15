@@ -165,7 +165,7 @@ export function ShipbuildingWorkspace({ sessionId }: { readonly sessionId?: stri
     month: state.month,
     frame: model.frame,
     zones: model.zones,
-    defOf: model.defOf,
+    entryOf: model.entryOf,
     edit: actions.edit,
     givenTool: planTool,
     onTool: setPlanTool,
@@ -213,7 +213,7 @@ export function ShipbuildingWorkspace({ sessionId }: { readonly sessionId?: stri
   const readouts = useMemo(() => engineeringStatus(view), [view]);
 
   const fittings = useMemo(() => {
-    const category = new Map(content.components.map((c) => [c.id, c.category]));
+    const category = new Map(content.catalogue.map((e) => [e.id, e.category]));
     return new Map(
       draft.placements.flatMap((p): [string, ComponentCategory][] => {
         const c = category.get(p.componentId);
@@ -271,7 +271,7 @@ export function ShipbuildingWorkspace({ sessionId }: { readonly sessionId?: stri
     const categories = categoriesOf(at);
     const hasFittings =
       [...fittings.values()].some((c) => categories.has(c)) ||
-      content.components.some((c) => categories.has(c.category));
+      content.catalogue.some((e) => categories.has(e.category));
     if (!hasFittings) return null;
     return (
       <PlacementsPanel

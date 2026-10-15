@@ -3,10 +3,10 @@ import {
   mountNames,
   UM_PER_INCH,
   type BatteryRow,
-  type ComponentDef,
   type DesignDraft,
   type DraftEdit,
   type MountSide,
+  type PartCatalogueEntry,
   type WorkshopView,
 } from "@bluewave/ship-design";
 
@@ -78,17 +78,17 @@ export function clearBatteryEdit(row: BatteryRow): DraftEdit | null {
 
 /**
  * Sets rounds per gun on every mount of the battery as one undoable edit, clamping each mount to its own allowed range
- * (`defOf` resolves an instance to its component). Mounts with no `rounds` parameter are left alone; null when nothing changes.
+ * (`entryOf` resolves an instance to its catalogue entry). Mounts with no `rounds` parameter are left alone; null when nothing changes.
  */
 export function setRoundsEdit(
   row: BatteryRow,
   rounds: number,
   draft: DesignDraft,
-  defOf: (componentId: string) => ComponentDef | undefined,
+  entryOf: (componentId: string) => PartCatalogueEntry | undefined,
 ): DraftEdit | null {
   const edits = row.instanceIds.flatMap((instanceId) => {
     const p = draft.placements.find((x) => x.instanceId === instanceId);
-    const range = p ? defOf(p.componentId)?.parameters?.rounds : undefined;
+    const range = p ? entryOf(p.componentId)?.parameters?.rounds : undefined;
     if (!p || !range) return [];
     const value = Math.min(range.max, Math.max(range.min, Math.round(rounds)));
     return (p.params?.rounds ?? range.min) === value

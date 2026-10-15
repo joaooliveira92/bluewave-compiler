@@ -3,7 +3,6 @@ import { MoreHorizontal } from "lucide-react";
 import {
   ZONE_IDS,
   type ComponentCategory,
-  type ComponentDef,
   type DesignDraft,
   type MountSide,
   type PartCatalogueEntry,
@@ -157,28 +156,27 @@ export function PlacementsPanel({
   /** The fitting the drawing has pinned, so its row shows its pressed state. */
   readonly selectedInstanceId?: string | null;
 }) {
-  const defs = new Map(content.components.map((c) => [c.id, c]));
   const catalogueById = new Map(content.catalogue.map((e) => [e.id, e]));
-  const shown = (def: ComponentDef | undefined) =>
-    categories === undefined || (def !== undefined && categories.has(def.category));
-  const placements = draft.placements.filter((p) => shown(defs.get(p.componentId)));
-  const catalogue = content.components.filter((c) => shown(c));
+  const shown = (entry: PartCatalogueEntry | undefined) =>
+    categories === undefined || (entry !== undefined && categories.has(entry.category));
+  const placements = draft.placements.filter((p) => shown(catalogueById.get(p.componentId)));
+  const catalogue = content.catalogue.filter((e) => shown(e));
   const [zoneId, setZoneId] = useState<ZoneId>("SUPERSTRUCTURE");
   const nextId = (componentId: string) => {
     let n = 1;
     while (draft.placements.some((p) => p.instanceId === `${componentId}_${n}`)) n++;
     return `${componentId}_${n}`;
   };
-  const zonesFor = (def: ComponentDef | undefined) =>
-    (def?.allowedZones as ZoneId[] | undefined) ?? [...ZONE_IDS];
-  const add = (def: ComponentDef) => {
-    const zones = zonesFor(def);
+  const zonesFor = (entry: PartCatalogueEntry | undefined) =>
+    (entry?.allowedZones as ZoneId[] | undefined) ?? [...ZONE_IDS];
+  const add = (entry: PartCatalogueEntry) => {
+    const zones = zonesFor(entry);
     const zone = zones.includes(zoneId) ? zoneId : zones[0]!;
     edit({
       kind: "add_placement",
       placement: {
-        instanceId: nextId(def.id),
-        componentId: def.id,
+        instanceId: nextId(entry.id),
+        componentId: entry.id,
         zoneId: zone,
         stationPermille: midStation(content, draft, zone),
       },
@@ -212,7 +210,7 @@ export function PlacementsPanel({
           </thead>
           <tbody>
             {placements.map((p) => {
-              const d = defs.get(p.componentId);
+              const d = catalogueById.get(p.componentId);
               const otherZones = zonesFor(d).filter((z) => z !== p.zoneId);
               return (
                 <ContextMenu key={p.instanceId}>

@@ -1,9 +1,4 @@
-import type {
-  ComponentDef,
-  DesignDraft,
-  PartCatalogueEntry,
-  WorkshopView,
-} from "@bluewave/ship-design";
+import type { DesignDraft, PartCatalogueEntry, WorkshopView } from "@bluewave/ship-design";
 import type { DrawingBoardContent } from "../../content.js";
 import { type BatteryCard, batteryCards, mountNameMap } from "../../batteryView.js";
 import type { ShipEntity } from "../../selection/store.js";
@@ -27,12 +22,7 @@ export interface PlanModel {
   readonly form: DrawingBoardContent["hullForms"][number] | undefined;
   readonly frame: PlanFrame;
   readonly zones: readonly ZoneRange[];
-  /**
-   * The legacy catalogue lookup the edit path still needs (`allowedZones`, out of scope for
-   * 17b-1). Read-only displays use `entryOf`.
-   */
-  readonly defOf: (componentId: string) => ComponentDef | undefined;
-  /** The parts-derived catalogue lookup for read-only displays. */
+  /** The parts-derived catalogue lookup for the edit and read-only paths. */
   readonly entryOf: (componentId: string) => PartCatalogueEntry | undefined;
   /** Family-level catalogue entries that can be fitted this month. */
   readonly available: readonly PartCatalogueEntry[];
@@ -72,7 +62,6 @@ export function planModel(
     },
   );
   const zones = form?.zones ?? [];
-  const defOf = (id: string) => content.components.find((c) => c.id === id);
   const entryOf = (id: string) => content.catalogue.find((e) => e.id === id);
   const available = content.catalogue.filter((e) => e.introduction.fromMonth <= month);
   const mounts = view.compiled.weapons?.mounts ?? [];
@@ -122,7 +111,6 @@ export function planModel(
     form,
     frame,
     zones,
-    defOf,
     entryOf,
     available,
     mounts,

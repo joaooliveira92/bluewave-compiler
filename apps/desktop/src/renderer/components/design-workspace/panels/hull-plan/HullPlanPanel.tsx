@@ -116,7 +116,7 @@ export function HullPlanPanel({
     month,
     frame: model.frame,
     zones: model.zones,
-    defOf: model.defOf,
+    entryOf: model.entryOf,
     edit,
     givenTool,
     onTool,
@@ -136,7 +136,7 @@ export function HullPlanPanel({
       <PlanToolOptions
         tool={tool}
         draft={draft}
-        defOf={model.defOf}
+        entryOf={model.entryOf}
         notice={notice}
         onNudge={onNudge}
         onSide={onSide}

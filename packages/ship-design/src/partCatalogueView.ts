@@ -14,13 +14,14 @@
  * never grows). `buildPartCatalogueView.test.ts` pins the selection for the shipped
  * 1880 artifact: 45 entries, equal to `legacyCatalogueView(data.components)`.
  *
- * **What is carried.** Only what the read-only consumers need: id, display name,
- * category, lifecycle, technology requires, tags, fire-control class, the count
- * range (legacy `parameters.barrels`/`tubes`/`blocks`) and the `rounds` range. Fields
- * the part model cannot reconstruct exactly (`allowedZones`, `forbidsCoLocation`,
- * `buildWorkMicro`, `productionLine`, formula forms) are deliberately absent; no
- * consumer here may read them. `availableUntil` is the legacy `obsoleteMonth`
- * unchanged (exclusive in both), so the introduction block is faithful.
+ * **What is carried.** Only what the read-only and edit consumers need: id, display name,
+ * category, lifecycle, technology requires, tags, fire-control class, the count range (legacy
+ * `parameters.barrels`/`tubes`/`blocks`) and the `rounds` range. 17b-2 adds the legacy
+ * `parameters` map (rebuilt from `entryUnits` + `rounds`) and an optional `allowedZones`, so the
+ * designer's edit paths (`defOf`, `allowedZones`-dependent placement, param edits) can read this
+ * view instead of the legacy `ComponentDef` catalogue. Fields the part model cannot reconstruct
+ * exactly (`forbidsCoLocation`, `buildWorkMicro`, `productionLine`, formula forms) stay absent;
+ * no consumer here may read them.
  *
  * Pure and runtime-free: `import type` only from `@bluewave/content-schema`, no
  * Effect runtime, no I/O, no ambient randomness. The result is id-sorted.
@@ -75,6 +76,20 @@ export interface PartCatalogueEntry {
   readonly tags: readonly string[];
   /** Fire-control class of a weapon, or null. */
   readonly fcClass: string | null;
+  /**
+   * The legacy parameter ranges the edit paths drive (`barrels`/`tubes`/`blocks` from
+   * `entryUnits`, plus `rounds`), keyed by their legacy names so a `set_param` edit built from
+   * this entry feeds the same `PlacementSpec.params` the compiler reads. A part whose parameter
+   * has no family-level destination is a build failure, not a silent omission.
+   */
+  readonly parameters: Readonly<Record<string, ParameterRange>>;
+  /**
+   * The zones the fitting may occupy (legacy `allowedZones`). The part schema has no destination
+   * for it (ADR-0154 §19), so the compiled-parts view leaves it absent — every zone accepts every
+   * fitting, exactly the legacy behaviour for the shipped pack. The parts-less fallback carries
+   * the legacy field unchanged.
+   */
+  readonly allowedZones?: readonly string[];
   /** The count range (legacy `barrels`/`tubes`/`blocks`), or null for a one-unit fitting. */
   readonly entryUnits: ParameterRange | null;
   /** The `rounds` range of a gun, or null. */
@@ -132,6 +147,12 @@ function entryOfPart(part: FlattenedPart): PartCatalogueEntry {
       `part '${part.id}' is family-level but has no derivable component category in the part model`,
     );
   }
+  const entryUnits = part.entryUnits ?? null;
+  const rounds = part.parameters?.["rounds"] ?? null;
+  const countParameter = COUNT_PARAMETER_BY_CATEGORY[category];
+  const parameters: Record<string, ParameterRange> = {};
+  if (countParameter !== undefined && entryUnits !== null) parameters[countParameter] = entryUnits;
+  if (rounds !== null) parameters["rounds"] = rounds;
   return {
     id: entryIdOf(part),
     displayName: part.metadata?.displayName ?? part.name,
@@ -143,8 +164,9 @@ function entryOfPart(part: FlattenedPart): PartCatalogueEntry {
     requires: part.lifecycle.requires ?? [],
     tags: part.metadata?.tags ?? [],
     fcClass: fcClassOf(part),
-    entryUnits: part.entryUnits ?? null,
-    rounds: part.parameters?.["rounds"] ?? null,
+    parameters,
+    entryUnits,
+    rounds,
   };
 }
 
@@ -174,6 +196,8 @@ export function legacyCatalogueView(
         requires: def.requires,
         tags: def.tags,
         fcClass: def.fcClass ?? null,
+        parameters: def.parameters,
+        ...(def.allowedZones === undefined ? {} : { allowedZones: def.allowedZones }),
         entryUnits: countParameter === undefined ? null : (def.parameters[countParameter] ?? null),
         rounds: def.parameters["rounds"] ?? null,
       };
