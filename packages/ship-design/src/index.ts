@@ -85,3 +85,4 @@ export * from "./partCatalogue.js";
 export * from "./partCatalogueFormulas.js";
 export * from "./partCatalogueReaders.js";
 export * from "./partCatalogueView.js";
+export * from "./partCategory.js";

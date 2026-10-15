@@ -99,6 +99,22 @@ export const QUANTITY_KIND_UNITS = {
   powerKw: "kW",
 } as const satisfies Record<(typeof QUANTITY_KINDS)[number], string>;
 
+/**
+ * The production lines a part may name as its own override (ship-part-model 17a-2,
+ * ADR-0163 §2). Mirrors the ship-design `LineId | "fit_out"` set the construction
+ * stage accepts; a closed vocabulary so content cannot invent a line. `productionLine`
+ * is an authored override of the balance's per-category default, never a formula.
+ */
+export const PRODUCTION_LINES = [
+  "slipway",
+  "armour_plate",
+  "heavy_gun",
+  "machinery",
+  "quay",
+  "trials",
+  "fit_out",
+] as const;
+
 /** The closed set of migration-only data-quality waivers (§9.4, D14/D19). */
 export const LEGACY_EXCEPTION_CODES = ["DQ-TORPEDO-001"] as const;
 
@@ -180,6 +196,10 @@ export type ApplicationBasis = (typeof APPLICATION_BASES)[number];
 export type QuantityKind = (typeof QUANTITY_KINDS)[number];
 export type LegacyExceptionCode = (typeof LEGACY_EXCEPTION_CODES)[number];
 export type EngineBehaviourClass = (typeof ENGINE_BEHAVIOUR_CLASSES)[number];
+/** The closed production lines a part's `productionLine` override may name. */
+export type ProductionLine = (typeof PRODUCTION_LINES)[number];
+/** A longitudinal zone id (`SHIP_ZONE_IDS`), the home of a part's `allowedZones`. */
+export type ShipZoneId = (typeof SHIP_ZONE_IDS)[number];
 
 const int = Schema.Finite.check(Schema.isInt());
 const nonNegativeInt = Schema.Finite.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(0));
@@ -359,12 +379,21 @@ export const CoolingEngineeringSchema = Schema.Struct({
 /** Monthly upkeep as basis points of the part's cost. */
 export const MaintenanceEngineeringSchema = Schema.Struct({ monthlyBpOfCost: bp });
 
+/**
+ * A part's contribution to the ship's fire risk, as basis points (ship-part-model
+ * 17a-2, ADR-0163 §2). The armour stage sums it across the resolved parts, exactly as
+ * the legacy `attributes.flammableBp` was summed; the field name carries the meaning
+ * (a material property, not a capability) and the datum is the same 0..10000 scale.
+ */
+export const FlammabilityEngineeringSchema = Schema.Struct({ indexBp: bp });
+
 /** Typed engineering data of one part. Every sub-block is optional and means one thing. */
 export const EngineeringSchema = Schema.Struct({
   physical: Schema.optional(PhysicalEngineeringSchema),
   power: Schema.optional(PowerEngineeringSchema),
   cooling: Schema.optional(CoolingEngineeringSchema),
   maintenance: Schema.optional(MaintenanceEngineeringSchema),
+  flammability: Schema.optional(FlammabilityEngineeringSchema),
 });
 
 // ---------------------------------------------------------------------------
@@ -878,6 +907,40 @@ function envelopeFields<const F extends PartFamily>(family: F) {
     visual: Schema.optional(PartVisualSchema),
     /** Units one loadout entry of this part may install (a gun's barrels, a launcher's tubes). */
     entryUnits: Schema.optional(UnitRangeSchema),
+    /**
+     * The zones this part may be placed in (ship-part-model 17a-2, ADR-0163 §2). Closed
+     * zone ids, non-empty and unique, codepoint-sorted for a canonical record. Absent means
+     * every zone is allowed (the legacy `allowedZones` default).
+     */
+    allowedZones: Schema.optional(
+      nonEmptyArray(Schema.Literals(SHIP_ZONE_IDS)).check(
+        Schema.makeFilter((zones) =>
+          new Set(zones).size === zones.length ? undefined : "allowedZones must be unique",
+        ),
+      ),
+    ),
+    /**
+     * Interfaces this part may not share a zone with (ship-part-model 17a-2, ADR-0163 §2).
+     * The canonical discriminant is a part **interface**, never the legacy category token;
+     * the arrangement stage compares a co-located part's `provides` against this list.
+     * Non-empty and unique.
+     */
+    forbidsCoLocation: Schema.optional(
+      nonEmptyArray(InterfaceSchema).check(
+        Schema.makeFilter((ifaces) =>
+          new Set(ifaces).size === ifaces.length
+            ? undefined
+            : "forbidsCoLocation entries must differ",
+        ),
+      ),
+    ),
+    /**
+     * Authored build effort in work micro-units (ship-part-model 17a-2, ADR-0163 §2). An
+     * evaluated value, never a formula; absent uses the balance default (a share of cost).
+     */
+    buildWorkMicro: Schema.optional(nonNegativeInt),
+    /** Authored production line override; absent uses the balance's per-category default. */
+    productionLine: Schema.optional(Schema.Literals(PRODUCTION_LINES)),
     engineering: Schema.optional(EngineeringSchema),
     capabilities: Schema.optional(CapabilitiesSchema),
     metadata: Schema.optional(PartMetadataSchema),

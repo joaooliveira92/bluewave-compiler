@@ -24,6 +24,7 @@ import {
   readPlacements,
   rebuildDraft,
   type BuiltPartCatalogue,
+  type ComponentDef,
   type SourceCatalogue,
 } from "../src/index.js";
 import { PART_SOURCE_FIELDS } from "../src/partCatalogue.js";
@@ -159,10 +160,55 @@ describe("whole-catalogue part builder (11b)", () => {
   });
 });
 
+describe("derive-input homes map through the whole-catalogue builder (17a-2)", () => {
+  const withComponent = (overrides: Partial<ComponentDef>): BuiltPartCatalogue =>
+    buildPartCatalogue({
+      ...source,
+      components: components.map((c) => (c.id === "quarters_crew" ? { ...c, ...overrides } : c)),
+    });
+  const partOf = (r: BuiltPartCatalogue): FlattenedPart | undefined =>
+    r.parts.find((p) => p.id === "quarters_crew");
+
+  it("maps allowedZones, buildWorkMicro, productionLine and flammableBp to typed homes", () => {
+    const r = withComponent({
+      allowedZones: ["AFT_SERVICE", "FORECASTLE"],
+      buildWorkMicro: "1200",
+      productionLine: "machinery",
+      attributes: {
+        ...(components.find((c) => c.id === "quarters_crew")?.attributes ?? {}),
+        flammableBp: "250",
+      },
+    });
+    const part = partOf(r);
+    expect(r.failures).toEqual([]);
+    expect(part?.allowedZones).toEqual(["AFT_SERVICE", "FORECASTLE"]);
+    expect(part?.buildWorkMicro).toBe(1200);
+    expect(part?.productionLine).toBe("machinery");
+    expect(part?.engineering?.flammability).toEqual({ indexBp: 250 });
+  });
+
+  it("rejects an unknown zone, an unknown production line and non-constant build work", () => {
+    expect(withComponent({ allowedZones: ["BRIDGE"] }).failures.map((f) => f.code)).toContain(
+      "PARTCAT_INVALID_VALUE",
+    );
+    expect(withComponent({ productionLine: "walkway" }).failures.map((f) => f.code)).toContain(
+      "PARTCAT_INVALID_VALUE",
+    );
+    expect(withComponent({ buildWorkMicro: "crew * 2" }).failures.map((f) => f.code)).toContain(
+      "PARTCAT_FORMULA_PARAMETER_DEPENDENT",
+    );
+  });
+
+  it("still rejects a legacy forbidsCoLocation category list (no faithful interface map)", () => {
+    expect(withComponent({ forbidsCoLocation: ["ENGINE"] }).failures.map((f) => f.code)).toContain(
+      "PARTCAT_UNMAPPED_FIELD",
+    );
+  });
+});
+
 // ---------------------------------------------------------------------------
 // Inverse readers: source → parts → inverse preserves every represented value
 // ---------------------------------------------------------------------------
-
 const partLookup = (parts: readonly FlattenedPart[]) => {
   const map = new Map(parts.map((p) => [p.id, p]));
   return (id: string) => map.get(id);

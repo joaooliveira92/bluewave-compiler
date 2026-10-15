@@ -603,6 +603,43 @@ describe("a variant writes its spec as a delta over its prototype", () => {
   });
 });
 
+describe("derive-input homes decode and reject invalid values (17a-2)", () => {
+  const gun = () => structuredClone(PARTS.gun);
+
+  it("accepts each typed derive-input home", () => {
+    const part = {
+      ...gun(),
+      allowedZones: ["FORECASTLE", "SUPERSTRUCTURE"],
+      forbidsCoLocation: ["magazine", "electrical_plant"],
+      buildWorkMicro: 123_456,
+      productionLine: "heavy_gun",
+      engineering: { flammability: { indexBp: 250 } },
+    };
+    expectAccepted(PartSchema, part);
+  });
+
+  it("rejects duplicate allowedZones and forbidsCoLocation entries", () => {
+    expectRejected(PartSchema, { ...gun(), allowedZones: ["FORECASTLE", "FORECASTLE"] });
+    expectRejected(PartSchema, { ...gun(), forbidsCoLocation: ["magazine", "magazine"] });
+  });
+
+  it("rejects an unknown zone, interface or production line", () => {
+    expectRejected(PartSchema, { ...gun(), allowedZones: ["BRIDGE"] });
+    expectRejected(PartSchema, { ...gun(), forbidsCoLocation: ["ENGINE"] });
+    expectRejected(PartSchema, { ...gun(), productionLine: "walkway" });
+  });
+
+  it("rejects a negative or fractional buildWorkMicro", () => {
+    expectRejected(PartSchema, { ...gun(), buildWorkMicro: -1 });
+    expectRejected(PartSchema, { ...gun(), buildWorkMicro: 1.5 });
+  });
+
+  it("rejects an out-of-range flammability index", () => {
+    expectRejected(PartSchema, { ...gun(), engineering: { flammability: { indexBp: 10_001 } } });
+    expectRejected(PartSchema, { ...gun(), engineering: { flammability: { indexBp: -1 } } });
+  });
+});
+
 describe("resolvePartRevision applies dated deltas cumulatively", () => {
   const baseSpec = PARTS.torpedo.spec;
   const flattened = {

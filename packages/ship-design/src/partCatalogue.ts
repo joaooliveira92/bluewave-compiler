@@ -22,7 +22,9 @@ import type {
   QuantityComponentData,
 } from "@bluewave/content-schema";
 import { compareCodePoints } from "@bluewave/deterministic";
+import { ZONE_IDS } from "./arrangement.js";
 import type { ArmourBalance } from "./armour.js";
+import { LINE_IDS } from "./construction.js";
 import type { PropulsionPlant } from "./machinery.js";
 import { armamentMountFor, type AuthoredArmamentContent } from "./armamentContent.js";
 import { buildAmmunitionPartModel } from "./ammunitionPartAdapter.js";
@@ -149,8 +151,12 @@ export const PART_SOURCE_FIELDS: readonly SourceFieldDestination[] = [
     field: "attributes",
     destination: "spec | capabilities | engineering (per name)",
   },
-  { record: "component", field: "allowedZones", destination: "(none)" },
-  { record: "component", field: "forbidsCoLocation", destination: "(none)" },
+  { record: "component", field: "allowedZones", destination: "allowedZones" },
+  {
+    record: "component",
+    field: "forbidsCoLocation",
+    destination: "(none)",
+  },
   { record: "component", field: "critical", destination: "spec.critical" },
   { record: "component", field: "fcClass", destination: "capabilities[fire_control_class]" },
   { record: "component", field: "fcClasses", destination: "capabilities[fire_control_support]" },
@@ -164,8 +170,8 @@ export const PART_SOURCE_FIELDS: readonly SourceFieldDestination[] = [
     field: "maintenanceMonthlyBp",
     destination: "engineering.maintenance.monthlyBpOfCost",
   },
-  { record: "component", field: "buildWorkMicro", destination: "(none)" },
-  { record: "component", field: "productionLine", destination: "(none)" },
+  { record: "component", field: "buildWorkMicro", destination: "buildWorkMicro" },
+  { record: "component", field: "productionLine", destination: "productionLine" },
   { record: "component", field: "provenance", destination: "provenance" },
   // attributes by name
   { record: "attribute", field: "caliberUm", destination: "spec.calibreUm" },
@@ -196,6 +202,11 @@ export const PART_SOURCE_FIELDS: readonly SourceFieldDestination[] = [
     destination: "capabilities[arc_obstruction].reachPermille",
   },
   { record: "attribute", field: "damageControlBp", destination: "capabilities[damage_control]" },
+  {
+    record: "attribute",
+    field: "flammableBp",
+    destination: "engineering.flammability.indexBp",
+  },
   // armament records
   { record: "gunFamily", field: "id", destination: "spec.gunFamily" },
   { record: "gunFamily", field: "designation", destination: "part.name (standard model)" },
@@ -315,6 +326,7 @@ const SPEC_ATTRIBUTES = new Set([
   "capacity",
 ]);
 const AFFINE_ATTRIBUTES = new Set(["genKw", "coolingSupplyKw"]);
+const ENGINEERING_ATTRIBUTES = new Set(["flammableBp"]);
 const CAPABILITY_ATTRIBUTES = new Set([
   "maxFeedPermille",
   "arcBlockedDeg",
@@ -329,6 +341,12 @@ interface ComponentBlocks {
   readonly parameters?: Readonly<Record<string, { min: number; max: number; step: number }>>;
   readonly engineering?: EngineeringData;
   readonly capabilities?: readonly CapabilityData[];
+  /** Authored zone restriction (17a-2); absent means every zone is allowed. */
+  readonly allowedZones?: readonly string[];
+  /** Authored build work in micro-units (17a-2); absent uses the balance default. */
+  readonly buildWorkMicro?: number;
+  /** Authored production line (17a-2); absent uses the balance's per-category default. */
+  readonly productionLine?: string;
   readonly tags: readonly string[];
 }
 
@@ -431,7 +449,12 @@ function componentBlocks(
   const referenced = new Set<string>();
   for (const name of Object.keys(def.attributes ?? {})) {
     if (
-      !(SPEC_ATTRIBUTES.has(name) || AFFINE_ATTRIBUTES.has(name) || CAPABILITY_ATTRIBUTES.has(name))
+      !(
+        SPEC_ATTRIBUTES.has(name) ||
+        AFFINE_ATTRIBUTES.has(name) ||
+        ENGINEERING_ATTRIBUTES.has(name) ||
+        CAPABILITY_ATTRIBUTES.has(name)
+      )
     ) {
       fail(
         "PARTCAT_UNKNOWN_ATTRIBUTE",
@@ -440,15 +463,66 @@ function componentBlocks(
       );
     }
   }
-  for (const field of [
-    "allowedZones",
-    "forbidsCoLocation",
-    "buildWorkMicro",
-    "productionLine",
-  ] as const) {
-    if (def[field] !== undefined) {
-      fail("PARTCAT_UNMAPPED_FIELD", field, `'${field}' has no destination in the part schema.`);
+  // Zone restriction and build facts (17a-2): each legacy field now has a canonical home.
+  let allowedZones: ComponentBlocks["allowedZones"];
+  if (def.allowedZones !== undefined) {
+    const zones = def.allowedZones.filter((z): z is (typeof ZONE_IDS)[number] =>
+      (ZONE_IDS as readonly string[]).includes(z),
+    );
+    if (zones.length !== def.allowedZones.length || new Set(zones).size !== zones.length) {
+      fail(
+        "PARTCAT_INVALID_VALUE",
+        "allowedZones",
+        "allowedZones must be unique zone ids from the closed set.",
+      );
+    } else if (zones.length === 0) {
+      fail("PARTCAT_INVALID_VALUE", "allowedZones", "an empty zone list has no destination.");
+    } else {
+      allowedZones = zones;
     }
+  }
+  let buildWorkMicro: ComponentBlocks["buildWorkMicro"];
+  if (def.buildWorkMicro !== undefined) {
+    try {
+      const value = num(def.buildWorkMicro, { ...def.constants });
+      if (!nonNegInt(value)) {
+        fail(
+          "PARTCAT_INVALID_VALUE",
+          "buildWorkMicro",
+          `'${def.buildWorkMicro}' evaluates to ${value}, not a whole work amount.`,
+        );
+      } else {
+        buildWorkMicro = value;
+      }
+    } catch {
+      fail(
+        "PARTCAT_FORMULA_PARAMETER_DEPENDENT",
+        "buildWorkMicro",
+        `'${def.buildWorkMicro}' reads a parameter; authored build work is fixed.`,
+      );
+    }
+  }
+  let productionLine: ComponentBlocks["productionLine"];
+  if (def.productionLine !== undefined) {
+    if (
+      def.productionLine === "fit_out" ||
+      (LINE_IDS as readonly string[]).includes(def.productionLine)
+    ) {
+      productionLine = def.productionLine;
+    } else {
+      fail(
+        "PARTCAT_INVALID_VALUE",
+        "productionLine",
+        `'${def.productionLine}' is not a production line.`,
+      );
+    }
+  }
+  if (def.forbidsCoLocation !== undefined) {
+    fail(
+      "PARTCAT_UNMAPPED_FIELD",
+      "forbidsCoLocation",
+      "a legacy category list has no faithful interface-equivalent destination; not authored.",
+    );
   }
 
   // Tags.
@@ -547,6 +621,18 @@ function componentBlocks(
       };
     }
   }
+  const flammability = constantAttribute(def, "flammableBp", fail);
+  if (flammability !== undefined) {
+    if (nonNegInt(flammability) && flammability <= 10_000) {
+      engineering = { ...engineering, flammability: { indexBp: flammability } };
+    } else {
+      fail(
+        "PARTCAT_INVALID_VALUE",
+        "attributes.flammableBp",
+        `${flammability} is not 0..10000 bp.`,
+      );
+    }
+  }
 
   // Capabilities.
   const capabilities: CapabilityData[] = [];
@@ -631,6 +717,9 @@ function componentBlocks(
       ...(Object.keys(parameters).length > 0 ? { parameters } : {}),
       ...(Object.keys(engineering).length > 0 ? { engineering } : {}),
       ...(capabilities.length > 0 ? { capabilities } : {}),
+      ...(allowedZones !== undefined ? { allowedZones } : {}),
+      ...(buildWorkMicro !== undefined ? { buildWorkMicro } : {}),
+      ...(productionLine !== undefined ? { productionLine } : {}),
       tags,
     },
   };
@@ -648,6 +737,9 @@ function withBlocks<T extends FlattenedPart>(
     ...(blocks.parameters !== undefined ? { parameters: blocks.parameters } : {}),
     ...(blocks.engineering !== undefined ? { engineering: blocks.engineering } : {}),
     ...(blocks.capabilities !== undefined ? { capabilities: [...blocks.capabilities] } : {}),
+    ...(blocks.allowedZones !== undefined ? { allowedZones: [...blocks.allowedZones] } : {}),
+    ...(blocks.buildWorkMicro !== undefined ? { buildWorkMicro: blocks.buildWorkMicro } : {}),
+    ...(blocks.productionLine !== undefined ? { productionLine: blocks.productionLine } : {}),
     metadata: {
       ...(displayName !== undefined ? { displayName } : {}),
       ...(blocks.tags.length > 0 ? { tags: blocks.tags as never } : {}),
