@@ -6,10 +6,11 @@ generate repository artefacts.
 ## How they run
 
 - **Git hooks** (`.githooks/`, from `prepare` → `core.hooksPath`): `pre-commit`
-  formats staged files then `preflight`, `pre-push` adds `pnpm lint:effect`
-  (ADR-0139), `commit-msg` checks the subject; reinstall with `pnpm hooks:install`.
+  blocks `dev`/`main` commits (`check-branch-discipline.mjs`, ADR-0165), formats
+  staged, `preflight`; `pre-push` adds `pnpm lint:effect` (ADR-0139);
+  `commit-msg` subject; reinstall: `pnpm hooks:install`.
 - **`pnpm preflight`** runs `vp run gates:preflight`, the `vite.config.ts` gate
-  DAG (ADR-0161); also `pnpm dev` and CI.
+  DAG (ADR-0164); also `pnpm dev` and CI.
 - **`pnpm check`** adds format, lint, `lint:effect`, `test:scripts`, licences,
   typecheck, build, tests, balance reports, and desktop E2E.
 
@@ -17,7 +18,7 @@ generate repository artefacts.
 
 | Script | Invoke | Purpose |
 | --- | --- | --- |
-| `run.tasks` | `pnpm preflight` | Gate DAG: `dependsOn` edges, `cache: false`, `VP_RUN_CONCURRENCY_LIMIT` (ADR-0161). |
+| `run.tasks` | `pnpm preflight` | Gate DAG: `dependsOn` edges, `cache: false`, `VP_RUN_CONCURRENCY_LIMIT` (ADR-0164). |
 | `preflight.cjs` | (gate) | Fail fast on an in-progress merge/rebase or conflict markers. |
 | `link-claude-skills.mjs` | (gate, `prepare`) | Recreate the `.claude/skills` → `.agents/skills` symlinks for Claude Code. |
 | `assert-single-effect.mjs` | (gate) | `effect` single-copy invariant: `--self-test` (9 fixtures) then the lockfile. |

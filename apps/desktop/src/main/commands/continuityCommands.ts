@@ -1,4 +1,3 @@
-import { randomUUID } from "node:crypto";
 import { advanceMonth, getScenarioById, type CampaignState } from "@bluewave/campaign";
 import { CommandLedger } from "@bluewave/commands";
 import { DiagnosticCollector, type DiagnosticCode } from "@bluewave/diagnostics";
@@ -11,7 +10,7 @@ import { CommandQueueStore } from "../runtime/commandQueueStore.js";
 import { CommandFailed } from "../runtime/commandError.js";
 import { payloadless } from "../runtime/commandProgram.js";
 import { ContentArtifact } from "../runtime/contentArtifact.js";
-import { NativeDialog } from "../runtime/platform.js";
+import { IdGenerator, NativeDialog } from "../runtime/platform.js";
 import { ProjectStore } from "../runtime/projectStore.js";
 import { ReplayService } from "../runtime/replayService.js";
 
@@ -23,7 +22,7 @@ import { ReplayService } from "../runtime/replayService.js";
  * (INC-5; ADR-0159).
  *
  * "Package" here = `SaveStore`'s save directory (not the retired `.bluewave`
- * content-authoring format in `main/project.ts`). All four commands take an
+ * content-authoring format). All four commands take an
  * `undefined` payload on the IPC boundary — grounded in
  * `useCampaignFiles.ts`, which calls them payload-less — so the program
  * prompts for the package directory itself through `NativeDialog` (ticket 08:
@@ -72,6 +71,7 @@ export const loadCampaignProgram = payloadless(() =>
     const projects = yield* ProjectStore;
     const sessions = yield* CampaignSessionStore;
     const queue = yield* CommandQueueStore;
+    const ids = yield* IdGenerator;
 
     const saveDir = yield* dialogs.choosePackageDirectory();
     if (saveDir === null) return cancelled();
@@ -119,7 +119,7 @@ export const loadCampaignProgram = payloadless(() =>
     const activeRevision = Number(state.snapshot.turnNumber);
     const month = advanceMonth(scenario.startYear, scenario.startMonth, activeRevision);
 
-    const sessionId = randomUUID();
+    const sessionId = yield* ids.next();
     yield* sessions.register({
       sessionId,
       saveDir,

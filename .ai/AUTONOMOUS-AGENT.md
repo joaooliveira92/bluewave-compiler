@@ -35,7 +35,8 @@ at the repository level:
 7. Perform a secondary consistency check of artifacts, hashes, Git state, and reports.
 8. Create small Conventional Commits on a feature branch.
 9. Push and open a pull request only if credentials and tooling are available.
-10. Never merge your own work.
+10. Never self-merge a release PR into `main`; a checks-green feature PR into
+    `dev` is the delivery path (ADR-0165).
 
 ## Autonomous authority
 
@@ -62,7 +63,8 @@ Do not stop for routine local design choices. Record materially constraining cho
 
 ## Git policy
 
-- Create or use a dedicated feature branch.
+- Create or use a dedicated feature branch in a dedicated worktree; never commit
+  on `dev`/`main` (ADR-0165).
 - Do not commit to a protected branch.
 - Do not force-push or rewrite history.
 - Never commit secrets, `.env` files, stores, caches, generated temporary files, or machine-specific settings.

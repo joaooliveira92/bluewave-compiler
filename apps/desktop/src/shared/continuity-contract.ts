@@ -1,6 +1,6 @@
 /**
  * "Package" = `@bluewave/persistence`'s `SaveStore` save directory — not
- * the older `.bluewave` content-authoring format in `main/project.ts`.
+ * the older, retired `.bluewave` content-authoring format.
  * Grounded in `desktop-mvp` map ticket 08 and, for exact field names,
  * `OperationStatus.tsx` (the real consumer).
  */

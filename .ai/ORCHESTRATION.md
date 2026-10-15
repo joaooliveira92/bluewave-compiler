@@ -88,7 +88,9 @@ the sprint's validation report (`.ai/reports/<slug>.md`):
   `$ARGUMENTS`; auto-advance per plan dependency order.
 - For huge/foggy efforts, chart via **wayfinder** (`map.md` + decision tickets on
   `.scratch/`); otherwise go spec → slice → implement directly.
-- Own all Git: small Conventional Commits on `dev`, no self-merge, clean tree.
+- Own all Git: small Conventional Commits on a short-lived branch (never
+  directly on `dev`), delivered by a checks-green pull request; no self-merge of
+  a release PR into `main`; leave the tree clean (ADR-0165).
 - Update traceability (SPRINT-PLAN row done + pointer, PROGRESS.md, reports).
 - Resolve routine decisions as ADRs; stop only on a genuine decision-request /
   stop condition.

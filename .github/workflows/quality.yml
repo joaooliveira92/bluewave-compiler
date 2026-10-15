@@ -88,6 +88,11 @@ jobs:
       # regressions (release-readiness ticket 01).
       - name: Performance tripwire (month advance)
         run: pnpm --filter @bluewave/desktop exec cross-env BLUEWAVE_PERF=1 vp test run src/main/perf/monthAdvance.perf.test.ts
+      # Fast tier: the per-package unit/package suites, run with a bounded
+      # concurrency (`--concurrency-limit 4`, pinned in the root `test:run`
+      # script) so a loaded box cannot starve them; the heavy simulation suites
+      # are a separate, separately-bounded step below (production-hardening
+      # ticket 02).
       - run: pnpm test:run
       # Ship-part equivalence report byte-identical across two fresh processes (SPM-R24).
       - run: pnpm check:equivalence

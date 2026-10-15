@@ -10,13 +10,19 @@ import type { BridgeResult } from "../../shared/bridge-contract.js";
 import type { CompileCampaignResult } from "../../shared/campaign-command-contract.js";
 import { projectCommandExit } from "../runtime/bridgeResult.js";
 import { desktopMainLayer } from "../runtime/desktopMainLayer.js";
-import { NativeDialog } from "../runtime/platform.js";
+import { IdGenerator, NativeDialog } from "../runtime/platform.js";
 import { compileCampaignProgram } from "./compileCampaign.js";
 
 // The programs resolve `NativeDialog` from the Layer; the fake answers from
 // these test-scoped variables, so the real electron dialog is never touched.
 let chooseSaveDirectoryAnswer: string | null = null;
 let chooseSaveDirectoryCalls = 0;
+
+// The session id is injected (production-hardening ticket 04): a deterministic,
+// per-call counter proves the program takes it from the `IdGenerator` service
+// rather than an ambient `randomUUID()`.
+let idCounter = 0;
+const nextTestId = () => `test-session-${String(idCounter++)}`;
 
 const runtime = ManagedRuntime.make(
   Layer.mergeAll(
@@ -29,6 +35,7 @@ const runtime = ManagedRuntime.make(
       choosePackageDirectory: () => Effect.succeed(null),
       chooseCopyDirectory: () => Effect.succeed(null),
     }),
+    Layer.succeed(IdGenerator, { next: () => Effect.sync(nextTestId) }),
   ),
 );
 
@@ -66,6 +73,7 @@ describe("compileCampaign", () => {
     saveRoot = mkdtempSync(resolve(tmpdir(), "bw-desktop-compile-"));
     chooseSaveDirectoryAnswer = resolve(saveRoot, "save");
     chooseSaveDirectoryCalls = 0;
+    idCounter = 0;
   });
 
   afterEach(() => {
@@ -78,6 +86,13 @@ describe("compileCampaign", () => {
     if (result.outcome !== "success") return;
     expect(typeof result.value.sessionId).toBe("string");
     expect(result.value.sessionId.length).toBeGreaterThan(0);
+  });
+
+  it("takes the session id from the injected IdGenerator (deterministic in tests)", async () => {
+    const result = await compileCampaign(baseConfiguration());
+    expect(result.outcome).toBe("success");
+    if (result.outcome !== "success") return;
+    expect(result.value.sessionId).toBe("test-session-0");
   });
 
   it("round-trips nations/designs/designFamilies through SaveStore.load intact (Map-serialization fix)", async () => {

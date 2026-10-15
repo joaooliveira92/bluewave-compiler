@@ -104,7 +104,7 @@ describe("content codemod planner (ticket 11c)", () => {
     expect(base).toBeDefined();
     const failures = failuresOf({
       ...legacySource,
-      components: [...components, { ...base!, allowedZones: ["CENTRAL_MACHINERY"] }],
+      components: [...components, { ...base!, forbidsCoLocation: ["MAGAZINE"] }],
     });
     expect(failures.map((f) => f.code)).toContain("CODEMOD_CATALOGUE_FAILURE");
     expect(failures.some((f) => f.message.includes("PARTCAT_UNMAPPED_FIELD"))).toBe(true);
