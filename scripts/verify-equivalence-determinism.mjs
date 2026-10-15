@@ -19,6 +19,7 @@ function runOnce(file, pattern) {
     cwd: pkg,
     encoding: "utf8",
     timeout: 300000,
+    shell: process.platform === "win32",
   });
   const m = pattern.exec(out);
   if (m === null) throw new Error(`${file}: hash not found in test output`);
