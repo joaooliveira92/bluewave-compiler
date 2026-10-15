@@ -1,17 +1,13 @@
-import { existsSync, readdirSync, realpathSync, statSync } from "node:fs";
-import { basename, dirname, join, resolve, sep } from "node:path";
-import { SaveStore } from "@bluewave/persistence";
 import { Effect } from "effect";
 import type { BridgeResult } from "../../shared/bridge-contract.js";
 import type {
   CopyCampaignResult,
   SaveCampaignResult,
 } from "../../shared/campaign-command-contract.js";
-import { readSessionMetadata, writeSessionMetadata } from "../campaignSessionMetadata.js";
-import { getCampaignSession } from "../campaignSessions.js";
 import { CampaignSessionStore } from "../runtime/campaignSessionStore.js";
 import { CommandQueueStore } from "../runtime/commandQueueStore.js";
 import type { CommandError } from "../runtime/commandError.js";
+import { NativeDialog } from "../runtime/platform.js";
 import { ProjectStore } from "../runtime/projectStore.js";
 
 /**
@@ -70,135 +66,54 @@ export const closeCampaignProgram = (
     return { outcome: "success", value: { closed: true }, diagnostics: [] };
   });
 
-export interface SessionCommandDeps {
-  /** Ask the player where to put a copy; null when they cancel. */
-  readonly chooseCopyDirectory: (suggestedName: string) => Promise<string | null>;
-}
-
-export const defaultSessionCommandDeps: SessionCommandDeps = {
-  chooseCopyDirectory: async (suggestedName: string) => {
-    const { dialog } = await import("electron");
-    const result = await dialog.showSaveDialog({
-      title: "Save a copy of this campaign",
-      defaultPath: suggestedName,
-      buttonLabel: "Save Copy",
-    });
-    if (result.canceled || !result.filePath) return null;
-    return result.filePath;
-  },
-};
-
-const sessionNotFound = (sessionId: string) =>
-  ({
-    outcome: "error",
-    reason: "SESSION_NOT_FOUND",
-    diagnostics: [`No active campaign session ${sessionId}`],
-  }) as const;
-
 /**
- * `path` resolved the way the filesystem will see it: symlinks followed on the part that
- * exists, so two spellings of one folder compare equal and a symlink cannot hide a nested path.
+ * `copyCampaign(sessionId)` as an Effect program (INC-3b; ADR-0159): resolves
+ * the session, its sidecar metadata and the copy dialog through the service
+ * graph (`CampaignSessionStore`, `ProjectStore`, `NativeDialog`) and persists
+ * the copy through `ProjectStore`. The target-safety check
+ * (`ProjectStore.assessCopyTarget`) and every reason code are unchanged.
  */
-function canonicalPath(path: string): string {
-  let existing = resolve(path);
-  const rest: string[] = [];
-  while (!existsSync(existing)) {
-    const parent = dirname(existing);
-    if (parent === existing) break;
-    rest.unshift(basename(existing));
-    existing = parent;
-  }
-  return join(existsSync(existing) ? realpathSync(existing) : existing, ...rest);
-}
+export const copyCampaignProgram = (
+  sessionId: string,
+): Effect.Effect<
+  BridgeResult<CopyCampaignResult>,
+  CommandError,
+  CampaignSessionStore | ProjectStore | NativeDialog
+> =>
+  Effect.gen(function* () {
+    const sessions = yield* CampaignSessionStore;
+    const projects = yield* ProjectStore;
+    const dialogs = yield* NativeDialog;
+    const record = yield* sessions.get(sessionId);
 
-export interface CopyTargetProblem {
-  readonly reason: string;
-  readonly message: string;
-}
-
-/**
- * Why `target` is not a safe place for a copy of the package at `source`, or null when it is.
- * A copy must land in a new or empty folder, never inside the source (it would be scanned
- * as part of it), never around it, and never on top of another campaign's package.
- */
-export function assessCopyTarget(source: string, target: string): CopyTargetProblem | null {
-  const from = canonicalPath(source);
-  const to = canonicalPath(target);
-  if (to === from) {
-    return {
-      reason: "COPY_TARGET_IS_SOURCE",
-      message: "Choose a different location for the copy.",
-    };
-  }
-  if (to.startsWith(from + sep)) {
-    return {
-      reason: "COPY_TARGET_INSIDE_SOURCE",
-      message: "The copy cannot be placed inside the campaign it copies.",
-    };
-  }
-  if (from.startsWith(to + sep)) {
-    return {
-      reason: "COPY_TARGET_CONTAINS_SOURCE",
-      message: "The copy cannot be placed in a folder that contains the campaign it copies.",
-    };
-  }
-  if (existsSync(to)) {
-    if (!statSync(to).isDirectory()) {
-      return { reason: "COPY_TARGET_NOT_A_DIRECTORY", message: "The chosen location is a file." };
-    }
-    if (readdirSync(to).length > 0) {
+    // A copy without the session sidecar (player slot, seed, scenario) could never be opened
+    // again, so refuse before asking the player anything or writing anything.
+    const metadata = yield* projects.readSessionMetadata(record.saveDir);
+    if (metadata === null) {
       return {
-        reason: "COPY_TARGET_NOT_EMPTY",
-        message:
-          "The chosen folder is not empty. Choose a new or empty folder so nothing is overwritten.",
+        outcome: "error",
+        reason: "SESSION_METADATA_MISSING",
+        diagnostics: [
+          "This campaign's session file is missing, so a copy could not be opened later.",
+        ],
       };
     }
-  }
-  return null;
-}
 
-export async function copyCampaign(
-  sessionId: string,
-  deps: SessionCommandDeps = defaultSessionCommandDeps,
-): Promise<BridgeResult<CopyCampaignResult>> {
-  const record = getCampaignSession(sessionId);
-  if (!record) return sessionNotFound(sessionId);
+    const location = yield* dialogs.chooseCopyDirectory(`bluewave-${record.playerSlotId}-copy`);
+    if (location === null) {
+      return { outcome: "rejected", reason: "SAVE_LOCATION_CANCELLED", diagnostics: [] };
+    }
+    const problem = yield* projects.assessCopyTarget(record.saveDir, location);
+    if (problem !== null) {
+      return { outcome: "rejected", reason: problem.reason, diagnostics: [problem.message] };
+    }
 
-  // A copy without the session sidecar (player slot, seed, scenario) could never be opened
-  // again, so refuse before asking the player anything or writing anything.
-  const metadata = readSessionMetadata(record.saveDir);
-  if (metadata === null) {
+    yield* projects.save(record.state, location);
+    yield* projects.writeSessionMetadata(location, metadata);
+
     return {
-      outcome: "error",
-      reason: "SESSION_METADATA_MISSING",
-      diagnostics: [
-        "This campaign's session file is missing, so a copy could not be opened later.",
-      ],
+      outcome: "success",
+      value: { revision: Number(record.state.snapshot.turnNumber), location },
+      diagnostics: [],
     };
-  }
-
-  const location = await deps.chooseCopyDirectory(`bluewave-${record.playerSlotId}-copy`);
-  if (location === null) {
-    return { outcome: "rejected", reason: "SAVE_LOCATION_CANCELLED", diagnostics: [] };
-  }
-  const problem = assessCopyTarget(record.saveDir, location);
-  if (problem !== null) {
-    return { outcome: "rejected", reason: problem.reason, diagnostics: [problem.message] };
-  }
-
-  try {
-    new SaveStore().save(record.state, location);
-    writeSessionMetadata(location, metadata);
-  } catch (error) {
-    return {
-      outcome: "error",
-      reason: "SAVE_FAILED",
-      diagnostics: [error instanceof Error ? error.message : String(error)],
-    };
-  }
-  return {
-    outcome: "success",
-    value: { revision: Number(record.state.snapshot.turnNumber), location },
-    diagnostics: [],
-  };
-}
+  });

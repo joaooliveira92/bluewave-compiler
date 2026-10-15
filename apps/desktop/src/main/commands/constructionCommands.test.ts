@@ -1,15 +1,26 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { CampaignState } from "@bluewave/campaign";
-import type { CampaignConfiguration } from "@bluewave/campaign-engine";
+import type { CampaignConfiguration, CommitMonthResponse } from "@bluewave/campaign-engine";
 import { SafeInt } from "@bluewave/contracts";
 import { createEnvelope } from "@bluewave/deterministic";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { SaveStore } from "@bluewave/persistence";
 import { constructionProjectReadout } from "@bluewave/phase-engine";
+import { Effect, Layer, ManagedRuntime } from "effect";
 import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test";
+import type { BridgeResult } from "../../shared/bridge-contract.js";
+import type { CompileCampaignResult } from "../../shared/campaign-command-contract.js";
+import type { LoadCampaignResponse } from "../../shared/continuity-contract.js";
+import type {
+  CancelConstructionCommandPayload,
+  ConstructionCommandOutcome,
+  ConstructionScreenProjection,
+  ReplaceConstructionCommandPayload,
+  SubmitConstructionCommandPayload,
+} from "../../shared/construction-contract.js";
 import {
   clearCampaignSessionsForTest,
   getCampaignSession,
@@ -18,19 +29,64 @@ import {
 import { compileProductionCampaignFromArtifact } from "../compiler.js";
 import { clearConstructionWorkspacesForTest } from "../constructionWorkspace.js";
 import { toSaveableState } from "../saveHelpers.js";
+import { projectCommandExit } from "../runtime/bridgeResult.js";
+import type { CommandProgram } from "../runtime/commandProgram.js";
+import { desktopMainLayer } from "../runtime/desktopMainLayer.js";
+import { NativeDialog } from "../runtime/platform.js";
 import {
-  cancelConstructionCommand,
-  inspectConstructionScreen,
-  replaceConstructionCommand,
-  submitConstructionCommand,
+  cancelConstructionCommandProgram,
+  inspectConstructionScreenProgram,
+  replaceConstructionCommandProgram,
+  submitConstructionCommandProgram,
 } from "./constructionCommands.js";
-import { commitMonth } from "./commitMonth.js";
-import { compileCampaign, type CompileCampaignDeps } from "./compileCampaign.js";
-import { loadCampaign, type ContinuityDeps } from "./continuityCommands.js";
+import { commitMonthProgram } from "./commitMonth.js";
+import { compileCampaignProgram } from "./compileCampaign.js";
+import { loadCampaignProgram } from "./continuityCommands.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, "../../../../..");
 const GENERATED_ARTIFACT = resolve(REPO_ROOT, "content", "generated", "1880");
+
+// The programs resolve `NativeDialog` from the Layer; the fake answers from
+// these test-scoped variables, so the real electron dialog is never touched.
+let chooseSaveDirectoryAnswer: string | null = null;
+let choosePackageDirectoryAnswer: string | null = null;
+
+// One shared runtime for every construction program; the services delegate to
+// the same in-memory session/construction-workspace registries the tests
+// populate directly.
+const runtime = ManagedRuntime.make(
+  Layer.mergeAll(
+    desktopMainLayer(),
+    Layer.succeed(NativeDialog, {
+      chooseSaveDirectory: () => Effect.succeed(chooseSaveDirectoryAnswer),
+      choosePackageDirectory: () => Effect.succeed(choosePackageDirectoryAnswer),
+      chooseCopyDirectory: () => Effect.succeed(null),
+    }),
+  ),
+);
+
+/** Runs a command program through the desktop service graph and projects its wire envelope. */
+async function runProgram<A>(program: CommandProgram, payload: unknown): Promise<BridgeResult<A>> {
+  return projectCommandExit(await runtime.runPromiseExit(program(payload))) as BridgeResult<A>;
+}
+
+const inspectConstructionScreen = (sessionId: string) =>
+  runProgram<ConstructionScreenProjection>(inspectConstructionScreenProgram, sessionId);
+const submitConstructionCommand = (payload: SubmitConstructionCommandPayload) =>
+  runProgram<ConstructionCommandOutcome>(submitConstructionCommandProgram, payload);
+const replaceConstructionCommand = (payload: ReplaceConstructionCommandPayload) =>
+  runProgram<ConstructionCommandOutcome>(replaceConstructionCommandProgram, payload);
+const cancelConstructionCommand = (payload: CancelConstructionCommandPayload) =>
+  runProgram<ConstructionCommandOutcome>(cancelConstructionCommandProgram, payload);
+const commitMonth = (payload: {
+  sessionId: string;
+  expectedRevision: number;
+  transportRequestId: string;
+}) => runProgram<CommitMonthResponse>(commitMonthProgram, payload);
+const compileCampaign = (configuration: CampaignConfiguration) =>
+  runProgram<CompileCampaignResult>(compileCampaignProgram, configuration);
+const loadCampaign = () => runProgram<LoadCampaignResponse>(loadCampaignProgram, undefined);
 
 /**
  * Desktop-mvp ticket 14 acceptance tests: the four construction commands
@@ -107,21 +163,6 @@ describe("construction commands", () => {
       configurationSchemaVersion: "campaign_configuration_v1",
       ...overrides,
     } as CampaignConfiguration;
-  }
-
-  function compileDeps(saveDir: string): CompileCampaignDeps {
-    return {
-      artifactDir: GENERATED_ARTIFACT,
-      chooseSaveDirectory: async () => saveDir,
-      generateSessionId: () => "compile-restart-test",
-    };
-  }
-
-  function continuityDeps(saveDir: string): ContinuityDeps {
-    return {
-      choosePackageDirectory: async () => saveDir,
-      generateSessionId: () => "loaded-restart-test",
-    };
   }
 
   it("returns SESSION_NOT_FOUND for an unregistered session on every command", async () => {
@@ -556,8 +597,10 @@ describe("construction commands", () => {
     const saveDir = resolve(saveRoot, "save-restart");
     // Compile through the REAL commands so the package carries the
     // session.json sidecar `loadCampaign` requires (mirrors the
-    // continuityCommands.test.ts `restartApp()` pattern).
-    const compile = await compileCampaign(baseConfiguration(), compileDeps(saveDir));
+    // continuityCommands.test.ts `restartApp()` pattern). The fake NativeDialog
+    // answers the save/package prompts from the test-scoped variables.
+    chooseSaveDirectoryAnswer = saveDir;
+    const compile = await compileCampaign(baseConfiguration());
     expect(compile.outcome).toBe("success");
     if (compile.outcome !== "success") return;
     const compiledSessionId = compile.value.sessionId;
@@ -577,7 +620,8 @@ describe("construction commands", () => {
     clearCampaignSessionsForTest();
     clearConstructionWorkspacesForTest();
 
-    const load = await loadCampaign(continuityDeps(saveDir));
+    choosePackageDirectoryAnswer = saveDir;
+    const load = await loadCampaign();
     expect(load.outcome).toBe("success");
     if (load.outcome !== "success") return;
     const loadedSessionId = load.value.sessionId;
@@ -772,5 +816,40 @@ describe("construction commands", () => {
         .snapshot.nations.get("uk")!
         .constructionProjects.filter((p) => p.designVersionId === amc.designVersionId),
     ).toHaveLength(2);
+  });
+
+  it("reports SAVE_FAILED and rolls the reservation back when the authoritative persist fails", async () => {
+    const saveDir = resolve(saveRoot, "save-fail");
+    registerProductionSession("session-save-fail", saveDir);
+    const before = getCampaignSession("session-save-fail")!;
+    const projectsBefore = before.state.snapshot.nations.get("uk")!.constructionProjects.length;
+
+    // A regular file where the save directory should be, so `SaveStore.save`
+    // cannot create its save folder — the authoritative persist fails.
+    const blocker = resolve(saveRoot, "blocker-file");
+    writeFileSync(blocker, "not a directory", "utf8");
+    registerCampaignSession({ ...before, saveDir: blocker });
+
+    const result = await submitConstructionCommand({
+      sessionId: "session-save-fail",
+      designId: "des_gbr_inflexible",
+      expectedRevision: 0,
+      transportRequestId: "req-save-fail",
+    });
+    expect(result.outcome).toBe("error");
+    if (result.outcome !== "error") return;
+    expect(result.reason).toBe("SAVE_FAILED");
+
+    // The session was never re-registered with a mutated state, and the
+    // in-memory reservation was rolled back — no partial mutation survives.
+    const after = getCampaignSession("session-save-fail")!;
+    expect(after.state.snapshot.nations.get("uk")!.constructionProjects.length).toBe(
+      projectsBefore,
+    );
+    const inspect = await inspectConstructionScreen("session-save-fail");
+    expect(inspect.outcome).toBe("success");
+    if (inspect.outcome !== "success") return;
+    expect(inspect.value.workspace.treasuryReserved).toBe(0);
+    expect(inspect.value.workspace.commands).toEqual([]);
   });
 });

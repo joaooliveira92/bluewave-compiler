@@ -1,63 +1,64 @@
-import type { CommandBody } from "@bluewave/commands";
 import { buildDivisionScreenView } from "@bluewave/campaign-engine";
+import type { CommandBody } from "@bluewave/commands";
 import { sha256Hex } from "@bluewave/deterministic";
-import type { BridgeResult } from "../../shared/bridge-contract.js";
+import { Effect } from "effect";
 import type {
   DivisionCommandBody,
-  DivisionCommandOutcome,
   DivisionScreenProjection,
-  SubmitDivisionCommandPayload,
 } from "../../shared/division-contract.js";
-import { getCampaignSession } from "../campaignSessions.js";
+import {
+  SessionIdPayloadSchema,
+  SubmitDivisionCommandPayloadSchema,
+} from "../campaignCommandSchemas.js";
+import { CampaignSessionStore } from "../runtime/campaignSessionStore.js";
+import { CommandFailed } from "../runtime/commandError.js";
+import { withSchema } from "../runtime/commandProgram.js";
 import { currentRevision, submitPlayerCommand } from "./playerCommandSupport.js";
 
 /**
- * The Fleet-organization (division editor) bridge commands. Same authority model
- * as diplomacy (`playerCommandSupport.ts`): the desktop only queues a real engine
- * envelope; the engine validates at issue time and is the sole mutator when
- * `commitMonth` applies it.
+ * The Fleet-organization (division editor) bridge commands, as native
+ * `CommandProgram`s (INC-5; ADR-0159). Same authority model as diplomacy
+ * (`playerCommandSupport.ts`): the desktop only queues a real engine envelope;
+ * the engine validates at issue time and is the sole mutator when `commitMonth`
+ * applies it. Every session/queue read goes through the desktop service graph
+ * (`CampaignSessionStore`, `CommandQueueStore`), never the module singletons.
  */
-export async function inspectDivisionScreen(
-  sessionId: string,
-): Promise<BridgeResult<DivisionScreenProjection>> {
-  const record = getCampaignSession(sessionId);
-  if (!record) {
-    return {
-      outcome: "error",
-      reason: "SESSION_NOT_FOUND",
-      diagnostics: [`No active campaign session ${sessionId}`],
-    };
-  }
-  const view = buildDivisionScreenView(record.state.snapshot, record.playerSlotId);
-  if (!view) {
-    return {
-      outcome: "error",
-      reason: "UNKNOWN_PLAYER_SLOT",
-      diagnostics: [`No nation ${record.playerSlotId} in session ${sessionId}`],
-    };
-  }
-  return {
-    outcome: "success",
-    value: { ...view, revision: currentRevision(record), month: record.month },
-    diagnostics: [],
-  };
-}
+export const inspectDivisionScreenProgram = withSchema(SessionIdPayloadSchema, (sessionId) =>
+  Effect.gen(function* () {
+    const sessions = yield* CampaignSessionStore;
+    const record = yield* sessions.get(sessionId);
 
-export async function submitDivisionCommand(
-  payload: SubmitDivisionCommandPayload,
-): Promise<BridgeResult<DivisionCommandOutcome>> {
-  return submitPlayerCommand({
-    sessionId: payload.sessionId,
-    expectedRevision: payload.expectedRevision,
-    transportRequestId: payload.transportRequestId,
-    build: (record) =>
-      planDivisionCommand(
-        record.playerSlotId,
-        Number(record.state.snapshot.turnNumber),
-        payload.command,
-      ),
-  });
-}
+    const view = buildDivisionScreenView(record.state.snapshot, record.playerSlotId);
+    if (!view) {
+      return yield* new CommandFailed({
+        reason: "UNKNOWN_PLAYER_SLOT",
+        diagnostics: [`No nation ${record.playerSlotId} in session ${sessionId}`],
+      });
+    }
+    const value: DivisionScreenProjection = {
+      ...view,
+      revision: currentRevision(record),
+      month: record.month,
+    };
+    return { outcome: "success" as const, value, diagnostics: [] };
+  }),
+);
+
+export const submitDivisionCommandProgram = withSchema(
+  SubmitDivisionCommandPayloadSchema,
+  (payload) =>
+    submitPlayerCommand({
+      sessionId: payload.sessionId,
+      expectedRevision: payload.expectedRevision,
+      transportRequestId: payload.transportRequestId,
+      build: (record) =>
+        planDivisionCommand(
+          record.playerSlotId,
+          Number(record.state.snapshot.turnNumber),
+          payload.command,
+        ),
+    }),
+);
 
 /**
  * A deterministic division id from the nation, the turn and the founding ship: the

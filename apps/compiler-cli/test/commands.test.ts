@@ -105,6 +105,7 @@ import {
   runReplay,
   safePath,
 } from "../src/commands.js";
+import { runCli } from "./runCli.js";
 
 function stdoutSpy() {
   return vi.spyOn(process.stdout, "write").mockImplementation(() => true as any);
@@ -265,57 +266,65 @@ beforeEach(() => {
 afterEach(() => vi.restoreAllMocks());
 
 describe("buildInput / safePath via runValidate", () => {
-  it("usage-error if manifest not found", () => {
+  it("usage-error if manifest not found", async () => {
     fsMocks.existsSync.mockImplementation((p: string) => !String(p).includes("pack.json"));
     expect(
-      runValidate({
-        manifest: "/tmp/pack.json",
-        contentDir: "/tmp/content",
-        outputDir: "/tmp/out",
-        outputMode: "human",
-      }),
+      await runCli(
+        runValidate({
+          manifest: "/tmp/pack.json",
+          contentDir: "/tmp/content",
+          outputDir: "/tmp/out",
+          outputMode: "human",
+        }),
+      ),
     ).toBe("usage-error");
   });
-  it("usage-error if contentDir not found", () => {
+  it("usage-error if contentDir not found", async () => {
     fsMocks.existsSync.mockReturnValueOnce(true).mockReturnValueOnce(false);
     expect(
-      runValidate({
-        manifest: "/tmp/pack.json",
-        contentDir: "/missing",
-        outputDir: "/tmp/out",
-        outputMode: "human",
-      }),
+      await runCli(
+        runValidate({
+          manifest: "/tmp/pack.json",
+          contentDir: "/missing",
+          outputDir: "/tmp/out",
+          outputMode: "human",
+        }),
+      ),
     ).toBe("usage-error");
   });
-  it("usage-error if manifest JSON invalid", () => {
+  it("usage-error if manifest JSON invalid", async () => {
     fsMocks.readFileSync.mockReturnValue("{ invalid json");
     expect(
-      runValidate({
-        manifest: "/tmp/pack.json",
-        contentDir: "/tmp/content",
-        outputDir: "/tmp/out",
-        outputMode: "human",
-      }),
+      await runCli(
+        runValidate({
+          manifest: "/tmp/pack.json",
+          contentDir: "/tmp/content",
+          outputDir: "/tmp/out",
+          outputMode: "human",
+        }),
+      ),
     ).toBe("usage-error");
   });
   it("throws on path traversal via safePath", () => {
     expect(() => safePath(`..${sep}evil.yaml`)).toThrow(/Path traversal/);
     expect(() => safePath(`a${sep}..${sep}b`)).toThrow(/Path traversal/);
   });
-  it("throws on path traversal via buildInput", () => {
+  it("throws on path traversal via buildInput", async () => {
     fsMocks.readFileSync.mockReturnValue(
       JSON.stringify({ files: { rulesets: [`..${sep}evil.yaml`] } }),
     );
-    expect(() =>
-      runValidate({
-        manifest: "/tmp/pack.json",
-        contentDir: "/tmp/content",
-        outputDir: "/tmp/out",
-        outputMode: "human",
-      }),
-    ).toThrow(/Path traversal/);
+    await expect(
+      runCli(
+        runValidate({
+          manifest: "/tmp/pack.json",
+          contentDir: "/tmp/content",
+          outputDir: "/tmp/out",
+          outputMode: "human",
+        }),
+      ),
+    ).rejects.toThrow(/Path traversal/);
   });
-  it("maps all 7 file groups with safePath normalize", () => {
+  it("maps all 7 file groups with safePath normalize", async () => {
     fsMocks.readFileSync.mockReturnValue(
       JSON.stringify({
         files: {
@@ -335,76 +344,88 @@ describe("buildInput / safePath via runValidate", () => {
       expect(input.manifestPath).toContain("pack.json");
       return { pack: {}, rawHash: "a", envelopeHash: "b" };
     });
-    runValidate({
-      manifest: "/tmp/pack.json",
-      contentDir: "/tmp/content",
-      outputDir: "/tmp/out",
-      outputMode: "human",
-    });
-  });
-});
-
-describe("runValidate", () => {
-  it("success", () => {
-    const spy = stdoutSpy();
-    expect(
+    await runCli(
       runValidate({
         manifest: "/tmp/pack.json",
         contentDir: "/tmp/content",
         outputDir: "/tmp/out",
         outputMode: "human",
       }),
+    );
+  });
+});
+
+describe("runValidate", () => {
+  it("success", async () => {
+    const spy = stdoutSpy();
+    expect(
+      await runCli(
+        runValidate({
+          manifest: "/tmp/pack.json",
+          contentDir: "/tmp/content",
+          outputDir: "/tmp/out",
+          outputMode: "human",
+        }),
+      ),
     ).toBe("success");
     expect(spy).toHaveBeenCalledWith(expect.stringContaining("Validation passed"));
   });
-  it("validation-error when collector hasErrors after compile", () => {
+  it("validation-error when collector hasErrors after compile", async () => {
     compilerMock.compile.mockImplementation((_: any, __: any, c: any) => {
       c.addError("SCHEMA", "dup");
       return undefined;
     });
     expect(
+      await runCli(
+        runValidate({
+          manifest: "/tmp/pack.json",
+          contentDir: "/tmp/content",
+          outputDir: "/tmp/out",
+          outputMode: "json",
+        }),
+      ),
+    ).toBe("validation-error");
+  });
+  it("compile-error when output undefined no errors", async () => {
+    compilerMock.compile.mockReturnValue(undefined);
+    expect(
+      await runCli(
+        runValidate({
+          manifest: "/tmp/pack.json",
+          contentDir: "/tmp/content",
+          outputDir: "/tmp/out",
+          outputMode: "human",
+        }),
+      ),
+    ).toBe("compile-error");
+  });
+  it("json mode prints diagnostics via collector.toJSON", async () => {
+    const spy = stdoutSpy();
+    compilerMock.compile.mockReturnValue({ pack: {}, rawHash: "x", envelopeHash: "y" });
+    await runCli(
       runValidate({
         manifest: "/tmp/pack.json",
         contentDir: "/tmp/content",
         outputDir: "/tmp/out",
         outputMode: "json",
       }),
-    ).toBe("validation-error");
-  });
-  it("compile-error when output undefined no errors", () => {
-    compilerMock.compile.mockReturnValue(undefined);
-    expect(
-      runValidate({
-        manifest: "/tmp/pack.json",
-        contentDir: "/tmp/content",
-        outputDir: "/tmp/out",
-        outputMode: "human",
-      }),
-    ).toBe("compile-error");
-  });
-  it("json mode prints diagnostics via collector.toJSON", () => {
-    const spy = stdoutSpy();
-    compilerMock.compile.mockReturnValue({ pack: {}, rawHash: "x", envelopeHash: "y" });
-    runValidate({
-      manifest: "/tmp/pack.json",
-      contentDir: "/tmp/content",
-      outputDir: "/tmp/out",
-      outputMode: "json",
-    });
+    );
     expect(spy).toHaveBeenCalled();
   });
 });
 
 describe("runCompile", () => {
-  it("success human prints artifact+envelope", () => {
+  it("success human prints artifact+envelope", async () => {
     const spy = stdoutSpy();
     expect(
-      runCompile({
-        manifest: "/tmp/pack.json",
-        contentDir: "/tmp/content",
-        outputDir: "/tmp/out",
-        outputMode: "human",
-      }),
+      await runCli(
+        runCompile({
+          manifest: "/tmp/pack.json",
+          contentDir: "/tmp/content",
+          outputDir: "/tmp/out",
+          outputMode: "human",
+        }),
+      ),
     ).toBe("success");
     expect(fsMocks.mkdirSync).toHaveBeenCalledWith(expect.stringContaining("out"), {
       recursive: true,
@@ -418,60 +439,80 @@ describe("runCompile", () => {
     );
     expect(spy).toHaveBeenCalledWith(expect.stringContaining("Compiled successfully"));
   });
-  it("success json prints artifactHash", () => {
+  it("success json prints artifactHash", async () => {
     const spy = stdoutSpy();
-    runCompile({
-      manifest: "/tmp/pack.json",
-      contentDir: "/tmp/content",
-      outputDir: "/tmp/out",
-      outputMode: "json",
-    });
+    await runCli(
+      runCompile({
+        manifest: "/tmp/pack.json",
+        contentDir: "/tmp/content",
+        outputDir: "/tmp/out",
+        outputMode: "json",
+      }),
+    );
     expect(spy).toHaveBeenCalledWith(expect.stringContaining("artifactHash"));
   });
-  it("validation-error", () => {
+  it("validation-error", async () => {
     compilerMock.compile.mockImplementation((_: any, __: any, c: any) => {
       c.addError("REF", "bad");
       return undefined;
     });
     expect(
-      runCompile({
-        manifest: "/tmp/pack.json",
-        contentDir: "/tmp/content",
-        outputDir: "/tmp/out",
-        outputMode: "human",
-      }),
+      await runCli(
+        runCompile({
+          manifest: "/tmp/pack.json",
+          contentDir: "/tmp/content",
+          outputDir: "/tmp/out",
+          outputMode: "human",
+        }),
+      ),
     ).toBe("validation-error");
   });
-  it("cleans temp even on write throw", () => {
+  it("cleans temp even on write throw", async () => {
     fsMocks.writeFileSync.mockImplementationOnce(() => {
       throw new Error("disk");
     });
-    expect(() =>
-      runCompile({
-        manifest: "/tmp/pack.json",
-        contentDir: "/tmp/content",
-        outputDir: "/tmp/out",
-        outputMode: "human",
-      }),
-    ).toThrow();
+    await expect(
+      runCli(
+        runCompile({
+          manifest: "/tmp/pack.json",
+          contentDir: "/tmp/content",
+          outputDir: "/tmp/out",
+          outputMode: "human",
+        }),
+      ),
+    ).rejects.toThrow("disk");
     expect(fsMocks.rmSync).toHaveBeenCalled();
   });
 });
 
 describe("runInspect / runVerify", () => {
-  it("usage-error missing artifact", () => {
+  it("usage-error missing artifact", async () => {
     fsMocks.existsSync.mockReturnValueOnce(false);
     expect(
-      runInspect({ manifest: "/p", contentDir: "/c", outputDir: "/tmp/out", outputMode: "human" }),
+      await runCli(
+        runInspect({
+          manifest: "/p",
+          contentDir: "/c",
+          outputDir: "/tmp/out",
+          outputMode: "human",
+        }),
+      ),
     ).toBe("usage-error");
   });
-  it("usage-error missing envelope", () => {
+  it("usage-error missing envelope", async () => {
     fsMocks.existsSync.mockReturnValueOnce(true).mockReturnValueOnce(false);
     expect(
-      runInspect({ manifest: "/p", contentDir: "/c", outputDir: "/tmp/out", outputMode: "human" }),
+      await runCli(
+        runInspect({
+          manifest: "/p",
+          contentDir: "/c",
+          outputDir: "/tmp/out",
+          outputMode: "human",
+        }),
+      ),
     ).toBe("usage-error");
   });
-  it("valid -> success human VALID", () => {
+  it("valid -> success human VALID", async () => {
     const artifact = '{"a":1}';
     detMocks.sha256Hex.mockImplementation((s: string) => `hash-${s}`);
     const hash = `hash-${artifact}`;
@@ -490,11 +531,18 @@ describe("runInspect / runVerify", () => {
     });
     const spy = stdoutSpy();
     expect(
-      runInspect({ manifest: "/p", contentDir: "/c", outputDir: "/tmp/out", outputMode: "human" }),
+      await runCli(
+        runInspect({
+          manifest: "/p",
+          contentDir: "/c",
+          outputDir: "/tmp/out",
+          outputMode: "human",
+        }),
+      ),
     ).toBe("success");
     expect(spy).toHaveBeenCalledWith(expect.stringContaining("VALID"));
   });
-  it("invalid -> validation-error", () => {
+  it("invalid -> validation-error", async () => {
     fsMocks.existsSync.mockReturnValue(true);
     fsMocks.readFileSync.mockImplementation((p: string) => {
       if (String(p).includes("artifact.json")) return '{"a":1}';
@@ -502,10 +550,17 @@ describe("runInspect / runVerify", () => {
       return validManifest;
     });
     expect(
-      runInspect({ manifest: "/p", contentDir: "/c", outputDir: "/tmp/out", outputMode: "human" }),
+      await runCli(
+        runInspect({
+          manifest: "/p",
+          contentDir: "/c",
+          outputDir: "/tmp/out",
+          outputMode: "human",
+        }),
+      ),
     ).toBe("validation-error");
   });
-  it("json mode prints valid payload", () => {
+  it("json mode prints valid payload", async () => {
     const artifact = "{}";
     detMocks.sha256Hex.mockImplementation((s: string) => `hash-${s}`);
     const hash = `hash-${artifact}`;
@@ -516,19 +571,28 @@ describe("runInspect / runVerify", () => {
       return validManifest;
     });
     const spy = stdoutSpy();
-    runInspect({ manifest: "/p", contentDir: "/c", outputDir: "/tmp/out", outputMode: "json" });
+    await runCli(
+      runInspect({ manifest: "/p", contentDir: "/c", outputDir: "/tmp/out", outputMode: "json" }),
+    );
     expect(spy).toHaveBeenCalledWith(expect.stringContaining("valid"));
   });
-  it("internal-error on read throw", () => {
+  it("internal-error on read throw", async () => {
     fsMocks.existsSync.mockReturnValue(true);
     fsMocks.readFileSync.mockImplementation(() => {
       throw new Error("io");
     });
     expect(
-      runInspect({ manifest: "/p", contentDir: "/c", outputDir: "/tmp/out", outputMode: "human" }),
+      await runCli(
+        runInspect({
+          manifest: "/p",
+          contentDir: "/c",
+          outputDir: "/tmp/out",
+          outputMode: "human",
+        }),
+      ),
     ).toBe("internal-error");
   });
-  it("runVerify delegates", () => {
+  it("runVerify delegates", async () => {
     const artifact = "{}";
     detMocks.sha256Hex.mockImplementation((s: string) => `hash-${s}`);
     const hash = `hash-${artifact}`;
@@ -545,22 +609,29 @@ describe("runInspect / runVerify", () => {
       outputDir: "/tmp/out",
       outputMode: "human",
     } as any;
-    const v1 = runVerify(opts);
+    const v1 = await runCli(runVerify(opts));
     fsMocks.readFileSync.mockImplementation(impl as any);
-    const v2 = runInspect(opts);
+    const v2 = await runCli(runInspect(opts));
     expect(v1).toBe(v2);
     expect(v1).toBe("success");
   });
 });
 
 describe("runCompare", () => {
-  it("usage-error missing artifact", () => {
+  it("usage-error missing artifact", async () => {
     fsMocks.existsSync.mockReturnValue(false);
     expect(
-      runCompare({ manifest: "/p", contentDir: "/c", outputDir: "/tmp/out", outputMode: "human" }),
+      await runCli(
+        runCompare({
+          manifest: "/p",
+          contentDir: "/c",
+          outputDir: "/tmp/out",
+          outputMode: "human",
+        }),
+      ),
     ).toBe("usage-error");
   });
-  it("success when verifyEnvelope true", () => {
+  it("success when verifyEnvelope true", async () => {
     fsMocks.existsSync.mockReturnValue(true);
     fsMocks.readFileSync.mockImplementation((p: string) => {
       if (String(p).includes("artifact.json")) return '{"x":1}';
@@ -570,11 +641,18 @@ describe("runCompare", () => {
     detMocks.verifyEnvelope.mockReturnValue(true);
     const spy = stdoutSpy();
     expect(
-      runCompare({ manifest: "/p", contentDir: "/c", outputDir: "/tmp/out", outputMode: "human" }),
+      await runCli(
+        runCompare({
+          manifest: "/p",
+          contentDir: "/c",
+          outputDir: "/tmp/out",
+          outputMode: "human",
+        }),
+      ),
     ).toBe("success");
     expect(spy).toHaveBeenCalledWith(expect.stringContaining("YES"));
   });
-  it("validation-error when verify false + hashMatch false json", () => {
+  it("validation-error when verify false + hashMatch false json", async () => {
     fsMocks.existsSync.mockReturnValue(true);
     fsMocks.readFileSync.mockImplementation((p: string) => {
       if (String(p).includes("artifact.json")) return '{"x":1}';
@@ -585,31 +663,42 @@ describe("runCompare", () => {
     detMocks.sha256Hex.mockReturnValue("other");
     const spy = stdoutSpy();
     expect(
-      runCompare({ manifest: "/p", contentDir: "/c", outputDir: "/tmp/out", outputMode: "json" }),
+      await runCli(
+        runCompare({ manifest: "/p", contentDir: "/c", outputDir: "/tmp/out", outputMode: "json" }),
+      ),
     ).toBe("validation-error");
     expect(spy).toHaveBeenCalledWith(expect.stringContaining("envelopeValid"));
   });
-  it("internal-error on parse fail", () => {
+  it("internal-error on parse fail", async () => {
     fsMocks.existsSync.mockReturnValue(true);
     fsMocks.readFileSync.mockReturnValue("not-json");
     expect(
-      runCompare({ manifest: "/p", contentDir: "/c", outputDir: "/tmp/out", outputMode: "human" }),
+      await runCli(
+        runCompare({
+          manifest: "/p",
+          contentDir: "/c",
+          outputDir: "/tmp/out",
+          outputMode: "human",
+        }),
+      ),
     ).toBe("internal-error");
   });
 });
 
 describe("Campaign", () => {
-  it("runCampaignCompile success", () => {
+  it("runCampaignCompile success", async () => {
     const spy = stdoutSpy();
     expect(
-      runCampaignCompile({
-        manifest: "/tmp/pack.json",
-        contentDir: "/tmp/c",
-        outputDir: "/tmp/out",
-        outputMode: "human",
-        saveDir: "/tmp/saves",
-        seed: "s1",
-      }),
+      await runCli(
+        runCampaignCompile({
+          manifest: "/tmp/pack.json",
+          contentDir: "/tmp/c",
+          outputDir: "/tmp/out",
+          outputMode: "human",
+          saveDir: "/tmp/saves",
+          seed: "s1",
+        }),
+      ),
     ).toBe("success");
     expect(campaignMocks.compile).toHaveBeenCalledWith(
       expect.objectContaining({ rulesetVersion: "1.0.0" }),
@@ -629,138 +718,80 @@ describe("Campaign", () => {
     );
     expect(spy).toHaveBeenCalledWith(expect.stringContaining("Campaign compiled"));
   });
-  it("runCampaignCompile json", () => {
+  it("runCampaignCompile json", async () => {
     const spy = stdoutSpy();
-    runCampaignCompile({
-      manifest: "/tmp/pack.json",
-      contentDir: "/tmp/c",
-      outputDir: "/tmp/out",
-      outputMode: "json",
-      saveDir: "/s",
-      seed: "s",
-    });
-    expect(spy).toHaveBeenCalledWith(expect.stringContaining("contentHash"));
-  });
-  it("runCampaignSave usage-error no state", () => {
-    fsMocks.existsSync.mockReturnValue(false);
-    expect(
-      runCampaignSave(
-        {
-          manifest: "/p",
-          contentDir: "/c",
-          outputDir: "/tmp/out",
-          outputMode: "human",
-          saveDir: "/s",
-          seed: "s",
-        },
-        "/s",
-      ),
-    ).toBe("usage-error");
-  });
-  it("runCampaignSave internal-error parse fail", () => {
-    fsMocks.existsSync.mockReturnValue(true);
-    fsMocks.readFileSync.mockReturnValue("bad-json");
-    expect(
-      runCampaignSave(
-        {
-          manifest: "/p",
-          contentDir: "/c",
-          outputDir: "/tmp/out",
-          outputMode: "human",
-          saveDir: "/s",
-          seed: "s",
-        },
-        "/s",
-      ),
-    ).toBe("internal-error");
-  });
-  it("runCampaignSave success json/human", () => {
-    fsMocks.existsSync.mockReturnValue(true);
-    fsMocks.readFileSync.mockReturnValue(JSON.stringify(storableCampaignState));
-    const spy = stdoutSpy();
-    expect(
-      runCampaignSave(
-        {
-          manifest: "/p",
-          contentDir: "/c",
-          outputDir: "/tmp/out",
-          outputMode: "human",
-          saveDir: "/s",
-          seed: "s",
-        },
-        "/s",
-      ),
-    ).toBe("success");
-    expect(saveStoreMocks.save).toHaveBeenCalled();
-    spy.mockClear();
-    runCampaignSave(
-      {
-        manifest: "/p",
-        contentDir: "/c",
+    await runCli(
+      runCampaignCompile({
+        manifest: "/tmp/pack.json",
+        contentDir: "/tmp/c",
         outputDir: "/tmp/out",
         outputMode: "json",
         saveDir: "/s",
         seed: "s",
-      },
-      "/s",
+      }),
     );
-    expect(spy).toHaveBeenCalledWith(expect.stringContaining("saveId"));
+    expect(spy).toHaveBeenCalledWith(expect.stringContaining("contentHash"));
   });
-  it("runCampaignSave internal-error on save throw", () => {
-    fsMocks.existsSync.mockReturnValue(true);
-    fsMocks.readFileSync.mockReturnValue(JSON.stringify(storableCampaignState));
-    saveStoreMocks.save.mockImplementationOnce(() => {
-      throw new Error("disk full");
-    });
+  it("runCampaignSave usage-error no state", async () => {
+    fsMocks.existsSync.mockReturnValue(false);
     expect(
-      runCampaignSave(
-        {
-          manifest: "/p",
-          contentDir: "/c",
-          outputDir: "/tmp/out",
-          outputMode: "human",
-          saveDir: "/s",
-          seed: "s",
-        },
-        "/s",
+      await runCli(
+        runCampaignSave(
+          {
+            manifest: "/p",
+            contentDir: "/c",
+            outputDir: "/tmp/out",
+            outputMode: "human",
+            saveDir: "/s",
+            seed: "s",
+          },
+          "/s",
+        ),
+      ),
+    ).toBe("usage-error");
+  });
+  it("runCampaignSave internal-error parse fail", async () => {
+    fsMocks.existsSync.mockReturnValue(true);
+    fsMocks.readFileSync.mockReturnValue("bad-json");
+    expect(
+      await runCli(
+        runCampaignSave(
+          {
+            manifest: "/p",
+            contentDir: "/c",
+            outputDir: "/tmp/out",
+            outputMode: "human",
+            saveDir: "/s",
+            seed: "s",
+          },
+          "/s",
+        ),
       ),
     ).toBe("internal-error");
   });
-  it("runCampaignLoad validation-error", () => {
-    saveStoreMocks.load.mockReturnValue(undefined);
-    expect(
-      runCampaignLoad(
-        {
-          manifest: "/p",
-          contentDir: "/c",
-          outputDir: "/tmp/out",
-          outputMode: "human",
-          saveDir: "/s",
-          seed: "s",
-        },
-        "/s",
-      ),
-    ).toBe("validation-error");
-  });
-  it("runCampaignLoad success json/human", () => {
+  it("runCampaignSave success json/human", async () => {
+    fsMocks.existsSync.mockReturnValue(true);
+    fsMocks.readFileSync.mockReturnValue(JSON.stringify(storableCampaignState));
     const spy = stdoutSpy();
     expect(
-      runCampaignLoad(
-        {
-          manifest: "/p",
-          contentDir: "/c",
-          outputDir: "/tmp/out",
-          outputMode: "human",
-          saveDir: "/s",
-          seed: "s",
-        },
-        "/s",
+      await runCli(
+        runCampaignSave(
+          {
+            manifest: "/p",
+            contentDir: "/c",
+            outputDir: "/tmp/out",
+            outputMode: "human",
+            saveDir: "/s",
+            seed: "s",
+          },
+          "/s",
+        ),
       ),
     ).toBe("success");
-    expect(spy).toHaveBeenCalledWith(expect.stringContaining("Campaign loaded"));
+    expect(saveStoreMocks.save).toHaveBeenCalled();
     spy.mockClear();
-    expect(
-      runCampaignLoad(
+    await runCli(
+      runCampaignSave(
         {
           manifest: "/p",
           contentDir: "/c",
@@ -771,29 +802,107 @@ describe("Campaign", () => {
         },
         "/s",
       ),
+    );
+    expect(spy).toHaveBeenCalledWith(expect.stringContaining("saveId"));
+  });
+  it("runCampaignSave internal-error on save throw", async () => {
+    fsMocks.existsSync.mockReturnValue(true);
+    fsMocks.readFileSync.mockReturnValue(JSON.stringify(storableCampaignState));
+    saveStoreMocks.save.mockImplementationOnce(() => {
+      throw new Error("disk full");
+    });
+    expect(
+      await runCli(
+        runCampaignSave(
+          {
+            manifest: "/p",
+            contentDir: "/c",
+            outputDir: "/tmp/out",
+            outputMode: "human",
+            saveDir: "/s",
+            seed: "s",
+          },
+          "/s",
+        ),
+      ),
+    ).toBe("internal-error");
+  });
+  it("runCampaignLoad validation-error", async () => {
+    saveStoreMocks.load.mockReturnValue(undefined);
+    expect(
+      await runCli(
+        runCampaignLoad(
+          {
+            manifest: "/p",
+            contentDir: "/c",
+            outputDir: "/tmp/out",
+            outputMode: "human",
+            saveDir: "/s",
+            seed: "s",
+          },
+          "/s",
+        ),
+      ),
+    ).toBe("validation-error");
+  });
+  it("runCampaignLoad success json/human", async () => {
+    const spy = stdoutSpy();
+    expect(
+      await runCli(
+        runCampaignLoad(
+          {
+            manifest: "/p",
+            contentDir: "/c",
+            outputDir: "/tmp/out",
+            outputMode: "human",
+            saveDir: "/s",
+            seed: "s",
+          },
+          "/s",
+        ),
+      ),
+    ).toBe("success");
+    expect(spy).toHaveBeenCalledWith(expect.stringContaining("Campaign loaded"));
+    spy.mockClear();
+    expect(
+      await runCli(
+        runCampaignLoad(
+          {
+            manifest: "/p",
+            contentDir: "/c",
+            outputDir: "/tmp/out",
+            outputMode: "json",
+            saveDir: "/s",
+            seed: "s",
+          },
+          "/s",
+        ),
+      ),
     ).toBe("success");
     expect(spy).toHaveBeenCalledWith(expect.stringContaining("rawHash"));
   });
 });
 
 describe("runTurnExecute", () => {
-  it("validation-error if load fails", () => {
+  it("validation-error if load fails", async () => {
     saveStoreMocks.load.mockReturnValue(undefined);
     expect(
-      runTurnExecute(
-        {
-          manifest: "/p",
-          contentDir: "/c",
-          outputDir: "/tmp/out",
-          outputMode: "human",
-          saveDir: "/s",
-          seed: "myseed",
-        },
-        "/s",
+      await runCli(
+        runTurnExecute(
+          {
+            manifest: "/p",
+            contentDir: "/c",
+            outputDir: "/tmp/out",
+            outputMode: "human",
+            saveDir: "/s",
+            seed: "myseed",
+          },
+          "/s",
+        ),
       ),
     ).toBe("validation-error");
   });
-  it("compile-error if collector hasErrors", () => {
+  it("compile-error if collector hasErrors", async () => {
     phaseMocks.execute.mockImplementation((_: any, __: any, ___: any, c: any) => {
       c.addError("EXEC", "fail");
       return {
@@ -806,20 +915,22 @@ describe("runTurnExecute", () => {
       };
     });
     expect(
-      runTurnExecute(
-        {
-          manifest: "/p",
-          contentDir: "/c",
-          outputDir: "/tmp/out",
-          outputMode: "human",
-          saveDir: "/s",
-          seed: "s",
-        },
-        "/s",
+      await runCli(
+        runTurnExecute(
+          {
+            manifest: "/p",
+            contentDir: "/c",
+            outputDir: "/tmp/out",
+            outputMode: "human",
+            saveDir: "/s",
+            seed: "s",
+          },
+          "/s",
+        ),
       ),
     ).toBe("compile-error");
   });
-  it("compile-error if result.success false", () => {
+  it("compile-error if result.success false", async () => {
     phaseMocks.execute.mockReturnValue({
       success: false,
       finalSnapshot: campaignSnapshot,
@@ -829,20 +940,22 @@ describe("runTurnExecute", () => {
       financialLedger: { hash: () => "h" },
     } as any);
     expect(
-      runTurnExecute(
-        {
-          manifest: "/p",
-          contentDir: "/c",
-          outputDir: "/tmp/out",
-          outputMode: "human",
-          saveDir: "/s",
-          seed: "s",
-        },
-        "/s",
+      await runCli(
+        runTurnExecute(
+          {
+            manifest: "/p",
+            contentDir: "/c",
+            outputDir: "/tmp/out",
+            outputMode: "human",
+            saveDir: "/s",
+            seed: "s",
+          },
+          "/s",
+        ),
       ),
     ).toBe("compile-error");
   });
-  it("success writes ledger+finalHash and commands only if present", () => {
+  it("success writes ledger+finalHash and commands only if present", async () => {
     phaseMocks.execute.mockReturnValue({
       success: true,
       finalSnapshot: campaignSnapshot,
@@ -854,17 +967,19 @@ describe("runTurnExecute", () => {
     const spy = stdoutSpy();
     const cmds = [{ commandId: "cmd-1", body: { type: "budget_project" } }] as any;
     expect(
-      runTurnExecute(
-        {
-          manifest: "/p",
-          contentDir: "/c",
-          outputDir: "/tmp/out",
-          outputMode: "human",
-          saveDir: "/s",
-          seed: "seed123",
-        },
-        "/s",
-        cmds,
+      await runCli(
+        runTurnExecute(
+          {
+            manifest: "/p",
+            contentDir: "/c",
+            outputDir: "/tmp/out",
+            outputMode: "human",
+            saveDir: "/s",
+            seed: "seed123",
+          },
+          "/s",
+          cmds,
+        ),
       ),
     ).toBe("success");
     expect(detMocks.createEnvelope).toHaveBeenCalledWith(
@@ -894,7 +1009,7 @@ describe("runTurnExecute", () => {
     );
     expect(spy).toHaveBeenCalledWith(expect.stringContaining("Turn executed"));
   });
-  it("no commands.json when empty list", () => {
+  it("no commands.json when empty list", async () => {
     phaseMocks.execute.mockReturnValue({
       success: true,
       finalSnapshot: campaignSnapshot,
@@ -903,39 +1018,43 @@ describe("runTurnExecute", () => {
       randomLedger: { hash: () => "rh" },
       financialLedger: { hash: () => "fh" },
     } as any);
-    runTurnExecute(
-      {
-        manifest: "/p",
-        contentDir: "/c",
-        outputDir: "/tmp/out",
-        outputMode: "human",
-        saveDir: "/s",
-        seed: "",
-      },
-      "/s",
-      [],
+    await runCli(
+      runTurnExecute(
+        {
+          manifest: "/p",
+          contentDir: "/c",
+          outputDir: "/tmp/out",
+          outputMode: "human",
+          saveDir: "/s",
+          seed: "",
+        },
+        "/s",
+        [],
+      ),
     );
     const writes = fsMocks.writeFileSync.mock.calls.map((c) => String(c[0]));
     expect(writes.some((w) => w.includes("commands.json"))).toBe(false);
   });
-  it("uses default-seed if seed empty", () => {
+  it("uses default-seed if seed empty", async () => {
     phaseMocks.execute.mockClear();
     saveStoreMocks.load.mockReturnValue({
       snapshot: campaignSnapshot,
       envelope: { bodyHash: "eh" },
       rawHash: "rh",
     } as any);
-    runTurnExecute(
-      {
-        manifest: "/p",
-        contentDir: "/c",
-        outputDir: "/tmp/out",
-        outputMode: "json",
-        saveDir: "/s",
-        seed: "",
-      },
-      "/s",
-      [],
+    await runCli(
+      runTurnExecute(
+        {
+          manifest: "/p",
+          contentDir: "/c",
+          outputDir: "/tmp/out",
+          outputMode: "json",
+          saveDir: "/s",
+          seed: "",
+        },
+        "/s",
+        [],
+      ),
     );
     expect(phaseMocks.execute).toHaveBeenCalledWith(
       expect.anything(),
@@ -944,7 +1063,7 @@ describe("runTurnExecute", () => {
       expect.anything(),
     );
   });
-  it("prints a battle summary (human) when the turn produced a battle", () => {
+  it("prints a battle summary (human) when the turn produced a battle", async () => {
     const snapshotWithBattle = {
       ...campaignSnapshot,
       wars: {
@@ -981,16 +1100,18 @@ describe("runTurnExecute", () => {
     } as any);
     const spy = stdoutSpy();
     expect(
-      runTurnExecute(
-        {
-          manifest: "/p",
-          contentDir: "/c",
-          outputDir: "/tmp/out",
-          outputMode: "human",
-          saveDir: "/s",
-          seed: "s",
-        },
-        "/s",
+      await runCli(
+        runTurnExecute(
+          {
+            manifest: "/p",
+            contentDir: "/c",
+            outputDir: "/tmp/out",
+            outputMode: "human",
+            saveDir: "/s",
+            seed: "s",
+          },
+          "/s",
+        ),
       ),
     ).toBe("success");
     const output = spy.mock.calls.map((c) => c[0]).join("");
@@ -1000,7 +1121,7 @@ describe("runTurnExecute", () => {
     expect(output).toContain("defender: fra_bb1");
     expect(output).toContain("fra_bb1=42");
   });
-  it("emits a battles key with generation/outcome data in --json mode", () => {
+  it("emits a battles key with generation/outcome data in --json mode", async () => {
     const snapshotWithBattle = {
       ...campaignSnapshot,
       wars: {
@@ -1036,16 +1157,18 @@ describe("runTurnExecute", () => {
       financialLedger: { hash: () => "fh" },
     } as any);
     const spy = stdoutSpy();
-    runTurnExecute(
-      {
-        manifest: "/p",
-        contentDir: "/c",
-        outputDir: "/tmp/out",
-        outputMode: "json",
-        saveDir: "/s",
-        seed: "s",
-      },
-      "/s",
+    await runCli(
+      runTurnExecute(
+        {
+          manifest: "/p",
+          contentDir: "/c",
+          outputDir: "/tmp/out",
+          outputMode: "json",
+          saveDir: "/s",
+          seed: "s",
+        },
+        "/s",
+      ),
     );
     const output = spy.mock.calls.map((c) => c[0]).join("");
     const jsonLine = output.split("\n").find((line) => line.includes("battles"));
@@ -1053,7 +1176,7 @@ describe("runTurnExecute", () => {
     expect(parsed.battles.manifests).toHaveLength(1);
     expect(parsed.battles.battles[0].result.winnerId).toBe("GBR");
   });
-  it("omits the battles section entirely when no battles occurred", () => {
+  it("omits the battles section entirely when no battles occurred", async () => {
     phaseMocks.execute.mockReturnValue({
       success: true,
       finalSnapshot: campaignSnapshot,
@@ -1063,16 +1186,18 @@ describe("runTurnExecute", () => {
       financialLedger: { hash: () => "fh" },
     } as any);
     const spy = stdoutSpy();
-    runTurnExecute(
-      {
-        manifest: "/p",
-        contentDir: "/c",
-        outputDir: "/tmp/out",
-        outputMode: "human",
-        saveDir: "/s",
-        seed: "s",
-      },
-      "/s",
+    await runCli(
+      runTurnExecute(
+        {
+          manifest: "/p",
+          contentDir: "/c",
+          outputDir: "/tmp/out",
+          outputMode: "human",
+          saveDir: "/s",
+          seed: "s",
+        },
+        "/s",
+      ),
     );
     const output = spy.mock.calls.map((c) => c[0]).join("");
     expect(output).not.toContain("Battles:");
@@ -1101,40 +1226,44 @@ describe("runReplay", () => {
     });
     saveStoreMocks.getActiveSaveId.mockReturnValue("save-1");
   });
-  it("validation-error no active save", () => {
+  it("validation-error no active save", async () => {
     saveStoreMocks.getActiveSaveId.mockReturnValue(null);
     expect(
-      runReplay(
-        {
-          manifest: "/p",
-          contentDir: "/c",
-          outputDir: "/tmp/out",
-          outputMode: "human",
-          saveDir: "/s",
-          seed: "s",
-        },
-        "/s",
+      await runCli(
+        runReplay(
+          {
+            manifest: "/p",
+            contentDir: "/c",
+            outputDir: "/tmp/out",
+            outputMode: "human",
+            saveDir: "/s",
+            seed: "s",
+          },
+          "/s",
+        ),
       ),
     ).toBe("validation-error");
   });
-  it("validation-error no previous save (nothing to replay from)", () => {
+  it("validation-error no previous save (nothing to replay from)", async () => {
     saveStoreMocks.getPreviousSaveId.mockReturnValue(null);
     expect(
-      runReplay(
-        {
-          manifest: "/p",
-          contentDir: "/c",
-          outputDir: "/tmp/out",
-          outputMode: "human",
-          saveDir: "/s",
-          seed: "s",
-        },
-        "/s",
+      await runCli(
+        runReplay(
+          {
+            manifest: "/p",
+            contentDir: "/c",
+            outputDir: "/tmp/out",
+            outputMode: "human",
+            saveDir: "/s",
+            seed: "s",
+          },
+          "/s",
+        ),
       ),
     ).toBe("validation-error");
     expect(saveStoreMocks.loadById).not.toHaveBeenCalled();
   });
-  it("replays from the previous save via loadById, not the active save", () => {
+  it("replays from the previous save via loadById, not the active save", async () => {
     phaseMocks.verify.mockReturnValue({
       match: true,
       mismatches: [],
@@ -1142,55 +1271,61 @@ describe("runReplay", () => {
       replayedFinalHash: "rh",
       originalFinalHash: "rh",
     });
-    runReplay(
-      {
-        manifest: "/p",
-        contentDir: "/c",
-        outputDir: "/tmp/out",
-        outputMode: "human",
-        saveDir: "/s",
-        seed: "s",
-      },
-      "/s",
+    await runCli(
+      runReplay(
+        {
+          manifest: "/p",
+          contentDir: "/c",
+          outputDir: "/tmp/out",
+          outputMode: "human",
+          saveDir: "/s",
+          seed: "s",
+        },
+        "/s",
+      ),
     );
     expect(saveStoreMocks.loadById).toHaveBeenCalledWith("/s", "save-0", expect.anything());
     expect(saveStoreMocks.load).not.toHaveBeenCalled();
   });
-  it("validation-error no commands file", () => {
+  it("validation-error no commands file", async () => {
     fsMocks.existsSync.mockImplementation((p: string) => !String(p).includes("commands.json"));
     expect(
-      runReplay(
-        {
-          manifest: "/p",
-          contentDir: "/c",
-          outputDir: "/tmp/out",
-          outputMode: "human",
-          saveDir: "/s",
-          seed: "s",
-        },
-        "/s",
+      await runCli(
+        runReplay(
+          {
+            manifest: "/p",
+            contentDir: "/c",
+            outputDir: "/tmp/out",
+            outputMode: "human",
+            saveDir: "/s",
+            seed: "s",
+          },
+          "/s",
+        ),
       ),
     ).toBe("validation-error");
   });
-  it("internal-error parse commands fail", () => {
+  it("internal-error parse commands fail", async () => {
     fsMocks.readFileSync.mockImplementation(() => {
       throw new Error("io");
     });
     expect(
-      runReplay(
-        {
-          manifest: "/p",
-          contentDir: "/c",
-          outputDir: "/tmp/out",
-          outputMode: "human",
-          saveDir: "/s",
-          seed: "s",
-        },
-        "/s",
+      await runCli(
+        runReplay(
+          {
+            manifest: "/p",
+            contentDir: "/c",
+            outputDir: "/tmp/out",
+            outputMode: "human",
+            saveDir: "/s",
+            seed: "s",
+          },
+          "/s",
+        ),
       ),
     ).toBe("internal-error");
   });
-  it("success match -> success", () => {
+  it("success match -> success", async () => {
     phaseMocks.verify.mockReturnValue({
       match: true,
       mismatches: [],
@@ -1199,20 +1334,22 @@ describe("runReplay", () => {
       originalFinalHash: "rh",
     });
     expect(
-      runReplay(
-        {
-          manifest: "/p",
-          contentDir: "/c",
-          outputDir: "/tmp/out",
-          outputMode: "human",
-          saveDir: "/s",
-          seed: "s",
-        },
-        "/s",
+      await runCli(
+        runReplay(
+          {
+            manifest: "/p",
+            contentDir: "/c",
+            outputDir: "/tmp/out",
+            outputMode: "human",
+            saveDir: "/s",
+            seed: "s",
+          },
+          "/s",
+        ),
       ),
     ).toBe("success");
   });
-  it("mismatch -> validation-error", () => {
+  it("mismatch -> validation-error", async () => {
     phaseMocks.verify.mockReturnValue({
       match: false,
       mismatches: [
@@ -1230,21 +1367,23 @@ describe("runReplay", () => {
     });
     const spy = stdoutSpy();
     expect(
-      runReplay(
-        {
-          manifest: "/p",
-          contentDir: "/c",
-          outputDir: "/tmp/out",
-          outputMode: "human",
-          saveDir: "/s",
-          seed: "s",
-        },
-        "/s",
+      await runCli(
+        runReplay(
+          {
+            manifest: "/p",
+            contentDir: "/c",
+            outputDir: "/tmp/out",
+            outputMode: "human",
+            saveDir: "/s",
+            seed: "s",
+          },
+          "/s",
+        ),
       ),
     ).toBe("validation-error");
     expect(spy).toHaveBeenCalledWith(expect.stringContaining("FAILED"));
   });
-  it("internal-error ledger parse fail", () => {
+  it("internal-error ledger parse fail", async () => {
     fsMocks.readFileSync.mockImplementation((p: string) => {
       if (String(p).includes("ledger")) return "not-json";
       if (String(p).includes("commands")) return "[]";
@@ -1252,20 +1391,22 @@ describe("runReplay", () => {
       return "{}";
     });
     expect(
-      runReplay(
-        {
-          manifest: "/p",
-          contentDir: "/c",
-          outputDir: "/tmp/out",
-          outputMode: "human",
-          saveDir: "/s",
-          seed: "s",
-        },
-        "/s",
+      await runCli(
+        runReplay(
+          {
+            manifest: "/p",
+            contentDir: "/c",
+            outputDir: "/tmp/out",
+            outputMode: "human",
+            saveDir: "/s",
+            seed: "s",
+          },
+          "/s",
+        ),
       ),
     ).toBe("internal-error");
   });
-  it("json mode prints stringified replayResult", () => {
+  it("json mode prints stringified replayResult", async () => {
     phaseMocks.verify.mockReturnValue({
       match: true,
       mismatches: [],
@@ -1274,20 +1415,22 @@ describe("runReplay", () => {
       originalFinalHash: "rh",
     });
     const spy = stdoutSpy();
-    runReplay(
-      {
-        manifest: "/p",
-        contentDir: "/c",
-        outputDir: "/tmp/out",
-        outputMode: "json",
-        saveDir: "/s",
-        seed: "s",
-      },
-      "/s",
+    await runCli(
+      runReplay(
+        {
+          manifest: "/p",
+          contentDir: "/c",
+          outputDir: "/tmp/out",
+          outputMode: "json",
+          saveDir: "/s",
+          seed: "s",
+        },
+        "/s",
+      ),
     );
     expect(spy).toHaveBeenCalledWith(expect.stringContaining("replayedFinalHash"));
   });
-  it("validation-error if collector hasErrors after verify", () => {
+  it("validation-error if collector hasErrors after verify", async () => {
     phaseMocks.verify.mockImplementation((...args: any[]) => {
       const collector = args[5];
       collector.addError("REPLAY", "mismatch");
@@ -1300,20 +1443,22 @@ describe("runReplay", () => {
       };
     });
     expect(
-      runReplay(
-        {
-          manifest: "/p",
-          contentDir: "/c",
-          outputDir: "/tmp/out",
-          outputMode: "human",
-          saveDir: "/s",
-          seed: "s",
-        },
-        "/s",
+      await runCli(
+        runReplay(
+          {
+            manifest: "/p",
+            contentDir: "/c",
+            outputDir: "/tmp/out",
+            outputMode: "human",
+            saveDir: "/s",
+            seed: "s",
+          },
+          "/s",
+        ),
       ),
     ).toBe("validation-error");
   });
-  it("prints a battle summary (human) when the replayed snapshot carries a battle", () => {
+  it("prints a battle summary (human) when the replayed snapshot carries a battle", async () => {
     phaseMocks.verify.mockReturnValue({
       match: true,
       mismatches: [],
@@ -1350,22 +1495,24 @@ describe("runReplay", () => {
       },
     });
     const spy = stdoutSpy();
-    runReplay(
-      {
-        manifest: "/p",
-        contentDir: "/c",
-        outputDir: "/tmp/out",
-        outputMode: "human",
-        saveDir: "/s",
-        seed: "s",
-      },
-      "/s",
+    await runCli(
+      runReplay(
+        {
+          manifest: "/p",
+          contentDir: "/c",
+          outputDir: "/tmp/out",
+          outputMode: "human",
+          saveDir: "/s",
+          seed: "s",
+        },
+        "/s",
+      ),
     );
     const output = spy.mock.calls.map((c) => c[0]).join("");
     expect(output).toContain("Battles:");
     expect(output).toContain("battle-1 (GBR vs FRA @ area1): FRA defeated GBR");
   });
-  it("emits a battles key in --json mode without dumping the raw finalSnapshot", () => {
+  it("emits a battles key in --json mode without dumping the raw finalSnapshot", async () => {
     phaseMocks.verify.mockReturnValue({
       match: true,
       mismatches: [],
@@ -1402,16 +1549,18 @@ describe("runReplay", () => {
       },
     });
     const spy = stdoutSpy();
-    runReplay(
-      {
-        manifest: "/p",
-        contentDir: "/c",
-        outputDir: "/tmp/out",
-        outputMode: "json",
-        saveDir: "/s",
-        seed: "s",
-      },
-      "/s",
+    await runCli(
+      runReplay(
+        {
+          manifest: "/p",
+          contentDir: "/c",
+          outputDir: "/tmp/out",
+          outputMode: "json",
+          saveDir: "/s",
+          seed: "s",
+        },
+        "/s",
+      ),
     );
     const output = spy.mock.calls.map((c) => c[0]).join("");
     expect(output).not.toContain("finalSnapshot");
@@ -1419,7 +1568,7 @@ describe("runReplay", () => {
     expect(parsed.battles.battles[0].result.winnerId).toBe("GBR");
     expect(parsed.replayedFinalHash).toBe("rh");
   });
-  it("omits the battles section when the mocked verify result has no finalSnapshot", () => {
+  it("omits the battles section when the mocked verify result has no finalSnapshot", async () => {
     phaseMocks.verify.mockReturnValue({
       match: true,
       mismatches: [],
@@ -1428,16 +1577,18 @@ describe("runReplay", () => {
       originalFinalHash: "rh",
     });
     const spy = stdoutSpy();
-    runReplay(
-      {
-        manifest: "/p",
-        contentDir: "/c",
-        outputDir: "/tmp/out",
-        outputMode: "human",
-        saveDir: "/s",
-        seed: "s",
-      },
-      "/s",
+    await runCli(
+      runReplay(
+        {
+          manifest: "/p",
+          contentDir: "/c",
+          outputDir: "/tmp/out",
+          outputMode: "human",
+          saveDir: "/s",
+          seed: "s",
+        },
+        "/s",
+      ),
     );
     const output = spy.mock.calls.map((c) => c[0]).join("");
     expect(output).not.toContain("Battles:");
@@ -1449,17 +1600,19 @@ describe("persistedStateHash", () => {
     const { canonicalSerialize: realCanon } = await vi.importActual<any>("@bluewave/deterministic");
     detMocks.canonicalSerialize.mockImplementation((v: any) => realCanon(v));
     detMocks.sha256Hex.mockImplementation((s: string) => `sha-${s.length}`);
-    runTurnExecute(
-      {
-        manifest: "/p",
-        contentDir: "/c",
-        outputDir: "/tmp/out",
-        outputMode: "human",
-        saveDir: "/s",
-        seed: "s",
-      } as any,
-      "/s",
-      [],
+    await runCli(
+      runTurnExecute(
+        {
+          manifest: "/p",
+          contentDir: "/c",
+          outputDir: "/tmp/out",
+          outputMode: "human",
+          saveDir: "/s",
+          seed: "s",
+        } as any,
+        "/s",
+        [],
+      ),
     );
     const rawHashCall = detMocks.canonicalSerialize.mock.calls.find(
       ([a]: any) => a && a.snapshot && a.envelope,

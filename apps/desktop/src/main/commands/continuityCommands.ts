@@ -1,79 +1,51 @@
 import { randomUUID } from "node:crypto";
-import { advanceMonth, getScenarioById } from "@bluewave/campaign";
+import { advanceMonth, getScenarioById, type CampaignState } from "@bluewave/campaign";
 import { CommandLedger } from "@bluewave/commands";
 import { DiagnosticCollector, type DiagnosticCode } from "@bluewave/diagnostics";
-import { RecoveryManager, SaveStore, type SaveMetadata } from "@bluewave/persistence";
-import { hashSnapshot, ReplayVerifier } from "@bluewave/phase-engine";
-import type { BridgeResult } from "../../shared/bridge-contract.js";
-import type {
-  LoadCampaignResponse,
-  RecoverCampaignResponse,
-  ReplayCampaignResponse,
-  ReplayedRevision,
-  VerifyCampaignResponse,
-} from "../../shared/continuity-contract.js";
-import { registerCampaignSession } from "../campaignSessions.js";
-import { restorePendingQueue } from "../pendingCommands.js";
+import type { SaveMetadata } from "@bluewave/persistence";
+import { Effect } from "effect";
+import type { ReplayedRevision } from "../../shared/continuity-contract.js";
 import { ledgerOf, parseMonthInput } from "../monthInput.js";
-import { promotePlayerSlotForExecution } from "./commitMonth/snapshot.js";
-import {
-  armamentContentHash,
-  loadShipBuildingContent,
-  shipBuildingContentHash,
-} from "../shipBuildingContent.js";
-import { readSessionMetadata } from "../campaignSessionMetadata.js";
+import { CampaignSessionStore } from "../runtime/campaignSessionStore.js";
+import { CommandQueueStore } from "../runtime/commandQueueStore.js";
+import { CommandFailed } from "../runtime/commandError.js";
+import { payloadless } from "../runtime/commandProgram.js";
+import { ContentArtifact } from "../runtime/contentArtifact.js";
+import { NativeDialog } from "../runtime/platform.js";
+import { ProjectStore } from "../runtime/projectStore.js";
+import { ReplayService } from "../runtime/replayService.js";
 
 /**
- * The four Campaign File continuance commands (desktop-mvp ticket 16),
- * wired for real through `@bluewave/persistence`'s `SaveStore` /
- * `CompatibilityChecker` / `RecoveryManager` and `@bluewave/phase-engine`'s
- * `ReplayVerifier` per the resolved New-Game & Continuity Contract
- * (`.scratch/desktop-mvp/issues/08-new-game-continuity-contract.md`).
+ * The four Campaign File continuance commands (desktop-mvp ticket 16), wired
+ * for real through `@bluewave/persistence`'s `SaveStore` /
+ * `RecoveryManager` and `@bluewave/phase-engine`'s `ReplayVerifier` per the
+ * resolved New-Game & Continuity Contract, as native `CommandProgram`s
+ * (INC-5; ADR-0159).
  *
  * "Package" here = `SaveStore`'s save directory (not the retired `.bluewave`
  * content-authoring format in `main/project.ts`). All four commands take an
  * `undefined` payload on the IPC boundary — grounded in
- * `useCampaignFiles.ts`, which calls them payload-less — so the main process
- * prompts for the package directory itself via a native dialog (`ticket 08`:
- * "the main process handles file/package selection (a native dialog)"). Each
- * command therefore owns its own `choosePackageDirectory` dependency,
- * injected in tests exactly like `compileCampaign`'s `chooseSaveDirectory`.
+ * `useCampaignFiles.ts`, which calls them payload-less — so the program
+ * prompts for the package directory itself through `NativeDialog` (ticket 08:
+ * "the main process handles file/package selection (a native dialog)").
  *
  * The renderer's Campaign File screen runs these from a fresh app start
  * (its Package Operations buttons are its initial screen), so NOTHING here
  * depends on an already-registered session — every command re-reads the
  * picked package from disk, and `loadCampaign` alone registers the session
  * the in-campaign screens then operate on.
+ *
+ * Every reason code (`LOAD_FAILED`, `SESSION_METADATA_MISSING`,
+ * `SESSION_METADATA_INVALID`, `UNKNOWN_PLAYER_SLOT`, `REPLAY_FAILED`,
+ * `RECOVERY_FAILED`, `PACKAGE_SELECTION_CANCELLED`) is preserved.
  */
 
-export interface ContinuityDeps {
-  /**
-   * Prompts for the package's save directory. Returns `null` if the user
-   * cancels. Main-process-driven native dialog, same pattern as
-   * `compileCampaign`'s `chooseSaveDirectory` (ticket 12).
-   */
-  readonly choosePackageDirectory: () => Promise<string | null>;
-  readonly generateSessionId: () => string;
-}
-
-export const defaultContinuityDeps: ContinuityDeps = {
-  generateSessionId: () => randomUUID(),
-  choosePackageDirectory: async () => {
-    const { dialog } = await import("electron");
-    const result = await dialog.showOpenDialog({
-      title: "Choose a campaign package",
-      buttonLabel: "Open",
-      properties: ["openDirectory"],
-    });
-    if (result.canceled || result.filePaths.length === 0) return null;
-    return result.filePaths[0]!;
-  },
-};
-
-const PACKAGE_SELECTION_CANCELLED = "PACKAGE_SELECTION_CANCELLED";
-
-function cancelled(): BridgeResult<never> {
-  return { outcome: "rejected", reason: PACKAGE_SELECTION_CANCELLED, diagnostics: [] };
+function cancelled() {
+  return {
+    outcome: "rejected" as const,
+    reason: "PACKAGE_SELECTION_CANCELLED",
+    diagnostics: [] as readonly string[],
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -82,92 +54,95 @@ function cancelled(): BridgeResult<never> {
 
 /**
  * `loadCampaign(undefined) -> LoadCampaignResponse` (ticket 08/16). Prompts
- * for a package save directory, loads it through `SaveStore.load` (rawHash +
+ * for a package save directory, loads it through `ProjectStore.load` (rawHash +
  * envelope + `CompatibilityChecker` integrity all pass before anything is
  * returned), and registers a full `CampaignSessionRecord` — real state, not
  * a fresh/empty campaign.
  *
  * The record's fields a snapshot alone can't supply come from the package's
- * `session.json` sidecar (`main/campaignSessionMetadata.ts`, written by
- * `compileCampaign`): `playerSlotId`, `campaignSeed` (the deterministic
+ * `session.json` sidecar: `playerSlotId`, `campaignSeed` (the deterministic
  * root for future `commitMonth` seeds), and `scenarioId` (whose canonical
  * start date + `turnNumber` months yields the current calendar month —
  * `commitMonth` advances exactly one calendar month per turn, so
  * month(start) + N turns == month at revision N, exactly).
  */
-export async function loadCampaign(
-  deps: ContinuityDeps,
-): Promise<BridgeResult<LoadCampaignResponse>> {
-  const saveDir = await deps.choosePackageDirectory();
-  if (saveDir === null) return cancelled();
+export const loadCampaignProgram = payloadless(() =>
+  Effect.gen(function* () {
+    const dialogs = yield* NativeDialog;
+    const projects = yield* ProjectStore;
+    const sessions = yield* CampaignSessionStore;
+    const queue = yield* CommandQueueStore;
 
-  const store = new SaveStore();
-  const collector = new DiagnosticCollector();
-  const state = store.load(saveDir, collector);
-  if (!state) {
-    return {
-      outcome: "error",
-      reason: "LOAD_FAILED",
-      diagnostics: collector.all.map((d) => d.message),
-    };
-  }
+    const saveDir = yield* dialogs.choosePackageDirectory();
+    if (saveDir === null) return cancelled();
 
-  const metadata = readSessionMetadata(saveDir);
-  if (!metadata) {
-    return {
-      outcome: "error",
-      reason: "SESSION_METADATA_MISSING",
-      diagnostics: [
-        `${saveDir} is a valid package but has no readable session.json metadata. It cannot be restored — only packages written by the New Game flow carry the player slot, seed, and scenario needed to continue.`,
-      ],
-    };
-  }
+    const collector = new DiagnosticCollector();
+    const state = yield* projects.load(saveDir, collector);
+    if (!state) {
+      return {
+        outcome: "error",
+        reason: "LOAD_FAILED",
+        diagnostics: collector.all.map((d) => d.message),
+      };
+    }
 
-  if (!state.snapshot.nations.has(metadata.playerSlotId)) {
-    return {
-      outcome: "error",
-      reason: "UNKNOWN_PLAYER_SLOT",
-      diagnostics: [
-        `Nation ${metadata.playerSlotId} (from session.json) does not exist in the package snapshot.`,
-      ],
-    };
-  }
+    const metadata = yield* projects.readSessionMetadata(saveDir);
+    if (!metadata) {
+      return {
+        outcome: "error",
+        reason: "SESSION_METADATA_MISSING",
+        diagnostics: [
+          `${saveDir} is a valid package but has no readable session.json metadata. It cannot be restored — only packages written by the New Game flow carry the player slot, seed, and scenario needed to continue.`,
+        ],
+      };
+    }
 
-  const scenario = getScenarioById(metadata.scenarioId);
-  if (!scenario) {
-    return {
-      outcome: "error",
-      reason: "SESSION_METADATA_INVALID",
-      diagnostics: [`Scenario ${metadata.scenarioId} is not a canonical scenario.`],
-    };
-  }
+    if (!state.snapshot.nations.has(metadata.playerSlotId)) {
+      return {
+        outcome: "error",
+        reason: "UNKNOWN_PLAYER_SLOT",
+        diagnostics: [
+          `Nation ${metadata.playerSlotId} (from session.json) does not exist in the package snapshot.`,
+        ],
+      };
+    }
 
-  const activeRevision = Number(state.snapshot.turnNumber);
-  const month = advanceMonth(scenario.startYear, scenario.startMonth, activeRevision);
+    const scenario = getScenarioById(metadata.scenarioId);
+    if (!scenario) {
+      return {
+        outcome: "error",
+        reason: "SESSION_METADATA_INVALID",
+        diagnostics: [`Scenario ${metadata.scenarioId} is not a canonical scenario.`],
+      };
+    }
 
-  const sessionId = deps.generateSessionId();
-  registerCampaignSession({
-    sessionId,
-    saveDir,
-    playerSlotId: metadata.playerSlotId,
-    campaignSeed: metadata.campaignSeed,
-    month,
-    state,
-  });
-  // Commands the player queued for this month before the app closed are queued again.
-  restorePendingQueue(sessionId);
+    const activeRevision = Number(state.snapshot.turnNumber);
+    const month = advanceMonth(scenario.startYear, scenario.startMonth, activeRevision);
 
-  return {
-    outcome: "success",
-    value: {
+    const sessionId = randomUUID();
+    yield* sessions.register({
       sessionId,
-      packagePath: saveDir,
-      campaignIdentity: state.snapshot.campaignId,
-      activeRevision,
-    },
-    diagnostics: [],
-  };
-}
+      saveDir,
+      playerSlotId: metadata.playerSlotId,
+      campaignSeed: metadata.campaignSeed,
+      month,
+      state,
+    });
+    // Commands the player queued for this month before the app closed are queued again.
+    yield* queue.restore(sessionId);
+
+    return {
+      outcome: "success",
+      value: {
+        sessionId,
+        packagePath: saveDir,
+        campaignIdentity: state.snapshot.campaignId,
+        activeRevision,
+      },
+      diagnostics: [],
+    };
+  }),
+);
 
 // ---------------------------------------------------------------------------
 // listCampaigns
@@ -177,27 +152,23 @@ export async function loadCampaign(
  * `listCampaigns(undefined) -> BridgeResult<SaveMetadata[]>` — the
  * campaign-list/load screen's backing query (§17.4). Prompts for the package
  * save directory via the same native dialog as `loadCampaign`, then returns
- * `SaveStore.list(saveDir)`: the package's saves as real `SaveMetadata`
+ * `ProjectStore.list(saveDir)`: the package's saves as real `SaveMetadata`
  * records, deterministically newest-first, skipping corrupt/incompatible
- * directories. The new additive list fields (`campaignName`/`nationId`/
- * `campaignDate`) are carried on the records when the save wrote them;
- * legacy/degraded records simply omit them (the screen renders "—"). No
- * state is mutated and no session is registered — the actual load still goes
- * through `loadCampaign`/`CompatibilityChecker`.
+ * directories. No state is mutated and no session is registered — the actual
+ * load still goes through `loadCampaign`/`CompatibilityChecker`.
  */
-export async function listCampaigns(
-  deps: Pick<ContinuityDeps, "choosePackageDirectory">,
-): Promise<BridgeResult<SaveMetadata[]>> {
-  const saveDir = await deps.choosePackageDirectory();
-  if (saveDir === null) return cancelled();
+export const listCampaignsProgram = payloadless(() =>
+  Effect.gen(function* () {
+    const dialogs = yield* NativeDialog;
+    const projects = yield* ProjectStore;
 
-  const store = new SaveStore();
-  return {
-    outcome: "success",
-    value: store.list(saveDir),
-    diagnostics: [],
-  };
-}
+    const saveDir = yield* dialogs.choosePackageDirectory();
+    if (saveDir === null) return cancelled();
+
+    const value = yield* projects.list(saveDir);
+    return { outcome: "success", value: [...value], diagnostics: [] };
+  }),
+);
 
 // ---------------------------------------------------------------------------
 // verifyCampaign
@@ -205,49 +176,51 @@ export async function listCampaigns(
 
 /**
  * `verifyCampaign(undefined) -> VerifyCampaignResponse` (ticket 08/16).
- * `SaveStore.load` performs exactly the fast, package-local integrity
- * checks ticket 08's answer names — rawHash recomputed over the whole
- * state, `verifyEnvelope` over `{envelope, snapshot}`, and
- * `CompatibilityChecker` over the pinned compatibility version — so verify
- * literally IS a `SaveStore.load` pass/fail. `issues` carries the load
- * diagnostics verbatim on failure. The claimed identity/revision fall back
- * to the package's `metadata.json` (written by `SaveStore`, not covered by
- * the state envelope) when the state itself fails integrity, so a corrupt
- * package's verify report is still identifiable.
+ * `ProjectStore.load` performs exactly the fast, package-local integrity
+ * checks ticket 08's answer names — rawHash recomputed over the whole state,
+ * `verifyEnvelope` over `{envelope, snapshot}`, and `CompatibilityChecker`
+ * over the pinned compatibility version — so verify literally IS a
+ * `ProjectStore.load` pass/fail. `issues` carries the load diagnostics
+ * verbatim on failure. The claimed identity/revision fall back to the
+ * package's `metadata.json` (written by `SaveStore`, not covered by the state
+ * envelope) when the state itself fails integrity, so a corrupt package's
+ * verify report is still identifiable.
  */
-export async function verifyCampaign(
-  deps: ContinuityDeps,
-): Promise<BridgeResult<VerifyCampaignResponse>> {
-  const saveDir = await deps.choosePackageDirectory();
-  if (saveDir === null) return cancelled();
+export const verifyCampaignProgram = payloadless(() =>
+  Effect.gen(function* () {
+    const dialogs = yield* NativeDialog;
+    const projects = yield* ProjectStore;
 
-  const store = new SaveStore();
-  const collector = new DiagnosticCollector();
-  const state = store.load(saveDir, collector);
+    const saveDir = yield* dialogs.choosePackageDirectory();
+    if (saveDir === null) return cancelled();
 
-  const claimed = store.list(saveDir)[0];
-  const campaignIdentity = state ? state.snapshot.campaignId : (claimed?.campaignId ?? "");
-  const activeRevision = state ? Number(state.snapshot.turnNumber) : (claimed?.turnNumber ?? 0);
+    const collector = new DiagnosticCollector();
+    const state = yield* projects.load(saveDir, collector);
 
-  if (state) {
+    const claimed = (yield* projects.list(saveDir))[0];
+    const campaignIdentity = state ? state.snapshot.campaignId : (claimed?.campaignId ?? "");
+    const activeRevision = state ? Number(state.snapshot.turnNumber) : (claimed?.turnNumber ?? 0);
+
+    if (state) {
+      return {
+        outcome: "success",
+        value: { valid: true, campaignIdentity, activeRevision, issues: [] },
+        diagnostics: [],
+      };
+    }
+
     return {
       outcome: "success",
-      value: { valid: true, campaignIdentity, activeRevision, issues: [] },
+      value: {
+        valid: false,
+        campaignIdentity,
+        activeRevision,
+        issues: collector.all.map((d) => d.message),
+      },
       diagnostics: [],
     };
-  }
-
-  return {
-    outcome: "success",
-    value: {
-      valid: false,
-      campaignIdentity,
-      activeRevision,
-      issues: collector.all.map((d) => d.message),
-    },
-    diagnostics: [],
-  };
-}
+  }),
+);
 
 // ---------------------------------------------------------------------------
 // replayCampaign
@@ -264,8 +237,7 @@ export async function verifyCampaign(
  * (`${campaignSeed}:month:<pre-turn>`, the exact derivation `commitMonth`
  * uses) against the pre-month snapshot, and confirms the replayed closing
  * hash matches the persisted post-month snapshot's deterministic
- * subset-hash — using `@bluewave/phase-engine`'s exported
- * `snapshotToHashable`/`hashSnapshot`, the exact functions
+ * subset-hash — using `ReplayService.hash`, the exact function
  * `ReplayVerifier.verify()` compares with.
  *
  * Each month is replayed with the input it was executed with, stored beside
@@ -278,182 +250,192 @@ export async function verifyCampaign(
  * never advanced has no executed months and trivially `matched` with zero
  * revisions.
  */
-export async function replayCampaign(
-  deps: ContinuityDeps,
-): Promise<BridgeResult<ReplayCampaignResponse>> {
-  const saveDir = await deps.choosePackageDirectory();
-  if (saveDir === null) return cancelled();
+export const replayCampaignProgram = payloadless(() =>
+  Effect.gen(function* () {
+    const dialogs = yield* NativeDialog;
+    const projects = yield* ProjectStore;
+    const replay = yield* ReplayService;
+    const contentArtifact = yield* ContentArtifact;
 
-  const metadata = readSessionMetadata(saveDir);
-  if (!metadata) {
-    return {
-      outcome: "error",
-      reason: "SESSION_METADATA_MISSING",
-      diagnostics: [
-        `${saveDir} has no readable session.json — the replay seed (derived from the campaign's configuration seed) cannot be reconstructed.`,
-      ],
-    };
-  }
+    const saveDir = yield* dialogs.choosePackageDirectory();
+    if (saveDir === null) return cancelled();
 
-  const store = new SaveStore();
-  const listed = store.list(saveDir);
-  if (listed.length === 0) {
-    return {
-      outcome: "error",
-      reason: "REPLAY_FAILED",
-      diagnostics: ["Package contains no saves."],
-    };
-  }
-
-  // list() is newest-first with a deterministic tie-break (timestamp, then
-  // the save chain, then saveId — never OS directory order, F6). A later
-  // save at the same revision supersedes an earlier one (construction saves
-  // never advance revision), so per-turn selection keeps the FIRST save seen
-  // — the newest — rather than overwriting it with an older one.
-  const newestSavePerTurn = new Map<number, SaveMetadata>();
-  for (const meta of listed) {
-    if (!newestSavePerTurn.has(meta.turnNumber)) {
-      newestSavePerTurn.set(meta.turnNumber, meta);
-    }
-  }
-  const turns = [...newestSavePerTurn.keys()].sort((a, b) => a - b);
-
-  if (turns.length < 2) {
-    return {
-      outcome: "success",
-      value: { matched: true, revisions: [] },
-      diagnostics: [
-        `Campaign is at revision ${String(turns[0] ?? 0)} — no executed months to replay.`,
-      ],
-    };
-  }
-
-  const verifier = new ReplayVerifier();
-  const collector = new DiagnosticCollector();
-  const revisions: ReplayedRevision[] = [];
-  let allMatched = true;
-
-  for (let i = 0; i + 1 < turns.length; i++) {
-    const preTurn = turns[i]!;
-    const postTurn = turns[i + 1]!;
-    const pre = loadSaveForTurn(store, saveDir, newestSavePerTurn, preTurn);
-    const post = loadSaveForTurn(store, saveDir, newestSavePerTurn, postTurn);
-
-    if (!pre || !post) {
-      allMatched = false;
-      revisions.push({
-        revision: postTurn,
-        matched: false,
-        expectedHash: "missing",
-        actualHash: "missing",
-      });
-      continue;
+    const metadata = yield* projects.readSessionMetadata(saveDir);
+    if (!metadata) {
+      return {
+        outcome: "error",
+        reason: "SESSION_METADATA_MISSING",
+        diagnostics: [
+          `${saveDir} has no readable session.json — the replay seed (derived from the campaign's configuration seed) cannot be reconstructed.`,
+        ],
+      };
     }
 
-    const seed = `${metadata.campaignSeed}:month:${String(pre.snapshot.turnNumber)}`;
-    const postSaveId = newestSavePerTurn.get(postTurn)!.saveId;
-    const stored = store.loadMonthInput(saveDir, postSaveId, collector);
-    const input = stored.status === "present" ? parseMonthInput(stored.value) : null;
-    if (stored.status === "corrupt" || (stored.status === "present" && input === null)) {
-      if (stored.status === "present") {
-        collector.addError(
-          "REPLAY_MONTH_INPUT_INVALID" as DiagnosticCode,
-          `Revision ${String(postTurn)}: the stored month input is not a month_input_v1 record.`,
+    const listed = yield* projects.list(saveDir);
+    if (listed.length === 0) {
+      return {
+        outcome: "error",
+        reason: "REPLAY_FAILED",
+        diagnostics: ["Package contains no saves."],
+      };
+    }
+
+    // list() is newest-first with a deterministic tie-break (timestamp, then
+    // the save chain, then saveId — never OS directory order, F6). A later
+    // save at the same revision supersedes an earlier one (construction saves
+    // never advance revision), so per-turn selection keeps the FIRST save seen
+    // — the newest — rather than overwriting it with an older one.
+    const newestSavePerTurn = new Map<number, SaveMetadata>();
+    for (const meta of listed) {
+      if (!newestSavePerTurn.has(meta.turnNumber)) {
+        newestSavePerTurn.set(meta.turnNumber, meta);
+      }
+    }
+    const turns = [...newestSavePerTurn.keys()].sort((a, b) => a - b);
+
+    if (turns.length < 2) {
+      return {
+        outcome: "success",
+        value: { matched: true, revisions: [] },
+        diagnostics: [
+          `Campaign is at revision ${String(turns[0] ?? 0)} — no executed months to replay.`,
+        ],
+      };
+    }
+
+    const collector = new DiagnosticCollector();
+    const revisions: ReplayedRevision[] = [];
+    let allMatched = true;
+
+    for (let i = 0; i + 1 < turns.length; i++) {
+      const preTurn = turns[i]!;
+      const postTurn = turns[i + 1]!;
+      const pre = yield* loadSaveForTurn(projects, saveDir, newestSavePerTurn, preTurn);
+      const post = yield* loadSaveForTurn(projects, saveDir, newestSavePerTurn, postTurn);
+
+      if (!pre || !post) {
+        allMatched = false;
+        revisions.push({
+          revision: postTurn,
+          matched: false,
+          expectedHash: "missing",
+          actualHash: "missing",
+        });
+        continue;
+      }
+
+      const seed = `${metadata.campaignSeed}:month:${String(pre.snapshot.turnNumber)}`;
+      const postSaveId = newestSavePerTurn.get(postTurn)!.saveId;
+      const stored = yield* projects.loadMonthInput(saveDir, postSaveId, collector);
+      const input = stored.status === "present" ? parseMonthInput(stored.value) : null;
+      if (stored.status === "corrupt" || (stored.status === "present" && input === null)) {
+        if (stored.status === "present") {
+          collector.addError(
+            "REPLAY_MONTH_INPUT_INVALID" as DiagnosticCode,
+            `Revision ${String(postTurn)}: the stored month input is not a month_input_v1 record.`,
+            { stage: "replay" },
+          );
+        }
+        allMatched = false;
+        revisions.push({
+          revision: postTurn,
+          matched: false,
+          expectedHash: "unreadable",
+          actualHash: "unreadable",
+        });
+        continue;
+      }
+      if (
+        input !== null &&
+        input.shipBuildingContentHash !== (yield* contentArtifact.shipBuildingContentHash())
+      ) {
+        collector.addWarning(
+          "REPLAY_CONTENT_CHANGED" as DiagnosticCode,
+          `Revision ${String(postTurn)} was played with different ship-building content; it cannot be reproduced by this version.`,
           { stage: "replay" },
         );
+        allMatched = false;
+        revisions.push({
+          revision: postTurn,
+          matched: false,
+          expectedHash: "content-changed",
+          actualHash: "content-changed",
+        });
+        continue;
       }
-      allMatched = false;
-      revisions.push({
-        revision: postTurn,
-        matched: false,
-        expectedHash: "unreadable",
-        actualHash: "unreadable",
-      });
-      continue;
-    }
-    if (input !== null && input.shipBuildingContentHash !== shipBuildingContentHash()) {
-      collector.addWarning(
-        "REPLAY_CONTENT_CHANGED" as DiagnosticCode,
-        `Revision ${String(postTurn)} was played with different ship-building content; it cannot be reproduced by this version.`,
-        { stage: "replay" },
+      // Older saves carry no armament hash; only a recorded-and-different armament hash is a divergence (ADR-0093 Step 3).
+      if (
+        input !== null &&
+        input.armamentContentHash !== undefined &&
+        input.armamentContentHash !== (yield* contentArtifact.armamentContentHash())
+      ) {
+        collector.addWarning(
+          "REPLAY_CONTENT_CHANGED" as DiagnosticCode,
+          `Revision ${String(postTurn)} was played with different armament content; it cannot be reproduced by this version.`,
+          { stage: "replay" },
+        );
+        allMatched = false;
+        revisions.push({
+          revision: postTurn,
+          matched: false,
+          expectedHash: "armament-content-changed",
+          actualHash: "armament-content-changed",
+        });
+        continue;
+      }
+      // `commitMonth` advances `turnNumber` by one purely as session
+      // bookkeeping after execution; the engine's own final snapshot keeps the
+      // pre-turn label. Compare like with like by hashing the persisted
+      // post-month snapshot at the pre-turn number.
+      // commitMonth executes with the player's slot first (the engine authorizes human commands against slots[0]) and
+      // restores the compiled order before saving; replay does the same on both sides so the queued envelopes validate.
+      const executed = yield* replay.promote(pre.snapshot, metadata.playerSlotId);
+      const expectedHash = yield* replay.hash(
+        yield* replay.promote(
+          { ...post.snapshot, turnNumber: pre.snapshot.turnNumber },
+          metadata.playerSlotId,
+        ),
       );
-      allMatched = false;
+      const engineOptions =
+        input === null
+          ? undefined
+          : { shipBuilding: yield* contentArtifact.loadShipBuildingContent() };
+      const result = yield* replay.verify({
+        snapshot: executed,
+        commands: input === null ? [] : [...input.commands],
+        originalCommandLedger: input === null ? new CommandLedger() : ledgerOf(input),
+        expectedFinalSnapshotHash: expectedHash,
+        randomSeed: seed,
+        collector,
+        engineOptions,
+      });
+
       revisions.push({
         revision: postTurn,
-        matched: false,
-        expectedHash: "content-changed",
-        actualHash: "content-changed",
+        matched: result.match,
+        expectedHash: result.originalFinalHash,
+        actualHash: result.replayedFinalHash,
       });
-      continue;
+      if (!result.match) allMatched = false;
     }
-    // Older saves carry no armament hash; only a recorded-and-different armament hash is a divergence (ADR-0093 Step 3).
-    if (
-      input !== null &&
-      input.armamentContentHash !== undefined &&
-      input.armamentContentHash !== armamentContentHash()
-    ) {
-      collector.addWarning(
-        "REPLAY_CONTENT_CHANGED" as DiagnosticCode,
-        `Revision ${String(postTurn)} was played with different armament content; it cannot be reproduced by this version.`,
-        { stage: "replay" },
-      );
-      allMatched = false;
-      revisions.push({
-        revision: postTurn,
-        matched: false,
-        expectedHash: "armament-content-changed",
-        actualHash: "armament-content-changed",
-      });
-      continue;
-    }
-    // `commitMonth` advances `turnNumber` by one purely as session
-    // bookkeeping after execution; the engine's own final snapshot keeps the
-    // pre-turn label. Compare like with like by hashing the persisted
-    // post-month snapshot at the pre-turn number.
-    // commitMonth executes with the player's slot first (the engine authorizes human commands against slots[0]) and
-    // restores the compiled order before saving; replay does the same on both sides so the queued envelopes validate.
-    const executed = promotePlayerSlotForExecution(pre.snapshot, metadata.playerSlotId);
-    const expectedHash = hashSnapshot(
-      promotePlayerSlotForExecution(
-        { ...post.snapshot, turnNumber: pre.snapshot.turnNumber },
-        metadata.playerSlotId,
-      ),
-    );
-    const result = verifier.verify(
-      executed,
-      input === null ? [] : [...input.commands],
-      input === null ? new CommandLedger() : ledgerOf(input),
-      expectedHash,
-      seed,
-      collector,
-      input === null ? undefined : { shipBuilding: loadShipBuildingContent() },
-    );
 
-    revisions.push({
-      revision: postTurn,
-      matched: result.match,
-      expectedHash: result.originalFinalHash,
-      actualHash: result.replayedFinalHash,
-    });
-    if (!result.match) allMatched = false;
-  }
-
-  return {
-    outcome: "success",
-    value: { matched: allMatched, revisions },
-    diagnostics: collector.all.map((d) => d.message),
-  };
-}
+    return {
+      outcome: "success",
+      value: { matched: allMatched, revisions },
+      diagnostics: collector.all.map((d) => d.message),
+    };
+  }),
+);
 
 function loadSaveForTurn(
-  store: SaveStore,
+  projects: ProjectStore["Service"],
   saveDir: string,
   newestSavePerTurn: Map<number, SaveMetadata>,
   turn: number,
-): import("@bluewave/campaign").CampaignState | null {
+): Effect.Effect<CampaignState | null, CommandFailed> {
   const meta = newestSavePerTurn.get(turn);
-  if (!meta) return null;
-  return store.loadById(saveDir, meta.saveId, new DiagnosticCollector());
+  if (!meta) return Effect.succeed(null);
+  return projects.loadById(saveDir, meta.saveId, new DiagnosticCollector());
 }
 
 // ---------------------------------------------------------------------------
@@ -463,100 +445,103 @@ function loadSaveForTurn(
 /**
  * `recoverCampaign(undefined) -> RecoverCampaignResponse` (ticket 08/16):
  * `RecoveryManager`'s existing corruption-recovery flow, honestly wrapped by
- * an integrity probe first. `SaveStore.load`'s hash/envelope/compatibility
+ * an integrity probe first. `ProjectStore.load`'s hash/envelope/compatibility
  * checks ARE the corruption detector: the active save is loaded with full
  * verification, and a failed load stands as the corruption verdict. A
- * corrupt active save is reverted to its predecessor via
- * `RecoveryManager.revert` (an atomic pointer flip), then re-verified via a
- * fresh `SaveStore.load`. A healthy package is left untouched
- * (`recovered: false` — reverting would needlessly lose the newest state);
- * a corrupt package with no predecessor can't be recovered
- * (`activeRevision: null`).
+ * corrupt active save is reverted to its predecessor via `ReplayService.revert`
+ * (an atomic pointer flip), then re-verified via a fresh `ProjectStore.load`.
+ * A healthy package is left untouched (`recovered: false` — reverting would
+ * needlessly lose the newest state); a corrupt package with no predecessor
+ * can't be recovered (`activeRevision: null`).
  */
-export async function recoverCampaign(
-  deps: ContinuityDeps,
-): Promise<BridgeResult<RecoverCampaignResponse>> {
-  const saveDir = await deps.choosePackageDirectory();
-  if (saveDir === null) return cancelled();
+export const recoverCampaignProgram = payloadless(() =>
+  Effect.gen(function* () {
+    const dialogs = yield* NativeDialog;
+    const projects = yield* ProjectStore;
+    const replay = yield* ReplayService;
 
-  const store = new SaveStore();
-  const notes: string[] = [];
+    const saveDir = yield* dialogs.choosePackageDirectory();
+    if (saveDir === null) return cancelled();
 
-  const activeSaveId = store.getActiveSaveId(saveDir);
-  if (activeSaveId === null) {
+    const notes: string[] = [];
+
+    const activeSaveId = yield* projects.getActiveSaveId(saveDir);
+    if (activeSaveId === null) {
+      return {
+        outcome: "success",
+        value: {
+          recovered: false,
+          activeRevision: null,
+          notes: ["No pointer file (or an unreadable one) — nothing to recover."],
+        },
+        diagnostics: [],
+      };
+    }
+
+    const probe = new DiagnosticCollector();
+    const active = yield* projects.loadById(saveDir, activeSaveId, probe);
+    if (active) {
+      return {
+        outcome: "success",
+        value: {
+          recovered: false,
+          activeRevision: Number(active.snapshot.turnNumber),
+          notes: ["Active save passes integrity checks — no recovery performed."],
+        },
+        diagnostics: [],
+      };
+    }
+    notes.push(...probe.all.map((d) => d.message));
+
+    const previousSaveId = yield* projects.getPreviousSaveId(saveDir);
+    if (previousSaveId === null) {
+      return {
+        outcome: "success",
+        value: {
+          recovered: false,
+          activeRevision: null,
+          notes: [...notes, "The active save is corrupt and no earlier save exists to revert to."],
+        },
+        diagnostics: [],
+      };
+    }
+
+    const reverted = yield* replay.revert(saveDir, previousSaveId);
+    if (!reverted) {
+      return {
+        outcome: "error",
+        reason: "RECOVERY_FAILED",
+        diagnostics: [...notes, "RecoveryManager could not write the reverted pointer."],
+      };
+    }
+    notes.push(`Reverted the package pointer to save ${previousSaveId}.`);
+
+    const after = new DiagnosticCollector();
+    const revertedState = yield* projects.load(saveDir, after);
+    if (!revertedState) {
+      return {
+        outcome: "success",
+        value: {
+          recovered: false,
+          activeRevision: null,
+          notes: [
+            ...notes,
+            ...after.all.map((d) => d.message),
+            "Reverted save also fails integrity.",
+          ],
+        },
+        diagnostics: [],
+      };
+    }
+
     return {
       outcome: "success",
       value: {
-        recovered: false,
-        activeRevision: null,
-        notes: ["No pointer file (or an unreadable one) — nothing to recover."],
+        recovered: true,
+        activeRevision: Number(revertedState.snapshot.turnNumber),
+        notes,
       },
       diagnostics: [],
     };
-  }
-
-  const probe = new DiagnosticCollector();
-  const active = store.loadById(saveDir, activeSaveId, probe);
-  if (active) {
-    return {
-      outcome: "success",
-      value: {
-        recovered: false,
-        activeRevision: Number(active.snapshot.turnNumber),
-        notes: ["Active save passes integrity checks — no recovery performed."],
-      },
-      diagnostics: [],
-    };
-  }
-  notes.push(...probe.all.map((d) => d.message));
-
-  const previousSaveId = store.getPreviousSaveId(saveDir);
-  if (previousSaveId === null) {
-    return {
-      outcome: "success",
-      value: {
-        recovered: false,
-        activeRevision: null,
-        notes: [...notes, "The active save is corrupt and no earlier save exists to revert to."],
-      },
-      diagnostics: [],
-    };
-  }
-
-  if (!RecoveryManager.revert(saveDir, previousSaveId)) {
-    return {
-      outcome: "error",
-      reason: "RECOVERY_FAILED",
-      diagnostics: [...notes, "RecoveryManager could not write the reverted pointer."],
-    };
-  }
-  notes.push(`Reverted the package pointer to save ${previousSaveId}.`);
-
-  const after = new DiagnosticCollector();
-  const reverted = store.load(saveDir, after);
-  if (!reverted) {
-    return {
-      outcome: "success",
-      value: {
-        recovered: false,
-        activeRevision: null,
-        notes: [
-          ...notes,
-          ...after.all.map((d) => d.message),
-          "Reverted save also fails integrity.",
-        ],
-      },
-      diagnostics: [],
-    };
-  }
-
-  return {
-    outcome: "success",
-    value: {
-      recovered: true,
-      activeRevision: Number(reverted.snapshot.turnNumber),
-      notes,
-    },
-    diagnostics: [],
-  };
-}
+  }),
+);

@@ -3,10 +3,13 @@ import { tmpdir } from "node:os";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { CampaignSnapshot, CampaignState } from "@bluewave/campaign";
+import type { CommitMonthResponse } from "@bluewave/campaign-engine";
 import { createEnvelope } from "@bluewave/deterministic";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { SaveStore } from "@bluewave/persistence";
+import { ManagedRuntime } from "effect";
 import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test";
+import type { BridgeResult } from "../../shared/bridge-contract.js";
 import {
   clearCampaignSessionsForTest,
   getCampaignSession,
@@ -14,16 +17,45 @@ import {
 } from "../campaignSessions.js";
 import { compileProductionCampaignFromArtifact } from "../compiler.js";
 import { clearPendingWorkspacesForTest, pendingEnvelopesForExecution } from "../pendingCommands.js";
+import { projectCommandExit } from "../runtime/bridgeResult.js";
+import type { CommandProgram } from "../runtime/commandProgram.js";
+import { desktopMainLayer } from "../runtime/desktopMainLayer.js";
 import { toSaveableState } from "../saveHelpers.js";
 import type {
   DivisionCommandBody,
+  DivisionCommandOutcome,
   DivisionScreenProjection,
+  SubmitDivisionCommandPayload,
 } from "../../shared/division-contract.js";
-import { commitMonth } from "./commitMonth.js";
-import { inspectDivisionScreen, newDivisionId, submitDivisionCommand } from "./divisionCommands.js";
+import { commitMonthProgram } from "./commitMonth.js";
+import {
+  inspectDivisionScreenProgram,
+  newDivisionId,
+  submitDivisionCommandProgram,
+} from "./divisionCommands.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const GENERATED_ARTIFACT = resolve(__dirname, "../../../../..", "content", "generated", "1880");
+
+// One shared runtime for every division program; the services delegate to the
+// same in-memory session/queue registries the tests populate directly.
+const runtime = ManagedRuntime.make(desktopMainLayer());
+
+/** Runs a command program through the desktop service graph and projects its wire envelope. */
+async function runProgram<A>(program: CommandProgram, payload: unknown): Promise<BridgeResult<A>> {
+  return projectCommandExit(await runtime.runPromiseExit(program(payload))) as BridgeResult<A>;
+}
+
+const inspectDivisionScreen = (sessionId: string) =>
+  runProgram<DivisionScreenProjection>(inspectDivisionScreenProgram, sessionId);
+const submitDivisionCommand = (payload: SubmitDivisionCommandPayload) =>
+  runProgram<DivisionCommandOutcome>(submitDivisionCommandProgram, payload);
+const commitMonth = (payload: {
+  sessionId: string;
+  expectedRevision: number;
+  transportRequestId: string;
+}) => runProgram<CommitMonthResponse>(commitMonthProgram, payload);
+
 const DIVISION_TYPES = new Set([
   "CreateDivision",
   "AddShipToDivision",
@@ -213,6 +245,28 @@ describe("division commands", () => {
       if (result.outcome === "rejected")
         expect(result.reason).toBe("DIVISION_MEMBERSHIP_CHANGE_INELIGIBLE");
       expect(queued("unknown")).toEqual([]);
+    });
+
+    it("returns SESSION_NOT_FOUND for a submit against an unknown session", async () => {
+      const result = await submitDivisionCommand(
+        payload("no-such-session", {
+          type: "CreateDivision",
+          flagshipShipId: "gbr_dreadnought",
+          role: "CORE",
+          formation: "LINE_AHEAD",
+        }),
+      );
+      expect(result).toMatchObject({ outcome: "error", reason: "SESSION_NOT_FOUND" });
+    });
+
+    it("rejects a malformed wire payload at the schema boundary", async () => {
+      const result = await runProgram(submitDivisionCommandProgram, {
+        sessionId: "b",
+        expectedRevision: 0,
+        transportRequestId: "req-x",
+        command: { type: "CreateDivision", flagshipShipId: "", role: "CORE", formation: "LINE" },
+      });
+      expect(result).toMatchObject({ outcome: "error", reason: "INVALID_PAYLOAD" });
     });
   });
 

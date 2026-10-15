@@ -3,38 +3,96 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
-import { SaveStore } from "@bluewave/persistence";
+import { SaveStore, type SaveMetadata } from "@bluewave/persistence";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
+import type { CommitMonthResponse } from "@bluewave/campaign-engine";
+import { Effect, Layer, ManagedRuntime } from "effect";
 import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test";
 import {
   CANONICAL_RESEARCH_FIELD_IDS,
   RESEARCH_FIELD_PRIORITY_WEIGHTS,
   type CampaignConfiguration,
 } from "@bluewave/campaign-engine";
-import { setResearchPriorityCommand } from "./researchCommands.js";
+import type { BridgeResult } from "../../shared/bridge-contract.js";
+import type {
+  CompileCampaignResult,
+  InspectCampaignResult,
+} from "../../shared/campaign-command-contract.js";
+import type {
+  LoadCampaignResponse,
+  RecoverCampaignResponse,
+  ReplayCampaignResponse,
+  VerifyCampaignResponse,
+} from "../../shared/continuity-contract.js";
+import { setResearchPriorityCommandProgram } from "./researchCommands.js";
 import { compileProductionCampaignFromArtifact } from "../compiler.js";
 import { clearCampaignSessionsForTest, getCampaignSession } from "../campaignSessions.js";
 import { clearConstructionWorkspacesForTest } from "../constructionWorkspace.js";
 import { toSaveableState } from "../saveHelpers.js";
-import { commitMonth } from "./commitMonth.js";
-import { compileCampaign, type CompileCampaignDeps } from "./compileCampaign.js";
-import { submitConstructionCommand } from "./constructionCommands.js";
+import { commitMonthProgram } from "./commitMonth.js";
+import { compileCampaignProgram } from "./compileCampaign.js";
+import { submitConstructionCommandProgram } from "./constructionCommands.js";
 import {
-  listCampaigns,
-  loadCampaign,
-  recoverCampaign,
-  replayCampaign,
-  verifyCampaign,
-  type ContinuityDeps,
+  listCampaignsProgram,
+  loadCampaignProgram,
+  recoverCampaignProgram,
+  replayCampaignProgram,
+  verifyCampaignProgram,
 } from "./continuityCommands.js";
-import { inspectCampaign } from "./inspectCampaign.js";
-import { dispatchCampaignCommand } from "../campaignBridge.js";
+import { inspectCampaignProgram } from "./inspectCampaign.js";
+import { submitDesignCommandProgram } from "./designCommands.js";
 import { clearPendingWorkspacesForTest } from "../pendingCommands.js";
 import { readReferenceDesigns } from "../referenceDesigns.js";
+import { projectCommandExit } from "../runtime/bridgeResult.js";
+import { desktopMainLayer } from "../runtime/desktopMainLayer.js";
+import type { CommandProgram } from "../runtime/commandProgram.js";
+import { NativeDialog } from "../runtime/platform.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, "../../../../..");
 const GENERATED_ARTIFACT = resolve(REPO_ROOT, "content", "generated", "1880");
+
+// The programs resolve `NativeDialog` from the Layer; the fake answers from
+// these test-scoped variables, so the real electron dialog is never touched.
+let chooseSaveDirectoryAnswer: string | null = null;
+let choosePackageDirectoryAnswer: string | null = null;
+
+const runtime = ManagedRuntime.make(
+  Layer.mergeAll(
+    desktopMainLayer(),
+    Layer.succeed(NativeDialog, {
+      chooseSaveDirectory: () => Effect.succeed(chooseSaveDirectoryAnswer),
+      choosePackageDirectory: () => Effect.succeed(choosePackageDirectoryAnswer),
+      chooseCopyDirectory: () => Effect.succeed(null),
+    }),
+  ),
+);
+
+async function runProgram<A>(program: CommandProgram, payload: unknown): Promise<BridgeResult<A>> {
+  return projectCommandExit(await runtime.runPromiseExit(program(payload))) as BridgeResult<A>;
+}
+
+const compileCampaign = (configuration: CampaignConfiguration) =>
+  runProgram<CompileCampaignResult>(compileCampaignProgram, configuration);
+const commitMonth = (payload: {
+  sessionId: string;
+  expectedRevision: number;
+  transportRequestId: string;
+}) => runProgram<CommitMonthResponse>(commitMonthProgram, payload);
+const loadCampaign = () => runProgram<LoadCampaignResponse>(loadCampaignProgram, undefined);
+const listCampaigns = () => runProgram<SaveMetadata[]>(listCampaignsProgram, undefined);
+const verifyCampaign = () => runProgram<VerifyCampaignResponse>(verifyCampaignProgram, undefined);
+const replayCampaign = () => runProgram<ReplayCampaignResponse>(replayCampaignProgram, undefined);
+const recoverCampaign = () =>
+  runProgram<RecoverCampaignResponse>(recoverCampaignProgram, undefined);
+const inspectCampaign = (sessionId: string) =>
+  runProgram<InspectCampaignResult>(inspectCampaignProgram, sessionId);
+const submitDesignCommand = (payload: unknown) =>
+  runProgram<unknown>(submitDesignCommandProgram, payload);
+const setResearchPriorityCommand = (payload: unknown) =>
+  runProgram<unknown>(setResearchPriorityCommandProgram, payload);
+const submitConstructionCommand = (payload: unknown) =>
+  runProgram<unknown>(submitConstructionCommandProgram, payload);
 
 /**
  * Desktop-mvp ticket 16 acceptance tests. Every test drives the real
@@ -69,6 +127,8 @@ describe("campaign continuance commands (save, load, verify, replay, recover)", 
   beforeEach(() => {
     saveRoot = mkdtempSync(resolve(tmpdir(), "bw-desktop-continuity-"));
     nextSessionOrdinal = 0;
+    chooseSaveDirectoryAnswer = null;
+    choosePackageDirectoryAnswer = null;
   });
 
   afterEach(() => {
@@ -81,25 +141,16 @@ describe("campaign continuance commands (save, load, verify, replay, recover)", 
     return `req-${nextSessionOrdinal++}-${Math.random().toString(36).slice(2)}`;
   }
 
-  function compileDeps(saveDir: string): CompileCampaignDeps {
-    return {
-      artifactDir: GENERATED_ARTIFACT,
-      chooseSaveDirectory: async () => saveDir,
-      generateSessionId: () => `compile-${nextSessionOrdinal++}`,
-    };
-  }
-
-  function continuityDeps(saveDir: string): ContinuityDeps {
-    return {
-      choosePackageDirectory: async () => saveDir,
-      generateSessionId: () => `loaded-${nextSessionOrdinal++}`,
-    };
+  /** Points the fake package dialog at `saveDir` (or a cancel when null). */
+  function packageAt(saveDir: string | null): void {
+    choosePackageDirectoryAnswer = saveDir;
   }
 
   /** Compile the real production pack through the real `compileCampaign`
-   * command (writes the SaveStore package + session.json sidecar). */
+   * program (writes the SaveStore package + session.json sidecar). */
   async function compileAndSave(saveDir: string): Promise<string> {
-    const result = await compileCampaign(baseConfiguration(), compileDeps(saveDir));
+    chooseSaveDirectoryAnswer = saveDir;
+    const result = await compileCampaign(baseConfiguration());
     expect(result.outcome).toBe("success");
     if (result.outcome !== "success") throw new Error("fixture compile failed");
     return result.value.sessionId;
@@ -190,7 +241,8 @@ describe("campaign continuance commands (save, load, verify, replay, recover)", 
     // Close and reopen the app.
     restartApp();
 
-    const load = await loadCampaign(continuityDeps(saveDir));
+    packageAt(saveDir);
+    const load = await loadCampaign();
     expect(load.outcome).toBe("success");
     if (load.outcome !== "success") return;
     expect(load.value.packagePath).toBe(saveDir);
@@ -238,7 +290,8 @@ describe("campaign continuance commands (save, load, verify, replay, recover)", 
 
     restartApp();
 
-    const result = await loadCampaign(continuityDeps(saveDir));
+    packageAt(saveDir);
+    const result = await loadCampaign();
     expect(result.outcome).toBe("error");
     if (result.outcome !== "error") return;
     expect(result.reason).toBe("LOAD_FAILED");
@@ -261,7 +314,8 @@ describe("campaign continuance commands (save, load, verify, replay, recover)", 
     const saveDir = resolve(saveRoot, "save-b");
     await compileAndSave(saveDir);
 
-    const good = await verifyCampaign(continuityDeps(saveDir));
+    packageAt(saveDir);
+    const good = await verifyCampaign();
     expect(good.outcome).toBe("success");
     if (good.outcome !== "success") return;
     expect(good.value.valid).toBe(true);
@@ -271,7 +325,8 @@ describe("campaign continuance commands (save, load, verify, replay, recover)", 
 
     corruptActiveSave(saveDir);
 
-    const bad = await verifyCampaign(continuityDeps(saveDir));
+    packageAt(saveDir);
+    const bad = await verifyCampaign();
     expect(bad.outcome).toBe("success");
     if (bad.outcome !== "success") return;
     expect(bad.value.valid).toBe(false);
@@ -293,7 +348,8 @@ describe("campaign continuance commands (save, load, verify, replay, recover)", 
 
     restartApp();
 
-    const replay = await replayCampaign(continuityDeps(saveDir));
+    packageAt(saveDir);
+    const replay = await replayCampaign();
     expect(replay.outcome).toBe("success");
     if (replay.outcome !== "success") return;
     expect(replay.value.matched).toBe(true);
@@ -308,7 +364,7 @@ describe("campaign continuance commands (save, load, verify, replay, recover)", 
   it("replay re-executes a month's player commands (a submitted design) and still matches", async () => {
     const saveDir = resolve(saveRoot, "save-cmd");
     const sessionId = await compileAndSave(saveDir);
-    const queued = await dispatchCampaignCommand("submitDesignCommand", {
+    const queued = await submitDesignCommand({
       sessionId,
       expectedRevision: 0,
       transportRequestId: randomTransportRequestId(),
@@ -321,7 +377,8 @@ describe("campaign continuance commands (save, load, verify, replay, recover)", 
 
     restartApp();
 
-    const replay = await replayCampaign(continuityDeps(saveDir));
+    packageAt(saveDir);
+    const replay = await replayCampaign();
     expect(replay.outcome).toBe("success");
     if (replay.outcome !== "success") return;
     expect(replay.value.revisions.map((r) => r.matched)).toEqual([true, true]);
@@ -346,7 +403,8 @@ describe("campaign continuance commands (save, load, verify, replay, recover)", 
 
     restartApp();
 
-    const replay = await replayCampaign(continuityDeps(saveDir));
+    packageAt(saveDir);
+    const replay = await replayCampaign();
     expect(replay.outcome).toBe("success");
     if (replay.outcome !== "success") return;
     expect(replay.value.revisions.map((r) => r.matched)).toEqual([true]);
@@ -390,7 +448,8 @@ describe("campaign continuance commands (save, load, verify, replay, recover)", 
       true,
     );
     restartApp();
-    const replay = await replayCampaign(continuityDeps(saveDir));
+    packageAt(saveDir);
+    const replay = await replayCampaign();
     if (replay.outcome !== "success") throw new Error("replay failed");
     expect(replay.value.matched).toBe(false);
     expect(replay.value.revisions[0]).toMatchObject({
@@ -406,7 +465,8 @@ describe("campaign continuance commands (save, load, verify, replay, recover)", 
     await advanceOneMonth(sessionId, 0);
     rewriteMonthInput(saveDir, (i) => (i["commandOutcomes"] = [{ forged: true }]), false);
     restartApp();
-    const replay = await replayCampaign(continuityDeps(saveDir));
+    packageAt(saveDir);
+    const replay = await replayCampaign();
     if (replay.outcome !== "success") throw new Error("replay failed");
     expect(replay.value.revisions[0]).toMatchObject({ matched: false, expectedHash: "unreadable" });
     expect(replay.diagnostics.join(" ")).toMatch(/does not match its hash/);
@@ -415,7 +475,7 @@ describe("campaign continuance commands (save, load, verify, replay, recover)", 
   it("a design queued before the app closed is still queued after reopening, and its study approves it", async () => {
     const saveDir = resolve(saveRoot, "save-queue");
     const sessionId = await compileAndSave(saveDir);
-    const queued = await dispatchCampaignCommand("submitDesignCommand", {
+    const queued = await submitDesignCommand({
       sessionId,
       expectedRevision: 0,
       transportRequestId: randomTransportRequestId(),
@@ -426,7 +486,8 @@ describe("campaign continuance commands (save, load, verify, replay, recover)", 
 
     restartApp();
 
-    const load = await loadCampaign(continuityDeps(saveDir));
+    packageAt(saveDir);
+    const load = await loadCampaign();
     if (load.outcome !== "success") throw new Error("load failed");
     const designVersionId = (queued.value as { designVersionId: string }).designVersionId;
     await advanceOneMonth(load.value.sessionId, 0);
@@ -453,7 +514,8 @@ describe("campaign continuance commands (save, load, verify, replay, recover)", 
       "utf8",
     );
     restartApp();
-    const load = await loadCampaign(continuityDeps(saveDir));
+    packageAt(saveDir);
+    const load = await loadCampaign();
     if (load.outcome !== "success") throw new Error("load failed");
     expect(existsSync(join(saveDir, "pending-commands.json"))).toBe(false);
   });
@@ -470,7 +532,8 @@ describe("campaign continuance commands (save, load, verify, replay, recover)", 
     // under canonicalSerialize) — replay reports a mismatch all the same.
     corruptNationTreasury(saveDir);
 
-    const replay = await replayCampaign(continuityDeps(saveDir));
+    packageAt(saveDir);
+    const replay = await replayCampaign();
     expect(replay.outcome).toBe("success");
     if (replay.outcome !== "success") return;
     expect(replay.value.matched).toBe(false);
@@ -483,7 +546,8 @@ describe("campaign continuance commands (save, load, verify, replay, recover)", 
 
     restartApp();
 
-    const replay = await replayCampaign(continuityDeps(saveDir));
+    packageAt(saveDir);
+    const replay = await replayCampaign();
     expect(replay.outcome).toBe("success");
     if (replay.outcome !== "success") return;
     expect(replay.value.matched).toBe(true);
@@ -525,7 +589,8 @@ describe("campaign continuance commands (save, load, verify, replay, recover)", 
 
     restartApp();
 
-    const replay = await replayCampaign(continuityDeps(saveDir));
+    packageAt(saveDir);
+    const replay = await replayCampaign();
     expect(replay.outcome).toBe("success");
     if (replay.outcome !== "success") return;
     expect(replay.value.matched).toBe(true);
@@ -547,11 +612,13 @@ describe("campaign continuance commands (save, load, verify, replay, recover)", 
     corruptActiveSave(saveDir);
 
     // Loading the corrupt package honestly fails before recovery.
-    const failed = await loadCampaign(continuityDeps(saveDir));
+    packageAt(saveDir);
+    const failed = await loadCampaign();
     expect(failed.outcome).toBe("error");
     if (failed.outcome === "error") expect(failed.reason).toBe("LOAD_FAILED");
 
-    const rec = await recoverCampaign(continuityDeps(saveDir));
+    packageAt(saveDir);
+    const rec = await recoverCampaign();
     expect(rec.outcome).toBe("success");
     if (rec.outcome !== "success") return;
     expect(rec.value.recovered).toBe(true);
@@ -560,7 +627,8 @@ describe("campaign continuance commands (save, load, verify, replay, recover)", 
 
     // The reverted package loads cleanly and restores the pre-corruption
     // (initial) state.
-    const loaded = await loadCampaign(continuityDeps(saveDir));
+    packageAt(saveDir);
+    const loaded = await loadCampaign();
     expect(loaded.outcome).toBe("success");
     if (loaded.outcome !== "success") return;
     expect(loaded.value.activeRevision).toBe(0);
@@ -575,7 +643,8 @@ describe("campaign continuance commands (save, load, verify, replay, recover)", 
     const saveDir = resolve(saveRoot, "save-g");
     await compileAndSave(saveDir);
 
-    const rec = await recoverCampaign(continuityDeps(saveDir));
+    packageAt(saveDir);
+    const rec = await recoverCampaign();
     expect(rec.outcome).toBe("success");
     if (rec.outcome !== "success") return;
     expect(rec.value.recovered).toBe(false);
@@ -583,7 +652,8 @@ describe("campaign continuance commands (save, load, verify, replay, recover)", 
     expect(rec.value.notes.some((n) => n.includes("no recovery"))).toBe(true);
 
     // The untouched package still loads at its full state.
-    const load = await loadCampaign(continuityDeps(saveDir));
+    packageAt(saveDir);
+    const load = await loadCampaign();
     expect(load.outcome).toBe("success");
     if (load.outcome !== "success") return;
     expect(load.value.activeRevision).toBe(0);
@@ -594,16 +664,8 @@ describe("campaign continuance commands (save, load, verify, replay, recover)", 
   // -------------------------------------------------------------------------
 
   it("every command reports PACKAGE_SELECTION_CANCELLED when the dialog is cancelled", async () => {
-    const cancelledDeps: ContinuityDeps = {
-      choosePackageDirectory: async () => null,
-      generateSessionId: () => "never",
-    };
-    for (const run of [
-      () => loadCampaign(cancelledDeps),
-      () => verifyCampaign(cancelledDeps),
-      () => replayCampaign(cancelledDeps),
-      () => recoverCampaign(cancelledDeps),
-    ]) {
+    for (const run of [loadCampaign, verifyCampaign, replayCampaign, recoverCampaign]) {
+      packageAt(null);
       const result = await run();
       expect(result.outcome).toBe("rejected");
       if (result.outcome === "rejected") expect(result.reason).toBe("PACKAGE_SELECTION_CANCELLED");
@@ -625,11 +687,13 @@ describe("campaign continuance commands (save, load, verify, replay, recover)", 
     if (!output) throw new Error("production pack failed to compile");
     new SaveStore().save(toSaveableState(output.state), saveDir);
 
-    const load = await loadCampaign(continuityDeps(saveDir));
+    packageAt(saveDir);
+    const load = await loadCampaign();
     expect(load.outcome).toBe("error");
     if (load.outcome === "error") expect(load.reason).toBe("SESSION_METADATA_MISSING");
 
-    const replay = await replayCampaign(continuityDeps(saveDir));
+    packageAt(saveDir);
+    const replay = await replayCampaign();
     expect(replay.outcome).toBe("error");
     if (replay.outcome === "error") expect(replay.reason).toBe("SESSION_METADATA_MISSING");
   });
@@ -637,11 +701,11 @@ describe("campaign continuance commands (save, load, verify, replay, recover)", 
 
 describe("listCampaigns (campaign-list screen backing query)", () => {
   let saveRoot: string;
-  let nextSessionOrdinal: number;
 
   beforeEach(() => {
     saveRoot = mkdtempSync(resolve(tmpdir(), "bw-desktop-listcampaigns-"));
-    nextSessionOrdinal = 0;
+    chooseSaveDirectoryAnswer = null;
+    choosePackageDirectoryAnswer = null;
   });
 
   afterEach(() => {
@@ -650,21 +714,15 @@ describe("listCampaigns (campaign-list screen backing query)", () => {
     clearConstructionWorkspacesForTest();
   });
 
-  function compileDeps(saveDir: string) {
-    return {
-      artifactDir: GENERATED_ARTIFACT,
-      chooseSaveDirectory: async () => saveDir,
-      generateSessionId: () => `list-${nextSessionOrdinal++}`,
-    };
-  }
-
   it("lists real saves with the additive campaign-list fields", async () => {
     const saveDir = resolve(saveRoot, "save-a");
-    const result = await compileCampaign(baseConfiguration(), compileDeps(saveDir));
+    chooseSaveDirectoryAnswer = saveDir;
+    const result = await compileCampaign(baseConfiguration());
     expect(result.outcome).toBe("success");
     if (result.outcome !== "success") throw new Error("fixture compile failed");
 
-    const list = await listCampaigns({ choosePackageDirectory: async () => saveDir });
+    choosePackageDirectoryAnswer = saveDir;
+    const list = await listCampaigns();
     expect(list.outcome).toBe("success");
     if (list.outcome !== "success") return;
     expect(list.value.length).toBeGreaterThanOrEqual(1);
@@ -684,14 +742,16 @@ describe("listCampaigns (campaign-list screen backing query)", () => {
     const saveDir = resolve(saveRoot, "empty");
     mkdirSync(saveDir, { recursive: true });
 
-    const list = await listCampaigns({ choosePackageDirectory: async () => saveDir });
+    choosePackageDirectoryAnswer = saveDir;
+    const list = await listCampaigns();
     expect(list.outcome).toBe("success");
     if (list.outcome !== "success") return;
     expect(list.value).toEqual([]);
   });
 
   it("returns a cancelled rejection when the user cancels the directory dialog", async () => {
-    const list = await listCampaigns({ choosePackageDirectory: async () => null });
+    choosePackageDirectoryAnswer = null;
+    const list = await listCampaigns();
     expect(list.outcome).toBe("rejected");
     if (list.outcome !== "rejected") return;
     expect(list.reason).toBe("PACKAGE_SELECTION_CANCELLED");

@@ -1,15 +1,15 @@
-import { existsSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, renameSync } from "node:fs";
 import { join } from "node:path";
 import { CURRENT_COMPATIBILITY_VERSION } from "@bluewave/persistence";
 import { decodeLog, PersistenceError } from "@bluewave/ship-design";
-import { Result, Schema } from "effect";
-import type { BridgeResult } from "../shared/bridge-contract.js";
-import type {
-  DrawingBoardDraftRecord,
-  ReadDrawingBoardDraftResult,
-  WriteDrawingBoardDraftPayload,
-} from "../shared/design-contract.js";
-import { getCampaignSession } from "./campaignSessions.js";
+import { Effect, Result, Schema } from "effect";
+import type { DrawingBoardDraftRecord } from "../shared/design-contract.js";
+import { SessionIdPayloadSchema } from "./campaignCommandSchemas.js";
+import { CampaignSessionStore } from "./runtime/campaignSessionStore.js";
+import { CommandRejected } from "./runtime/commandError.js";
+import { withSchema } from "./runtime/commandProgram.js";
+import { Clock } from "./runtime/platform.js";
+import { DraftStore } from "./runtime/sidecarStores.js";
 
 /**
  * The Drawing Board's working design for a campaign: the starting design and the undoable edit log, so closing the
@@ -34,15 +34,29 @@ const StoredSchema = Schema.Struct({
 /** Version a draft without a stamp was written under (ship-part-model ticket 10). */
 const LEGACY_DRAFT_COMPATIBILITY_VERSION = "1.2.0";
 
-function sessionMissing(sessionId: string) {
-  return {
-    outcome: "error" as const,
-    reason: "SESSION_NOT_FOUND",
-    diagnostics: [`No active campaign session ${sessionId}`],
-  };
-}
+/**
+ * Wire shape of `writeDrawingBoardDraft` (semantic checks live in the program).
+ * Declared before the programs below: `withSchema` reads it at module
+ * evaluation to build the command adapter.
+ */
+export const WriteDrawingBoardDraftPayloadSchema = Schema.Struct({
+  sessionId: Schema.String.check(Schema.isMinLength(1)),
+  draft: Schema.NullOr(
+    Schema.Struct({
+      presetId: Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(200)),
+      log: Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(MAX_LOG_CHARS)),
+    }),
+  ),
+});
 
-/** Tolerant read: a missing, unreadable or malformed file is "no draft", never a crash. */
+/**
+ * Tolerant read: a missing, unreadable or malformed file is "no draft", never a crash.
+ *
+ * The raw `node:*` read lives here (not in the command program): the
+ * `DraftStore` service wraps this helper, so the Effect program never touches
+ * the filesystem directly. The version-mismatch rename also stays inside the
+ * store.
+ */
 export function loadDrawingBoardDraft(
   saveDir: string,
   currentVersion: string = CURRENT_COMPATIBILITY_VERSION,
@@ -70,68 +84,62 @@ export function loadDrawingBoardDraft(
   }
 }
 
-export async function readDrawingBoardDraft(
-  sessionId: string,
-): Promise<BridgeResult<ReadDrawingBoardDraftResult>> {
-  const record = getCampaignSession(sessionId);
-  if (!record) return sessionMissing(sessionId);
-  return {
-    outcome: "success",
-    value: { draft: loadDrawingBoardDraft(record.saveDir) },
-    diagnostics: [],
-  };
-}
+/**
+ * `readDrawingBoardDraft(sessionId) -> { draft }` as an Effect command program
+ * (ADR-0159). Reads the session's working design through `DraftStore`
+ * (tolerant: a missing/corrupt/foreign-version file is "no draft"). The
+ * session is resolved through `CampaignSessionStore`, whose `SessionNotFound`
+ * failure projects to the same `SESSION_NOT_FOUND` envelope as before.
+ */
+export const readDrawingBoardDraftProgram = withSchema(SessionIdPayloadSchema, (sessionId) =>
+  Effect.gen(function* () {
+    const sessions = yield* CampaignSessionStore;
+    const record = yield* sessions.get(sessionId);
 
-/** Saves the working design, or removes it (`draft: null`) when there is nothing left to keep. */
-export async function writeDrawingBoardDraft(
-  payload: WriteDrawingBoardDraftPayload,
-  now: () => Date = () => new Date(),
-): Promise<BridgeResult<{ readonly saved: boolean }>> {
-  const record = getCampaignSession(payload.sessionId);
-  if (!record) return sessionMissing(payload.sessionId);
-  const path = join(record.saveDir, DRAWING_BOARD_DRAFT_FILENAME);
-  if (payload.draft === null) {
-    rmSync(path, { force: true });
-    return { outcome: "success", value: { saved: false }, diagnostics: [] };
-  }
-  try {
-    decodeLog(payload.draft.log);
-  } catch (err) {
-    return {
-      outcome: "rejected",
-      reason: "INVALID_COMMAND_PAYLOAD",
-      diagnostics: [PersistenceError.is(err) ? err.message : "not an edit log"],
-    };
-  }
-  const stored = {
-    schema: "drawing_board_draft_v1",
-    savedAt: now().toISOString(),
-    presetId: payload.draft.presetId,
-    log: payload.draft.log,
-    compatibilityVersion: CURRENT_COMPATIBILITY_VERSION,
-  };
-  const tmp = `${path}.tmp`;
-  try {
-    writeFileSync(tmp, JSON.stringify(stored), "utf8");
-    renameSync(tmp, path);
-  } catch (err) {
-    rmSync(tmp, { force: true });
-    return {
-      outcome: "error",
-      reason: "DRAFT_WRITE_FAILED",
-      diagnostics: [err instanceof Error ? err.message : String(err)],
-    };
-  }
-  return { outcome: "success", value: { saved: true }, diagnostics: [] };
-}
+    const drafts = yield* DraftStore;
+    const draft = yield* drafts.load(record.saveDir);
 
-/** Wire shape of `writeDrawingBoardDraft` (semantic checks live in the handler). */
-export const WriteDrawingBoardDraftPayloadSchema = Schema.Struct({
-  sessionId: Schema.String.check(Schema.isMinLength(1)),
-  draft: Schema.NullOr(
-    Schema.Struct({
-      presetId: Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(200)),
-      log: Schema.String.check(Schema.isMinLength(1), Schema.isMaxLength(MAX_LOG_CHARS)),
+    return { outcome: "success" as const, value: { draft }, diagnostics: [] };
+  }),
+);
+
+/**
+ * `writeDrawingBoardDraft(payload) -> { saved }` as an Effect command program
+ * (ADR-0159). Saves the working design through `DraftStore`, or removes it
+ * (`draft: null`) when there is nothing left to keep. The `savedAt` stamp comes
+ * from the `Clock` service (not wall-clock read inside the program) and the
+ * `compatibilityVersion` stamp from `DraftStore`. A log that is not a decodable
+ * edit log is a recoverable `CommandRejected` (`INVALID_COMMAND_PAYLOAD`),
+ * matching the former envelope byte-for-byte; a failed write is
+ * `DRAFT_WRITE_FAILED`.
+ */
+export const writeDrawingBoardDraftProgram = withSchema(
+  WriteDrawingBoardDraftPayloadSchema,
+  (payload) =>
+    Effect.gen(function* () {
+      const sessions = yield* CampaignSessionStore;
+      const record = yield* sessions.get(payload.sessionId);
+      const drafts = yield* DraftStore;
+
+      const draft = payload.draft;
+      if (draft === null) {
+        yield* drafts.remove(record.saveDir);
+        return { outcome: "success" as const, value: { saved: false }, diagnostics: [] };
+      }
+
+      yield* Effect.try({
+        try: () => decodeLog(draft.log),
+        catch: (error) =>
+          new CommandRejected({
+            reason: "INVALID_COMMAND_PAYLOAD",
+            diagnostics: [PersistenceError.is(error) ? error.message : "not an edit log"],
+          }),
+      });
+
+      const clock = yield* Clock;
+      const savedAt = (yield* clock.now()).toISOString();
+      yield* drafts.save(record.saveDir, draft, savedAt);
+
+      return { outcome: "success" as const, value: { saved: true }, diagnostics: [] };
     }),
-  ),
-});
+);

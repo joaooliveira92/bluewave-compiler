@@ -12,8 +12,10 @@ import type { CommandBody, CommandEnvelope } from "@bluewave/commands";
 import { canonicalSerialize, createEnvelope, sha256Hex } from "@bluewave/deterministic";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { SaveStore } from "@bluewave/persistence";
-import { CANONICAL_RESEARCH_FIELD_IDS } from "@bluewave/campaign-engine";
+import { CANONICAL_RESEARCH_FIELD_IDS, type CommitMonthResponse } from "@bluewave/campaign-engine";
+import { ManagedRuntime } from "effect";
 import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test";
+import type { BridgeResult } from "../../shared/bridge-contract.js";
 import {
   clearCampaignSessionsForTest,
   getCampaignSession,
@@ -21,15 +23,48 @@ import {
 } from "../campaignSessions.js";
 import { compileProductionCampaignFromArtifact } from "../compiler.js";
 import { pendingEnvelopesForExecution, clearPendingWorkspacesForTest } from "../pendingCommands.js";
+import { projectCommandExit } from "../runtime/bridgeResult.js";
+import type { CommandProgram } from "../runtime/commandProgram.js";
+import { desktopMainLayer } from "../runtime/desktopMainLayer.js";
 import { toSaveableState } from "../saveHelpers.js";
-import { commitMonth } from "./commitMonth.js";
-import { inspectDiplomacyScreen, submitDiplomacyCommand } from "./diplomacyCommands.js";
-import { setResearchPriorityCommand } from "./researchCommands.js";
-import type { DiplomacyCommandBody } from "../../shared/diplomacy-contract.js";
+import { commitMonthProgram } from "./commitMonth.js";
+import {
+  inspectDiplomacyScreenProgram,
+  submitDiplomacyCommandProgram,
+} from "./diplomacyCommands.js";
+import { setResearchPriorityCommandProgram } from "./researchCommands.js";
+import type {
+  DiplomacyCommandBody,
+  DiplomacyCommandOutcome,
+  DiplomacyScreenProjection,
+  SubmitDiplomacyCommandPayload,
+} from "../../shared/diplomacy-contract.js";
+import type { ResearchPriorityOutcome } from "../../shared/research-contract.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, "../../../../..");
 const GENERATED_ARTIFACT = resolve(REPO_ROOT, "content", "generated", "1880");
+
+// One shared runtime for every diplomacy program; the services delegate to the
+// same in-memory session/queue registries the tests populate directly.
+const runtime = ManagedRuntime.make(desktopMainLayer());
+
+/** Runs a command program through the desktop service graph and projects its wire envelope. */
+async function runProgram<A>(program: CommandProgram, payload: unknown): Promise<BridgeResult<A>> {
+  return projectCommandExit(await runtime.runPromiseExit(program(payload))) as BridgeResult<A>;
+}
+
+const inspectDiplomacyScreen = (sessionId: string) =>
+  runProgram<DiplomacyScreenProjection>(inspectDiplomacyScreenProgram, sessionId);
+const submitDiplomacyCommand = (payload: SubmitDiplomacyCommandPayload) =>
+  runProgram<DiplomacyCommandOutcome>(submitDiplomacyCommandProgram, payload);
+const setResearchPriorityCommand = (payload: unknown) =>
+  runProgram<ResearchPriorityOutcome>(setResearchPriorityCommandProgram, payload);
+const commitMonth = (payload: {
+  sessionId: string;
+  expectedRevision: number;
+  transportRequestId: string;
+}) => runProgram<CommitMonthResponse>(commitMonthProgram, payload);
 
 const DIPLOMACY_TYPES = new Set<string>([
   "DeclareWar",
@@ -201,6 +236,23 @@ describe("diplomacy commands", () => {
       expect(result.outcome).toBe("error");
       if (result.outcome !== "error") return;
       expect(result.reason).toBe("SESSION_NOT_FOUND");
+    });
+  });
+
+  describe("submitDiplomacyCommand — boundary failures", () => {
+    it("returns SESSION_NOT_FOUND for a well-formed submit against an unknown session", async () => {
+      const result = await submitDiplomacyCommand(payload("no-such-session", declareWar("france")));
+      expect(result).toMatchObject({ outcome: "error", reason: "SESSION_NOT_FOUND" });
+    });
+
+    it("rejects a malformed wire payload at the schema boundary", async () => {
+      const result = await runProgram(submitDiplomacyCommandProgram, {
+        sessionId: "b",
+        expectedRevision: 0,
+        transportRequestId: "req-x",
+        command: { type: "DeclareWar", targetNationId: "" },
+      });
+      expect(result).toMatchObject({ outcome: "error", reason: "INVALID_PAYLOAD" });
     });
   });
 

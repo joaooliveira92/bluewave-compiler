@@ -1,43 +1,40 @@
 import { buildOpeningBriefingProjection } from "@bluewave/campaign-engine";
-import type { BridgeResult } from "../../shared/bridge-contract.js";
-import type { InspectOpeningBriefingResult } from "../../shared/campaign-command-contract.js";
-import { getCampaignSession } from "../campaignSessions.js";
+import { Effect } from "effect";
+import { SessionIdPayloadSchema } from "../campaignCommandSchemas.js";
+import { CampaignSessionStore } from "../runtime/campaignSessionStore.js";
+import { CommandFailed } from "../runtime/commandError.js";
+import { withSchema } from "../runtime/commandProgram.js";
 
 /**
  * `inspectOpeningBriefing(sessionId) -> InspectOpeningBriefingResult`
- * (game-onboarding INC-8, spec §8): the Opening Strategic Briefing's slice of
- * the compiled snapshot, shown once after world generation and before the
- * Overview dashboard. Purely read-only — derives everything from the session's
- * compiled `CampaignState` via `buildOpeningBriefingProjection` (same
- * convention as `inspectDiplomacyScreen`), never mutating state.
+ * (game-onboarding INC-8, spec §8) as an Effect command program (ADR-0159):
+ * the Opening Strategic Briefing's slice of the compiled snapshot, shown once
+ * after world generation and before the Overview dashboard. Purely read-only —
+ * derives everything from the session's compiled `CampaignState` via
+ * `buildOpeningBriefingProjection` (same convention as
+ * `inspectDiplomacyScreen`), never mutating state.
  *
- * Session lookup (`SESSION_NOT_FOUND`) and player-slot resolution
- * (`UNKNOWN_PLAYER_SLOT`) follow the established inspect-command pattern.
+ * Session lookup fails with `SessionNotFound` (projected to `SESSION_NOT_FOUND`)
+ * and player-slot resolution fails with `UNKNOWN_PLAYER_SLOT`, following the
+ * established inspect-command pattern.
  */
-export async function inspectOpeningBriefing(
-  sessionId: string,
-): Promise<BridgeResult<InspectOpeningBriefingResult>> {
-  const record = getCampaignSession(sessionId);
-  if (!record) {
-    return {
-      outcome: "error",
-      reason: "SESSION_NOT_FOUND",
-      diagnostics: [`No active campaign session ${sessionId}`],
-    };
-  }
+export const inspectOpeningBriefingProgram = withSchema(SessionIdPayloadSchema, (sessionId) =>
+  Effect.gen(function* () {
+    const sessions = yield* CampaignSessionStore;
+    const record = yield* sessions.get(sessionId);
 
-  const projection = buildOpeningBriefingProjection(
-    record.state,
-    record.playerSlotId,
-    record.month,
-  );
-  if (!projection) {
-    return {
-      outcome: "error",
-      reason: "UNKNOWN_PLAYER_SLOT",
-      diagnostics: [`No nation ${record.playerSlotId} in session ${sessionId}`],
-    };
-  }
+    const projection = buildOpeningBriefingProjection(
+      record.state,
+      record.playerSlotId,
+      record.month,
+    );
+    if (!projection) {
+      return yield* new CommandFailed({
+        reason: "UNKNOWN_PLAYER_SLOT",
+        diagnostics: [`No nation ${record.playerSlotId} in session ${sessionId}`],
+      });
+    }
 
-  return { outcome: "success", value: { projection }, diagnostics: [] };
-}
+    return { outcome: "success" as const, value: { projection }, diagnostics: [] };
+  }),
+);

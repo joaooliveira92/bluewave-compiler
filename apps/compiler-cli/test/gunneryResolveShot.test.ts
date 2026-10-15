@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { neutralAccuracyFactors, type GunneryAccuracyFactors } from "@bluewave/combat";
 import { runGunneryResolveShot, type GunneryResolveShotCliOptions } from "../src/commands.js";
+import { runCli } from "./runCli.js";
 
 function stdoutSpy() {
   return vi.spyOn(process.stdout, "write").mockImplementation(() => true as any);
@@ -45,25 +46,27 @@ describe("runGunneryResolveShot", () => {
     rmSync(dir, { recursive: true, force: true });
   });
 
-  it("returns usage-error when --input is not provided", () => {
-    expect(runGunneryResolveShot(baseOptions())).toBe("usage-error");
+  it("returns usage-error when --input is not provided", async () => {
+    expect(await runCli(runGunneryResolveShot(baseOptions()))).toBe("usage-error");
   });
 
-  it("returns usage-error when the input file does not exist", () => {
-    expect(runGunneryResolveShot(baseOptions(join(dir, "missing.json")))).toBe("usage-error");
+  it("returns usage-error when the input file does not exist", async () => {
+    expect(await runCli(runGunneryResolveShot(baseOptions(join(dir, "missing.json"))))).toBe(
+      "usage-error",
+    );
   });
 
-  it("returns usage-error when the input file is not valid JSON", () => {
+  it("returns usage-error when the input file is not valid JSON", async () => {
     const inputPath = join(dir, "input.json");
     writeFileSync(inputPath, "not json", "utf8");
-    expect(runGunneryResolveShot(baseOptions(inputPath))).toBe("usage-error");
+    expect(await runCli(runGunneryResolveShot(baseOptions(inputPath)))).toBe("usage-error");
   });
 
-  it("resolves a guaranteed HIT (baseAccuracyBp 10_000, all-neutral factors) and consumes ammunition", () => {
+  it("resolves a guaranteed HIT (baseAccuracyBp 10_000, all-neutral factors) and consumes ammunition", async () => {
     const inputPath = join(dir, "input.json");
     writeFileSync(inputPath, JSON.stringify(scenario(neutralAccuracyFactors(10_000))), "utf8");
     const spy = stdoutSpy();
-    const result = runGunneryResolveShot(baseOptions(inputPath));
+    const result = await runCli(runGunneryResolveShot(baseOptions(inputPath)));
     expect(result).toBe("success");
     const output = spy.mock.calls.map((c) => c[0]).join("");
     expect(output).toContain("Final accuracy: 10000bp");
@@ -72,11 +75,11 @@ describe("runGunneryResolveShot", () => {
     spy.mockRestore();
   });
 
-  it("resolves a guaranteed MISS (baseAccuracyBp 0, all-neutral factors)", () => {
+  it("resolves a guaranteed MISS (baseAccuracyBp 0, all-neutral factors)", async () => {
     const inputPath = join(dir, "input.json");
     writeFileSync(inputPath, JSON.stringify(scenario(neutralAccuracyFactors(0))), "utf8");
     const spy = stdoutSpy();
-    const result = runGunneryResolveShot(baseOptions(inputPath));
+    const result = await runCli(runGunneryResolveShot(baseOptions(inputPath)));
     expect(result).toBe("success");
     const output = spy.mock.calls.map((c) => c[0]).join("");
     expect(output).toContain("Final accuracy: 0bp");
@@ -84,11 +87,13 @@ describe("runGunneryResolveShot", () => {
     spy.mockRestore();
   });
 
-  it("emits structured JSON with the accuracy manifest, hit draw, and ammunition account", () => {
+  it("emits structured JSON with the accuracy manifest, hit draw, and ammunition account", async () => {
     const inputPath = join(dir, "input.json");
     writeFileSync(inputPath, JSON.stringify(scenario(neutralAccuracyFactors(10_000))), "utf8");
     const spy = stdoutSpy();
-    const result = runGunneryResolveShot({ ...baseOptions(inputPath), outputMode: "json" });
+    const result = await runCli(
+      runGunneryResolveShot({ ...baseOptions(inputPath), outputMode: "json" }),
+    );
     expect(result).toBe("success");
     const output = spy.mock.calls.map((c) => c[0]).join("");
     const jsonLine = output.split("\n").find((line) => line.includes("finalAccuracyBp"));
@@ -105,34 +110,34 @@ describe("runGunneryResolveShot", () => {
     spy.mockRestore();
   });
 
-  it("is deterministic for the same seed", () => {
+  it("is deterministic for the same seed", async () => {
     const inputPath = join(dir, "input.json");
     writeFileSync(inputPath, JSON.stringify(scenario(neutralAccuracyFactors(5_000))), "utf8");
     const spy1 = stdoutSpy();
-    runGunneryResolveShot({ ...baseOptions(inputPath), outputMode: "json" });
+    await runCli(runGunneryResolveShot({ ...baseOptions(inputPath), outputMode: "json" }));
     const out1 = spy1.mock.calls.map((c) => c[0]).join("");
     spy1.mockRestore();
     const spy2 = stdoutSpy();
-    runGunneryResolveShot({ ...baseOptions(inputPath), outputMode: "json" });
+    await runCli(runGunneryResolveShot({ ...baseOptions(inputPath), outputMode: "json" }));
     const out2 = spy2.mock.calls.map((c) => c[0]).join("");
     spy2.mockRestore();
     expect(out1).toBe(out2);
   });
 
-  it("routes GUNNERY_ACCURACY_FACTOR_MISSING through the ticket-01 adapter as validation-error", () => {
+  it("routes GUNNERY_ACCURACY_FACTOR_MISSING through the ticket-01 adapter as validation-error", async () => {
     const inputPath = join(dir, "input.json");
     const factors = neutralAccuracyFactors(5_000) as any;
     delete factors.range; // missing factor -> GUNNERY_ACCURACY_FACTOR_MISSING
     writeFileSync(inputPath, JSON.stringify(scenario(factors)), "utf8");
     const spy = stdoutSpy();
-    const result = runGunneryResolveShot(baseOptions(inputPath));
+    const result = await runCli(runGunneryResolveShot(baseOptions(inputPath)));
     expect(result).toBe("validation-error");
     const output = spy.mock.calls.map((c) => c[0]).join("");
     expect(output).toContain("GUNNERY_ACCURACY_FACTOR_MISSING");
     spy.mockRestore();
   });
 
-  it("routes GUNNERY_AMMUNITION_UNAVAILABLE (insufficient rounds) through the adapter as validation-error", () => {
+  it("routes GUNNERY_AMMUNITION_UNAVAILABLE (insufficient rounds) through the adapter as validation-error", async () => {
     const inputPath = join(dir, "input.json");
     writeFileSync(
       inputPath,
@@ -145,7 +150,7 @@ describe("runGunneryResolveShot", () => {
       "utf8",
     );
     const spy = stdoutSpy();
-    const result = runGunneryResolveShot(baseOptions(inputPath));
+    const result = await runCli(runGunneryResolveShot(baseOptions(inputPath)));
     expect(result).toBe("validation-error");
     const output = spy.mock.calls.map((c) => c[0]).join("");
     expect(output).toContain("GUNNERY_AMMUNITION_UNAVAILABLE");

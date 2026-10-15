@@ -5,24 +5,27 @@ import { generateBattles, resolveBattleAuto } from "@bluewave/combat";
 import { SafeInt } from "@bluewave/contracts";
 import { createEnvelope } from "@bluewave/deterministic";
 import { resolveShipStrength } from "@bluewave/phase-engine";
+import { Effect, Option } from "effect";
 import type { BridgeResult } from "../../shared/bridge-contract.js";
 import type {
-  GenerateBattlePayload,
   GenerateBattleResult,
-  ReplayBattleBoundaryPayload,
-  ResolveBattlePayload,
   ResolveBattleResult,
-  ResolveTacticalBattlePayload,
-  SeedCampaignBattleDrillPayload,
   SeedCampaignBattleDrillResult,
 } from "../../shared/campaign-command-contract.js";
-import type { ReplayBattleBoundaryResponse } from "@bluewave/campaign-engine";
-import { getCampaignSession, registerCampaignSession } from "../campaignSessions.js";
-import { toSaveableState } from "../saveHelpers.js";
+import {
+  BattleIdPayloadSchema,
+  GenerateBattlePayloadSchema,
+  ResolveTacticalBattlePayloadSchema,
+  SeedCampaignBattleDrillPayloadSchema,
+} from "../campaignCommandSchemas.js";
 import { isBattleSandboxEnabled } from "../debugGate.js";
+import { CampaignSessionStore } from "../runtime/campaignSessionStore.js";
+import { withSchema } from "../runtime/commandProgram.js";
+import { toSaveableState } from "../saveHelpers.js";
 
 /**
- * Debug-only Tactical Sandbox commands (ADR-0057).
+ * Debug-only Tactical Sandbox commands (ADR-0057), as native `CommandProgram`s
+ * (INC-5; ADR-0159).
  *
  * The sandbox must be able to show a battle on demand, but a real campaign can
  * never reach contact: `generateBattles` only yields a mission when both sides
@@ -36,13 +39,10 @@ import { isBattleSandboxEnabled } from "../debugGate.js";
  * same versions and seed shape, as the month executor's `battle_generation` /
  * `battle_resolution` phases (`phase-engine/src/month.ts`), so a sandbox result
  * matches what a real turn would produce for the same ships.
+ *
+ * The debug gate (`isBattleSandboxEnabled`) and every session read/register go
+ * through the service graph; there is no injected `*Deps` object anymore.
  */
-
-export interface BattleSandboxDeps {
-  readonly debugEnabled: () => boolean;
-}
-
-const defaultDeps: BattleSandboxDeps = { debugEnabled: isBattleSandboxEnabled };
 
 // `@bluewave/combat`'s root re-exports the legacy resolver `BattleManifest` under this
 // name, shadowing the B-1 generation manifest, so derive the real one from its producer.
@@ -75,15 +75,22 @@ function storeKey(sessionId: string, battleId: string): string {
   return `${sessionId}::${battleId}`;
 }
 
-function pruneStored(): void {
-  for (const [key, entry] of stored) {
-    if (getCampaignSession(entry.sessionId) === undefined) stored.delete(key);
-  }
-  while (stored.size >= MAX_STORED_BATTLES) {
-    const oldest = stored.keys().next().value;
-    if (oldest === undefined) break;
-    stored.delete(oldest);
-  }
+/**
+ * Drops entries whose session has closed, then caps the store so a long debug
+ * session cannot grow it without bound. Session liveness is read through the
+ * service graph (`CampaignSessionStore`), never the module singleton.
+ */
+function pruneStored(sessions: CampaignSessionStore["Service"]): Effect.Effect<void> {
+  return Effect.gen(function* () {
+    for (const [key, entry] of stored) {
+      if (Option.isNone(yield* Effect.option(sessions.get(entry.sessionId)))) stored.delete(key);
+    }
+    while (stored.size >= MAX_STORED_BATTLES) {
+      const oldest = stored.keys().next().value;
+      if (oldest === undefined) break;
+      stored.delete(oldest);
+    }
+  });
 }
 
 export function clearBattleSandboxForTest(): void {
@@ -94,8 +101,8 @@ function rejected(reason: string, ...diagnostics: string[]): BridgeResult<never>
   return { outcome: "rejected", reason, diagnostics };
 }
 
-function debugOnly(deps: BattleSandboxDeps): BridgeResult<never> | null {
-  return deps.debugEnabled()
+function debugOnly(): BridgeResult<never> | null {
+  return isBattleSandboxEnabled()
     ? null
     : {
         outcome: "rejected",
@@ -337,227 +344,226 @@ function pickPlayerActiveWar(
     .sort((a, b) => a.id.localeCompare(b.id))[0];
 }
 
-export async function generateBattle(
-  payload: GenerateBattlePayload & {
-    readonly areaId?: string;
-    readonly strengthScale?: number;
-  },
-  deps: BattleSandboxDeps = defaultDeps,
-): Promise<BridgeResult<GenerateBattleResult>> {
-  const blocked = debugOnly(deps);
-  if (blocked) return blocked;
+/**
+ * Generates an engagement on an ephemeral, co-located copy of the session's
+ * snapshot (ADR-0057) as a native `CommandProgram`. Reachable-mission
+ * generation draws no randomness (month.ts, B-1), so `randomDecisions` is empty,
+ * and the campaign snapshot, its hash, its saves and the command queue are never
+ * touched (R3).
+ */
+export const generateBattleProgram = withSchema(GenerateBattlePayloadSchema, (payload) =>
+  Effect.gen(function* () {
+    const blocked = debugOnly();
+    if (blocked) return blocked;
 
-  const record = getCampaignSession(payload.sessionId);
-  if (!record) {
-    return {
-      outcome: "error",
-      reason: "SESSION_NOT_FOUND",
-      diagnostics: [`No active campaign session ${payload.sessionId}`],
-    };
-  }
-  const snapshot = record.state.snapshot;
-  const war =
-    payload.warId !== undefined
-      ? snapshot.wars.wars.find((w) => w.id === payload.warId)
-      : pickPlayerActiveWar(snapshot.wars.wars, record.playerSlotId);
-  if (!war) {
-    const known = snapshot.wars.wars.map((w) => w.id);
-    return rejected(
-      "WAR_NOT_FOUND",
+    const sessions = yield* CampaignSessionStore;
+    const record = yield* sessions.get(payload.sessionId);
+
+    const snapshot = record.state.snapshot;
+    const war =
       payload.warId !== undefined
-        ? `No war ${payload.warId} in this campaign.`
-        : `No active war for ${record.playerSlotId}.`,
-      known.length === 0
-        ? "No wars exist yet — declare war on the Diplomacy screen and advance a month first."
-        : `Known wars: ${known.join(", ")}`,
+        ? snapshot.wars.wars.find((w) => w.id === payload.warId)
+        : pickPlayerActiveWar(snapshot.wars.wars, record.playerSlotId);
+    if (!war) {
+      const known = snapshot.wars.wars.map((w) => w.id);
+      return rejected(
+        "WAR_NOT_FOUND",
+        payload.warId !== undefined
+          ? `No war ${payload.warId} in this campaign.`
+          : `No active war for ${record.playerSlotId}.`,
+        known.length === 0
+          ? "No wars exist yet — declare war on the Diplomacy screen and advance a month first."
+          : `Known wars: ${known.join(", ")}`,
+      );
+    }
+    if (war.status !== "ACTIVE" && war.status !== "DECLARED_NOT_ACTIVE") {
+      return rejected("WAR_NOT_ACTIVE", `War ${war.id} is ${war.status}.`);
+    }
+
+    const designed = excludeUndesignedShips(snapshot);
+    const colocated = colocateWarSides(
+      designed.snapshot,
+      war.attackerId,
+      war.defenderId,
+      payload.areaId,
     );
-  }
-  if (war.status !== "ACTIVE" && war.status !== "DECLARED_NOT_ACTIVE") {
-    return rejected("WAR_NOT_ACTIVE", `War ${war.id} is ${war.status}.`);
-  }
+    if ("error" in colocated) return rejected(colocated.error, colocated.detail);
 
-  const designed = excludeUndesignedShips(snapshot);
-  const colocated = colocateWarSides(
-    designed.snapshot,
-    war.attackerId,
-    war.defenderId,
-    payload.areaId,
-  );
-  if ("error" in colocated) return rejected(colocated.error, colocated.detail);
-
-  const campaignMonth = campaignMonthId(
-    snapshot.startYear,
-    snapshot.startMonth,
-    snapshot.turnNumber as number,
-  );
-  const seed = `${record.campaignSeed}:month:${String(snapshot.turnNumber)}`;
-  const working = colocated.snapshot;
-  const strengthScale = payload.strengthScale ?? SANDBOX_DEFAULT_STRENGTH_SCALE;
-
-  const generation = generateBattles({
-    snapshot: working,
-    campaignMonth,
-    campaignSeed: seed,
-    rngVersion: "1",
-    formulaVersion: "1",
-    rulesetVersion: snapshot.rulesetVersion,
-    contentVersion: "0.1.0",
-    resolveStrength: (shipId) => resolveShipStrength(working, shipId) * strengthScale,
-    resolveShipType: () => "BB",
-    resolveReadiness: () => 80,
-  });
-
-  const index = generation.manifests.findIndex(
-    (m) => m.warId === war.id && m.areaId === colocated.areaId,
-  );
-  const manifest = generation.manifests[index];
-  if (manifest === undefined) {
-    return rejected(
-      "NO_ELIGIBLE_BATTLE",
-      `The engine produced no battle for ${war.id} in ${colocated.areaId}.`,
-      strengthScale === 1
-        ? "Strength scale is 1 (real values): the engine's 300/150 strength floors exceed what 1880 ships sum to, so this is expected."
-        : "Rejected opportunities: " + generation.rejections.join(", "),
+    const campaignMonth = campaignMonthId(
+      snapshot.startYear,
+      snapshot.startMonth,
+      snapshot.turnNumber as number,
     );
-  }
+    const seed = `${record.campaignSeed}:month:${String(snapshot.turnNumber)}`;
+    const working = colocated.snapshot;
+    const strengthScale = payload.strengthScale ?? SANDBOX_DEFAULT_STRENGTH_SCALE;
 
-  pruneStored();
-  stored.set(storeKey(payload.sessionId, manifest.battleId), {
-    sessionId: payload.sessionId,
-    snapshot: working,
-    manifest,
-    campaignMonth,
-    seed,
-  });
+    const generation = generateBattles({
+      snapshot: working,
+      campaignMonth,
+      campaignSeed: seed,
+      rngVersion: "1",
+      formulaVersion: "1",
+      rulesetVersion: snapshot.rulesetVersion,
+      contentVersion: "0.1.0",
+      resolveStrength: (shipId) => resolveShipStrength(working, shipId) * strengthScale,
+      resolveShipType: () => "BB",
+      resolveReadiness: () => 80,
+    });
 
-  return {
-    outcome: "success",
-    value: {
+    const index = generation.manifests.findIndex(
+      (m) => m.warId === war.id && m.areaId === colocated.areaId,
+    );
+    const manifest = generation.manifests[index];
+    if (manifest === undefined) {
+      return rejected(
+        "NO_ELIGIBLE_BATTLE",
+        `The engine produced no battle for ${war.id} in ${colocated.areaId}.`,
+        strengthScale === 1
+          ? "Strength scale is 1 (real values): the engine's 300/150 strength floors exceed what 1880 ships sum to, so this is expected."
+          : "Rejected opportunities: " + generation.rejections.join(", "),
+      );
+    }
+
+    yield* pruneStored(sessions);
+    stored.set(storeKey(payload.sessionId, manifest.battleId), {
+      sessionId: payload.sessionId,
+      snapshot: working,
+      manifest,
+      campaignMonth,
+      seed,
+    });
+
+    const value: GenerateBattleResult = {
       manifest: toRendererManifest(working, manifest, record.month),
       // Reachable-mission generation draws no randomness (month.ts, B-1).
       randomDecisions: [],
-    },
-    diagnostics: [
-      ...(colocated.moved
-        ? [
-            `Sandbox scenario: ${war.attackerId}'s fleets were placed in ${colocated.areaId} on a temporary copy; the campaign itself is unchanged.`,
-          ]
-        : []),
-      ...(designed.excluded.length > 0
-        ? [
-            `Sandbox scenario: ${designed.excluded.join(", ")} treated as unavailable on the temporary copy — no compiled design (content data defect).`,
-          ]
-        : []),
-      ...(strengthScale > 1
-        ? [
-            `Sandbox scenario: ship strength is scaled x${strengthScale} for the engine's eligibility floors only (real turns cannot reach them with current content).`,
-          ]
-        : []),
-    ],
-  };
-}
-
-export async function resolveBattle(
-  payload: ResolveBattlePayload,
-  deps: BattleSandboxDeps = defaultDeps,
-): Promise<BridgeResult<ResolveBattleResult>> {
-  const blocked = debugOnly(deps);
-  if (blocked) return blocked;
-
-  const record = getCampaignSession(payload.sessionId);
-  if (!record) {
-    return {
-      outcome: "error",
-      reason: "SESSION_NOT_FOUND",
-      diagnostics: [`No active campaign session ${payload.sessionId}`],
     };
-  }
-  const entry = stored.get(storeKey(payload.sessionId, payload.battleId));
-  if (!entry) {
-    return rejected(
-      "BATTLE_NOT_GENERATED",
-      `Battle ${payload.battleId} has not been generated in this session. Generate an engagement first.`,
-    );
-  }
-
-  const { snapshot, manifest } = entry;
-  const attacker = snapshot.nations.get(manifest.attackerId);
-  const defender = snapshot.nations.get(manifest.defenderId);
-  const strategicWeather = snapshot.strategicWeather.find((s) => s.areaId === manifest.areaId);
-  if (!attacker || !defender) {
-    return rejected("NATION_NOT_FOUND", "A battle participant is no longer in the campaign.");
-  }
-  if (!strategicWeather) {
-    return rejected(
-      "NO_STRATEGIC_WEATHER",
-      `No committed strategic weather for ${manifest.areaId}. Weather is generated when a month is advanced; advance a month and try again.`,
-    );
-  }
-
-  let result: ReturnType<typeof resolveBattleAuto>;
-  try {
-    result = resolveBattleAuto({
-      battleId: manifest.battleId,
-      areaId: manifest.areaId,
-      campaignMonth: entry.campaignMonth,
-      manifest,
-      attacker: {
-        nationId: attacker.id,
-        ships: attacker.fleets.flatMap((f) => f.ships),
-        designs: snapshot.designs,
-        divisions: attacker.divisions,
-      },
-      defender: {
-        nationId: defender.id,
-        ships: defender.fleets.flatMap((f) => f.ships),
-        designs: snapshot.designs,
-        divisions: defender.divisions,
-      },
-      strategicWeather,
-      campaignSeed: entry.seed,
-      rulesetVersion: snapshot.rulesetVersion,
-      formulaVersion: manifest.formulaVersion,
-      rngVersion: manifest.rngVersion,
-    });
-  } catch (error) {
-    // Engine failures are fail-closed with a stable code; surface it verbatim.
-    const code =
-      error !== null && typeof error === "object" && "code" in error
-        ? String((error as { code: unknown }).code)
-        : "BATTLE_AUTO_RESOLUTION_FAILED";
-    return rejected(code, error instanceof Error ? error.message : "Auto-resolution failed.");
-  }
-
-  const shipsOf = (survivors: readonly string[], sunk: readonly string[]) => ({
-    ships: [
-      ...survivors.map((shipId) => ({ shipId, outcome: "survived" })),
-      ...sunk.map((shipId) => ({ shipId, outcome: "sunk" })),
-    ].sort((a, b) => a.shipId.localeCompare(b.shipId)),
-  });
-  const resolution: BattleResolution = {
-    battleId: manifest.battleId,
-    missionOutcome: { winner: result.winnerId, outcomeKind: result.battleEndReason },
-    // The sandbox applies no campaign state, so no war score is computed.
-    warScoreChange: 0,
-    attacker: shipsOf(result.attackerSurvivorIds, result.attackerSunkIds),
-    defender: shipsOf(result.defenderSurvivorIds, result.defenderSunkIds),
-  };
-  return {
-    outcome: "success",
-    value: { resolution },
-    diagnostics: [
-      "Sandbox result: no campaign state was changed, so war score change is reported as 0.",
-    ],
-  };
-}
+    return {
+      outcome: "success" as const,
+      value,
+      diagnostics: [
+        ...(colocated.moved
+          ? [
+              `Sandbox scenario: ${war.attackerId}'s fleets were placed in ${colocated.areaId} on a temporary copy; the campaign itself is unchanged.`,
+            ]
+          : []),
+        ...(designed.excluded.length > 0
+          ? [
+              `Sandbox scenario: ${designed.excluded.join(", ")} treated as unavailable on the temporary copy — no compiled design (content data defect).`,
+            ]
+          : []),
+        ...(strengthScale > 1
+          ? [
+              `Sandbox scenario: ship strength is scaled x${strengthScale} for the engine's eligibility floors only (real turns cannot reach them with current content).`,
+            ]
+          : []),
+      ],
+    };
+  }),
+);
 
 /**
- * Debug-only Campaign Battle Drill (the desktop E2E acceptance slice). Unlike
- * the observational sandbox commands above, this one INTENTIONALLY mutates the
- * live session: it prepares the snapshot so the REAL month phases
- * (`battle_generation` order 7.5 + `battle_resolution` order 8) generate and
- * resolve a battle on the next month advance, applying real consequences (war
- * score, per-ship losses, battle history).
+ * Auto-resolves a previously generated battle into a partitioned, deterministic
+ * result, as a native `CommandProgram`. The sandbox applies no campaign state,
+ * so the reported war score change is always 0.
+ */
+export const resolveBattleProgram = withSchema(BattleIdPayloadSchema, (payload) =>
+  Effect.gen(function* () {
+    const blocked = debugOnly();
+    if (blocked) return blocked;
+
+    const sessions = yield* CampaignSessionStore;
+    yield* sessions.get(payload.sessionId);
+
+    const entry = stored.get(storeKey(payload.sessionId, payload.battleId));
+    if (!entry) {
+      return rejected(
+        "BATTLE_NOT_GENERATED",
+        `Battle ${payload.battleId} has not been generated in this session. Generate an engagement first.`,
+      );
+    }
+
+    const { snapshot, manifest } = entry;
+    const attacker = snapshot.nations.get(manifest.attackerId);
+    const defender = snapshot.nations.get(manifest.defenderId);
+    const strategicWeather = snapshot.strategicWeather.find((s) => s.areaId === manifest.areaId);
+    if (!attacker || !defender) {
+      return rejected("NATION_NOT_FOUND", "A battle participant is no longer in the campaign.");
+    }
+    if (!strategicWeather) {
+      return rejected(
+        "NO_STRATEGIC_WEATHER",
+        `No committed strategic weather for ${manifest.areaId}. Weather is generated when a month is advanced; advance a month and try again.`,
+      );
+    }
+
+    let result: ReturnType<typeof resolveBattleAuto>;
+    try {
+      result = resolveBattleAuto({
+        battleId: manifest.battleId,
+        areaId: manifest.areaId,
+        campaignMonth: entry.campaignMonth,
+        manifest,
+        attacker: {
+          nationId: attacker.id,
+          ships: attacker.fleets.flatMap((f) => f.ships),
+          designs: snapshot.designs,
+          divisions: attacker.divisions,
+        },
+        defender: {
+          nationId: defender.id,
+          ships: defender.fleets.flatMap((f) => f.ships),
+          designs: snapshot.designs,
+          divisions: defender.divisions,
+        },
+        strategicWeather,
+        campaignSeed: entry.seed,
+        rulesetVersion: snapshot.rulesetVersion,
+        formulaVersion: manifest.formulaVersion,
+        rngVersion: manifest.rngVersion,
+      });
+    } catch (error) {
+      // Engine failures are fail-closed with a stable code; surface it verbatim.
+      const code =
+        error !== null && typeof error === "object" && "code" in error
+          ? String((error as { code: unknown }).code)
+          : "BATTLE_AUTO_RESOLUTION_FAILED";
+      return rejected(code, error instanceof Error ? error.message : "Auto-resolution failed.");
+    }
+
+    const shipsOf = (survivors: readonly string[], sunk: readonly string[]) => ({
+      ships: [
+        ...survivors.map((shipId) => ({ shipId, outcome: "survived" })),
+        ...sunk.map((shipId) => ({ shipId, outcome: "sunk" })),
+      ].sort((a, b) => a.shipId.localeCompare(b.shipId)),
+    });
+    const resolution: BattleResolution = {
+      battleId: manifest.battleId,
+      missionOutcome: { winner: result.winnerId, outcomeKind: result.battleEndReason },
+      // The sandbox applies no campaign state, so no war score is computed.
+      warScoreChange: 0,
+      attacker: shipsOf(result.attackerSurvivorIds, result.attackerSunkIds),
+      defender: shipsOf(result.defenderSurvivorIds, result.defenderSunkIds),
+    };
+    const value: ResolveBattleResult = { resolution };
+    return {
+      outcome: "success" as const,
+      value,
+      diagnostics: [
+        "Sandbox result: no campaign state was changed, so war score change is reported as 0.",
+      ],
+    };
+  }),
+);
+
+/**
+ * Debug-only Campaign Battle Drill (the desktop E2E acceptance slice), as a
+ * native `CommandProgram`. Unlike the observational sandbox commands above,
+ * this one INTENTIONALLY mutates the live session: it prepares the snapshot so
+ * the REAL month phases (`battle_generation` order 7.5 + `battle_resolution`
+ * order 8) generate and resolve a battle on the next month advance, applying
+ * real consequences (war score, per-ship losses, battle history).
  *
  * It never fabricates a battle or its outcome: generation is left to the month's
  * own `generateBattles` call. The drill only does what a real turn cannot do with
@@ -572,116 +578,118 @@ export async function resolveBattle(
  *     can promote every participant.
  *
  * Gated by `isBattleSandboxEnabled()` and validated at the IPC boundary; a
- * normal build rejects with `DEBUG_ONLY`.
+ * normal build rejects with `DEBUG_ONLY`. The prepared snapshot is registered
+ * as the live session state through `CampaignSessionStore`, never the module
+ * singleton.
  */
-export async function seedCampaignBattleDrill(
-  payload: SeedCampaignBattleDrillPayload,
-  deps: BattleSandboxDeps = defaultDeps,
-): Promise<BridgeResult<SeedCampaignBattleDrillResult>> {
-  const blocked = debugOnly(deps);
-  if (blocked) return blocked;
+export const seedCampaignBattleDrillProgram = withSchema(
+  SeedCampaignBattleDrillPayloadSchema,
+  (payload) =>
+    Effect.gen(function* () {
+      const blocked = debugOnly();
+      if (blocked) return blocked;
 
-  const record = getCampaignSession(payload.sessionId);
-  if (!record) {
-    return {
-      outcome: "error",
-      reason: "SESSION_NOT_FOUND",
-      diagnostics: [`No active campaign session ${payload.sessionId}`],
-    };
-  }
+      const sessions = yield* CampaignSessionStore;
+      const record = yield* sessions.get(payload.sessionId);
 
-  const snapshot = record.state.snapshot;
-  const war =
-    payload.warId !== undefined
-      ? snapshot.wars.wars.find((w) => w.id === payload.warId)
-      : pickPlayerActiveWar(snapshot.wars.wars, record.playerSlotId);
-  if (!war) {
-    return rejected(
-      "WAR_NOT_FOUND",
-      payload.warId !== undefined
-        ? `No war ${payload.warId} in this campaign.`
-        : `No active war for ${record.playerSlotId}.`,
-    );
-  }
-  if (war.status !== "ACTIVE" && war.status !== "DECLARED_NOT_ACTIVE") {
-    return rejected("WAR_NOT_ACTIVE", `War ${war.id} is ${war.status}.`);
-  }
+      const snapshot = record.state.snapshot;
+      const war =
+        payload.warId !== undefined
+          ? snapshot.wars.wars.find((w) => w.id === payload.warId)
+          : pickPlayerActiveWar(snapshot.wars.wars, record.playerSlotId);
+      if (!war) {
+        return rejected(
+          "WAR_NOT_FOUND",
+          payload.warId !== undefined
+            ? `No war ${payload.warId} in this campaign.`
+            : `No active war for ${record.playerSlotId}.`,
+        );
+      }
+      if (war.status !== "ACTIVE" && war.status !== "DECLARED_NOT_ACTIVE") {
+        return rejected("WAR_NOT_ACTIVE", `War ${war.id} is ${war.status}.`);
+      }
 
-  const designed = excludeUndesignedShips(snapshot);
-  const colocated = colocateWarSides(designed.snapshot, war.attackerId, war.defenderId, undefined);
-  if ("error" in colocated) return rejected(colocated.error, colocated.detail);
+      const designed = excludeUndesignedShips(snapshot);
+      const colocated = colocateWarSides(
+        designed.snapshot,
+        war.attackerId,
+        war.defenderId,
+        undefined,
+      );
+      if ("error" in colocated) return rejected(colocated.error, colocated.detail);
 
-  const prepared = scaleBelligerentFirepower(
-    colocated.snapshot,
-    [war.attackerId, war.defenderId],
-    colocated.areaId,
-    DRILL_STRENGTH_SCALE,
-  );
+      const prepared = scaleBelligerentFirepower(
+        colocated.snapshot,
+        [war.attackerId, war.defenderId],
+        colocated.areaId,
+        DRILL_STRENGTH_SCALE,
+      );
 
-  // Persist the prepared snapshot as the live session state (re-hashing the
-  // envelope the same way `commitMonth` does), so the next real month advance
-  // executes against it.
-  const envelope = createEnvelope("campaign-snapshot", prepared.compatibilityVersion, prepared);
-  const nextState = toSaveableState({
-    snapshot: prepared,
-    envelope,
-    rawHash: record.state.rawHash,
-  });
-  registerCampaignSession({ ...record, state: nextState });
+      // Persist the prepared snapshot as the live session state (re-hashing the
+      // envelope the same way `commitMonth` does), so the next real month advance
+      // executes against it.
+      const envelope = createEnvelope("campaign-snapshot", prepared.compatibilityVersion, prepared);
+      const nextState = toSaveableState({
+        snapshot: prepared,
+        envelope,
+        rawHash: record.state.rawHash,
+      });
+      yield* sessions.register({ ...record, state: nextState });
 
-  return {
-    outcome: "success",
-    value: {
-      warId: war.id,
-      areaId: colocated.areaId,
-      strengthScale: DRILL_STRENGTH_SCALE,
-      moved: colocated.moved,
-      excludedShipIds: designed.excluded,
-    },
-    diagnostics: [
-      ...(colocated.moved
-        ? [
-            `Drill: ${war.attackerId}'s completed fleets were placed in ${colocated.areaId} (movement is not implemented).`,
-          ]
-        : []),
-      ...(designed.excluded.length > 0
-        ? [
-            `Drill: ${designed.excluded.join(", ")} treated as unavailable — no compiled design (content data defect).`,
-          ]
-        : []),
-      `Drill: belligerent firepower scaled x${DRILL_STRENGTH_SCALE} for the engine's eligibility floors only (real turns cannot reach them with current content).`,
-    ],
-  };
-}
+      const value: SeedCampaignBattleDrillResult = {
+        warId: war.id,
+        areaId: colocated.areaId,
+        strengthScale: DRILL_STRENGTH_SCALE,
+        moved: colocated.moved,
+        excludedShipIds: designed.excluded,
+      };
+      return {
+        outcome: "success" as const,
+        value,
+        diagnostics: [
+          ...(colocated.moved
+            ? [
+                `Drill: ${war.attackerId}'s completed fleets were placed in ${colocated.areaId} (movement is not implemented).`,
+              ]
+            : []),
+          ...(designed.excluded.length > 0
+            ? [
+                `Drill: ${designed.excluded.join(", ")} treated as unavailable — no compiled design (content data defect).`,
+              ]
+            : []),
+          `Drill: belligerent firepower scaled x${DRILL_STRENGTH_SCALE} for the engine's eligibility floors only (real turns cannot reach them with current content).`,
+        ],
+      };
+    }),
+);
 
 /**
  * The tactical minute-by-minute loop (generation -> movement -> gunnery ->
  * battle-end, driven by scripted orders) has no engine orchestrator yet: that
  * chaining is B-6's job (`.scratch/cli-battle-debug-surface/map.md`). Reject
- * honestly instead of fabricating an outcome.
+ * honestly instead of fabricating an outcome. The payload's `scriptedOrders`
+ * narrowing is the accepted INC-3 seam (a debug-gated boundary).
  */
-export async function resolveTacticalBattle(
-  _payload: ResolveTacticalBattlePayload,
-  deps: BattleSandboxDeps = defaultDeps,
-): Promise<BridgeResult<never>> {
-  return (
-    debugOnly(deps) ??
-    rejected(
-      "TACTICAL_RESOLUTION_UNAVAILABLE",
-      "Scripted tactical resolution needs the engine's tactical-loop orchestrator (B-6), which does not exist yet. Use auto-resolve.",
-    )
-  );
-}
+export const resolveTacticalBattleProgram = withSchema(
+  ResolveTacticalBattlePayloadSchema,
+  (_payload) =>
+    Effect.sync(
+      () =>
+        debugOnly() ??
+        rejected(
+          "TACTICAL_RESOLUTION_UNAVAILABLE",
+          "Scripted tactical resolution needs the engine's tactical-loop orchestrator (B-6), which does not exist yet. Use auto-resolve.",
+        ),
+    ),
+);
 
-export async function replayBattleBoundary(
-  _payload: ReplayBattleBoundaryPayload,
-  deps: BattleSandboxDeps = defaultDeps,
-): Promise<BridgeResult<ReplayBattleBoundaryResponse>> {
-  return (
-    debugOnly(deps) ??
-    rejected(
-      "BOUNDARY_REPLAY_UNAVAILABLE",
-      "Battle-boundary replay depends on the tactical-loop orchestrator (B-6), which does not exist yet.",
-    )
-  );
-}
+export const replayBattleBoundaryProgram = withSchema(BattleIdPayloadSchema, (_payload) =>
+  Effect.sync(
+    () =>
+      debugOnly() ??
+      rejected(
+        "BOUNDARY_REPLAY_UNAVAILABLE",
+        "Battle-boundary replay depends on the tactical-loop orchestrator (B-6), which does not exist yet.",
+      ),
+  ),
+);

@@ -8,24 +8,44 @@ import type {
   CampaignSnapshot,
   CampaignState,
 } from "@bluewave/campaign";
+import type { CommitMonthResponse } from "@bluewave/campaign-engine";
 import { SafeInt } from "@bluewave/contracts";
 import { createEnvelope } from "@bluewave/deterministic";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { CURRENT_COMPATIBILITY_VERSION, SaveStore } from "@bluewave/persistence";
+import { ManagedRuntime } from "effect";
 import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test";
+import type { BridgeResult } from "../../shared/bridge-contract.js";
 import {
   clearCampaignSessionsForTest,
   getCampaignSession,
   registerCampaignSession,
 } from "../campaignSessions.js";
 import { compileProductionCampaignFromArtifact } from "../compiler.js";
+import { projectCommandExit } from "../runtime/bridgeResult.js";
+import { desktopMainLayer } from "../runtime/desktopMainLayer.js";
 import { toSaveableState } from "../saveHelpers.js";
-import { commitMonth } from "./commitMonth.js";
+import { commitMonthProgram } from "./commitMonth.js";
 import { mapBattleOutcome } from "./commitMonth/battleOutcomes.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, "../../../../..");
 const GENERATED_ARTIFACT = resolve(REPO_ROOT, "content", "generated", "1880");
+
+// The commit program runs through the desktop service graph; the services
+// delegate to the same in-memory session registry the tests populate directly.
+const runtime = ManagedRuntime.make(desktopMainLayer());
+
+/** Runs the commit program and projects its wire envelope. */
+async function commitMonth(payload: {
+  sessionId: string;
+  expectedRevision: number;
+  transportRequestId: string;
+}): Promise<BridgeResult<CommitMonthResponse>> {
+  return projectCommandExit(
+    await runtime.runPromiseExit(commitMonthProgram(payload)),
+  ) as BridgeResult<CommitMonthResponse>;
+}
 
 describe("commitMonth", () => {
   let saveRoot: string;

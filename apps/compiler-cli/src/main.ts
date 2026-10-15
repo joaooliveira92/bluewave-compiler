@@ -1,6 +1,5 @@
 #!/usr/bin/env node
-import { readFileSync } from "node:fs";
-import { Effect, Layer, ManagedRuntime } from "effect";
+import { Effect, ManagedRuntime } from "effect";
 import type { CommandEnvelope, CommandBody } from "@bluewave/commands";
 import {
   runValidate,
@@ -30,6 +29,9 @@ import {
   parseBattleAdvanceMinuteOptions,
   parseGunneryResolveShotOptions,
 } from "./options.js";
+import { CliConsole } from "./runtime/cliConsole.js";
+import { CliFileSystem } from "./runtime/cliFileSystem.js";
+import { cliLayer, type CliEnv } from "./runtime/cliLayer.js";
 
 const USAGE = `Usage: bwc <command> [options]
 Commands:
@@ -47,21 +49,21 @@ Commands:
   verify             Verify compiled artifact against envelope
   compare            Compare compiled artifact hash against envelope
   campaign:compile   Compile content pack (incl. fleets/economy/construction/
-                      diplomacy/research/designs) to campaign state
+                     diplomacy/research/designs) to campaign state
   campaign:save      Save campaign state to persistence store
   campaign:load      Load and verify campaign state from persistence store
   turn:execute       Execute one month, save new state
   replay             Replay all commands from a save and verify hashes
   battle:generate    Run battle generation (@bluewave/combat) against a saved
-                      snapshot in isolation, without running a full turn
+                     snapshot in isolation, without running a full turn
   battle:advance-minute
-                      Run one tactical minute-advance (@bluewave/combat,
-                      DESIGN-38 movement/spotting) against a hand-authored
-                      TacticalBattleState JSON file
+                     Run one tactical minute-advance (@bluewave/combat,
+                     DESIGN-38 movement/spotting) against a hand-authored
+                     TacticalBattleState JSON file
   gunnery:resolve-shot
-                      Resolve one gunnery shot (@bluewave/combat, DESIGN-39
-                      §3/§28 accuracy + hit + ammunition) against a
-                      hand-authored scenario JSON file
+                     Resolve one gunnery shot (@bluewave/combat, DESIGN-39
+                     §3/§28 accuracy + hit + ammunition) against a
+                     hand-authored scenario JSON file
 General options:
   --manifest <path>     Path to pack manifest (default: pack.json)
   --content-dir <path>  Content directory (default: content/)
@@ -121,161 +123,163 @@ gunnery:resolve-shot options:
   --seed <string>        RandomEngine master seed for the keyed hit draw
                          (default: "default-seed")`;
 
-function runCli(args: string[]): number {
-  if (args.length === 0 || args[0] === "--help" || args[0] === "-h") {
-    process.stdout.write(USAGE);
-    return exitCodes.success;
-  }
-  const command = args[0] as string;
-  const existingCommands = [
-    "validate",
-    "compile",
-    "inspect",
-    "verify",
-    "compare",
-    "content:check",
-    "content:build",
-    "content:verify",
-    "content:gate",
-  ];
-  const newCommands = [
-    "campaign:compile",
-    "campaign:save",
-    "campaign:load",
-    "turn:execute",
-    "replay",
-  ];
-  const battleGenerateCommands = ["battle:generate"];
-  const battleAdvanceMinuteCommands = ["battle:advance-minute"];
-  const gunneryResolveShotCommands = ["gunnery:resolve-shot"];
-  const allCommands = [
-    ...existingCommands,
-    ...newCommands,
-    ...battleGenerateCommands,
-    ...battleAdvanceMinuteCommands,
-    ...gunneryResolveShotCommands,
-  ];
-  if (!allCommands.includes(command)) {
-    process.stderr.write(`Unknown command: ${command}\n`);
-    process.stderr.write(USAGE);
-    return 1;
-  }
-  if (battleAdvanceMinuteCommands.includes(command)) {
-    const bo = parseBattleAdvanceMinuteOptions(args.slice(1));
-    return exitCodes[runBattleAdvanceMinute(bo)];
-  }
-  if (gunneryResolveShotCommands.includes(command)) {
-    const go = parseGunneryResolveShotOptions(args.slice(1));
-    return exitCodes[runGunneryResolveShot(go)];
-  }
-  const isBattleGenerate = battleGenerateCommands.includes(command);
-  const isNew = newCommands.includes(command) || isBattleGenerate;
-  const options = parseOptions(args.slice(1), isNew, isBattleGenerate);
-  let exitCategory: ExitCategory;
-  switch (command) {
-    case "validate":
-      exitCategory = runValidate(options);
-      break;
-    case "compile":
-      exitCategory = runCompile(options);
-      break;
-    case "inspect":
-      exitCategory = runInspect(options);
-      break;
-    case "verify":
-      exitCategory = runVerify(options);
-      break;
-    case "compare":
-      exitCategory = runCompare(options);
-      break;
-    case "content:check":
-      exitCategory = runContentCheck(options);
-      break;
-    case "content:build":
-      exitCategory = runContentBuild(options);
-      break;
-    case "content:verify":
-      exitCategory = runContentVerify(options);
-      break;
-    case "content:gate":
-      exitCategory = runContentGate(options);
-      break;
-    case "campaign:compile": {
-      const co = options as CampaignCliOptions;
-      exitCategory = runCampaignCompile(co);
-      break;
+const EXISTING_COMMANDS = [
+  "validate",
+  "compile",
+  "inspect",
+  "verify",
+  "compare",
+  "content:check",
+  "content:build",
+  "content:verify",
+  "content:gate",
+];
+const NEW_COMMANDS = [
+  "campaign:compile",
+  "campaign:save",
+  "campaign:load",
+  "turn:execute",
+  "replay",
+];
+const BATTLE_GENERATE_COMMANDS = ["battle:generate"];
+const BATTLE_ADVANCE_MINUTE_COMMANDS = ["battle:advance-minute"];
+const GUNNERY_RESOLVE_SHOT_COMMANDS = ["gunnery:resolve-shot"];
+const ALL_COMMANDS = [
+  ...EXISTING_COMMANDS,
+  ...NEW_COMMANDS,
+  ...BATTLE_GENERATE_COMMANDS,
+  ...BATTLE_ADVANCE_MINUTE_COMMANDS,
+  ...GUNNERY_RESOLVE_SHOT_COMMANDS,
+];
+
+const loadCommandsFile = (
+  path: string | undefined,
+): Effect.Effect<CommandEnvelope<CommandBody>[] | undefined | "error", never, CliFileSystem> =>
+  Effect.gen(function* () {
+    if (!path) return undefined;
+    const fs = yield* CliFileSystem;
+    const raw = yield* fs
+      .readFile(path)
+      .pipe(Effect.catchTag("CliFileSystemError", () => Effect.succeed(undefined)));
+    if (raw === undefined) return "error";
+    try {
+      return JSON.parse(raw) as CommandEnvelope<CommandBody>[];
+    } catch {
+      return "error";
     }
-    case "campaign:save": {
-      const co = options as CampaignCliOptions;
-      exitCategory = runCampaignSave(co, co.saveDir);
-      break;
-    }
-    case "campaign:load": {
-      const co = options as CampaignCliOptions;
-      exitCategory = runCampaignLoad(co, co.saveDir);
-      break;
-    }
-    case "turn:execute": {
-      const co = options as CampaignCliOptions;
-      const commands = loadCommandsFile(co.commandsPath);
-      if (commands === "error") {
-        process.stderr.write(`Failed to parse commands file: ${co.commandsPath}\n`);
-        exitCategory = "usage-error";
-        break;
-      }
-      exitCategory = runTurnExecute(co, co.saveDir, commands);
-      break;
-    }
-    case "replay": {
-      const co = options as CampaignCliOptions;
-      exitCategory = runReplay(co, co.saveDir);
-      break;
-    }
-    case "battle:generate": {
-      const bo = options as BattleGenerateCliOptions;
-      exitCategory = runBattleGenerate(bo, bo.saveDir);
-      break;
-    }
-    default:
-      exitCategory = "usage-error";
-  }
-  return exitCodes[exitCategory];
-}
+  });
 
 /**
- * The CLI entrypoint facade (INC-6; ADR-0159). Runs the synchronous dispatch
- * program on one `ManagedRuntime`, disposes it, then exits with the mapped code.
- * The `run*` internals stay synchronous; the six-code exit contract is unchanged.
+ * The synchronous CLI dispatch, as one Effect program resolving the CLI
+ * services from the environment. `parseOptions` and the output modes stay at
+ * this edge; every `run*` is itself an Effect program.
+ */
+const runCli = (args: string[]): Effect.Effect<ExitCategory, never, CliEnv> =>
+  Effect.gen(function* () {
+    const console = yield* CliConsole;
+    if (args.length === 0 || args[0] === "--help" || args[0] === "-h") {
+      yield* console.out(USAGE);
+      return "success";
+    }
+    const command = args[0] as string;
+    if (!ALL_COMMANDS.includes(command)) {
+      yield* console.err(`Unknown command: ${command}\n`);
+      yield* console.err(USAGE);
+      // Legacy contract: the pre-migration dispatch returned the literal exit
+      // code 1 (the `validation-error` slot) for an unknown command, so the
+      // exact exit code is preserved even though the command is unrecognised.
+      return "validation-error";
+    }
+    if (BATTLE_ADVANCE_MINUTE_COMMANDS.includes(command)) {
+      const bo = parseBattleAdvanceMinuteOptions(args.slice(1));
+      return yield* runBattleAdvanceMinute(bo);
+    }
+    if (GUNNERY_RESOLVE_SHOT_COMMANDS.includes(command)) {
+      const go = parseGunneryResolveShotOptions(args.slice(1));
+      return yield* runGunneryResolveShot(go);
+    }
+    const isBattleGenerate = BATTLE_GENERATE_COMMANDS.includes(command);
+    const isNew = NEW_COMMANDS.includes(command) || isBattleGenerate;
+    const options = parseOptions(args.slice(1), isNew, isBattleGenerate);
+    switch (command) {
+      case "validate":
+        return yield* runValidate(options);
+      case "compile":
+        return yield* runCompile(options);
+      case "inspect":
+        return yield* runInspect(options);
+      case "verify":
+        return yield* runVerify(options);
+      case "compare":
+        return yield* runCompare(options);
+      case "content:check":
+        return yield* runContentCheck(options);
+      case "content:build":
+        return yield* runContentBuild(options);
+      case "content:verify":
+        return yield* runContentVerify(options);
+      case "content:gate":
+        return yield* runContentGate(options);
+      case "campaign:compile": {
+        const co = options as CampaignCliOptions;
+        return yield* runCampaignCompile(co);
+      }
+      case "campaign:save": {
+        const co = options as CampaignCliOptions;
+        return yield* runCampaignSave(co, co.saveDir);
+      }
+      case "campaign:load": {
+        const co = options as CampaignCliOptions;
+        return yield* runCampaignLoad(co, co.saveDir);
+      }
+      case "turn:execute": {
+        const co = options as CampaignCliOptions;
+        const commands = yield* loadCommandsFile(co.commandsPath);
+        if (commands === "error") {
+          yield* console.err(`Failed to parse commands file: ${co.commandsPath}\n`);
+          return "usage-error";
+        }
+        return yield* runTurnExecute(co, co.saveDir, commands);
+      }
+      case "replay": {
+        const co = options as CampaignCliOptions;
+        return yield* runReplay(co, co.saveDir);
+      }
+      case "battle:generate": {
+        const bo = options as BattleGenerateCliOptions;
+        return yield* runBattleGenerate(bo, bo.saveDir);
+      }
+      default:
+        return "usage-error";
+    }
+  });
+
+/**
+ * The CLI entrypoint facade (INC-6; ADR-0159). Builds the one `ManagedRuntime`
+ * from the CLI layer, runs the dispatch program, maps the `ExitCategory` to the
+ * six-code contract via `exitCodes`, disposes the runtime, then exits. A defect
+ * (a thrown engine/`safePath` error) keeps the pre-migration behaviour: print
+ * the stack to stderr and exit `validation-error`. `Runtime.makeRunMain`
+ * defaults are deliberately not adopted.
  */
 function main(): void {
-  const runtime = ManagedRuntime.make(Layer.empty);
-  const program = Effect.gen(function* () {
-    return runCli(process.argv.slice(2));
-  });
+  const runtime = ManagedRuntime.make(cliLayer);
+  const program = runCli(process.argv.slice(2));
   const finish = (code: number): void => {
     void runtime.dispose().then(
       () => process.exit(code),
       () => process.exit(code),
     );
   };
-  runtime.runPromise(program).then(finish, (error: unknown) => {
-    process.stderr.write(
-      `${error instanceof Error ? (error.stack ?? error.message) : String(error)}\n`,
-    );
-    finish(1);
-  });
-}
-
-function loadCommandsFile(
-  path: string | undefined,
-): CommandEnvelope<CommandBody>[] | undefined | "error" {
-  if (!path) return undefined;
-  try {
-    const raw = readFileSync(path, "utf8");
-    return JSON.parse(raw) as CommandEnvelope<CommandBody>[];
-  } catch {
-    return "error";
-  }
+  runtime.runPromise(program).then(
+    (category) => finish(exitCodes[category]),
+    (error: unknown) => {
+      process.stderr.write(
+        `${error instanceof Error ? (error.stack ?? error.message) : String(error)}\n`,
+      );
+      finish(exitCodes["validation-error"]);
+    },
+  );
 }
 
 // prevent auto-run when imported in vitest

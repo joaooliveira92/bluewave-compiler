@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
 
 import { runContentGate } from "../src/commands.js";
+import { runCli } from "./runCli.js";
 
 const here = fileURLToPath(new URL(".", import.meta.url));
 const repoRoot = resolve(here, "..", "..", "..");
@@ -51,10 +52,10 @@ function addPlaceholderArea(dir: string): void {
   writeFileSync(presentationPath, patched, "utf8");
 }
 
-function captureStdout<T>(fn: () => T): { result: T; printed: string } {
+async function captureStdout<T>(fn: () => Promise<T>): Promise<{ result: T; printed: string }> {
   const write = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
   try {
-    const result = fn();
+    const result = await fn();
     return { result, printed: write.mock.calls.map((call) => String(call[0])).join("") };
   } finally {
     write.mockRestore();
@@ -62,27 +63,29 @@ function captureStdout<T>(fn: () => T): { result: T; printed: string } {
 }
 
 describe("content:gate over the production pack (CAH-PROV-3)", () => {
-  it("passes a shipping pack with no unresolved placeholders", () => {
-    const { result } = captureStdout(() =>
-      runContentGate({ manifest, contentDir, outputDir: tempDir(), outputMode: "json" }),
+  it("passes a shipping pack with no unresolved placeholders", async () => {
+    const { result } = await captureStdout(() =>
+      runCli(runContentGate({ manifest, contentDir, outputDir: tempDir(), outputMode: "json" })),
     );
     expect(result).toBe("success");
   });
 
-  it("skips a non-production pack with a JSON payload", () => {
+  it("skips a non-production pack with a JSON payload", async () => {
     const dir = tempDir();
     writeFileSync(
       resolve(dir, "pack.json"),
       JSON.stringify({ name: "fixture", version: "0.1.0", type: "fixture", files: {} }),
       "utf8",
     );
-    const { result, printed } = captureStdout(() =>
-      runContentGate({
-        manifest: resolve(dir, "pack.json"),
-        contentDir: dir,
-        outputDir: tempDir(),
-        outputMode: "json",
-      }),
+    const { result, printed } = await captureStdout(() =>
+      runCli(
+        runContentGate({
+          manifest: resolve(dir, "pack.json"),
+          contentDir: dir,
+          outputDir: tempDir(),
+          outputMode: "json",
+        }),
+      ),
     );
     expect(result).toBe("success");
     expect(JSON.parse(printed.trim().split("\n").pop() ?? "{}")).toEqual({
@@ -91,18 +94,20 @@ describe("content:gate over the production pack (CAH-PROV-3)", () => {
     });
   });
 
-  it("fails a shipping pack containing a placeholder, naming collection/record/field", () => {
+  it("fails a shipping pack containing a placeholder, naming collection/record/field", async () => {
     const dir = tempDir();
     cpSync(contentDir, dir, { recursive: true });
     addPlaceholderArea(dir);
 
-    const { result, printed } = captureStdout(() =>
-      runContentGate({
-        manifest: resolve(dir, "pack.json"),
-        contentDir: dir,
-        outputDir: tempDir(),
-        outputMode: "json",
-      }),
+    const { result, printed } = await captureStdout(() =>
+      runCli(
+        runContentGate({
+          manifest: resolve(dir, "pack.json"),
+          contentDir: dir,
+          outputDir: tempDir(),
+          outputMode: "json",
+        }),
+      ),
     );
     expect(result).toBe("validation-error");
     expect(printed).toContain("areas");
@@ -110,7 +115,7 @@ describe("content:gate over the production pack (CAH-PROV-3)", () => {
     expect(printed).toContain("provenance");
   });
 
-  it("admits a placeholder on the justified allowlist", () => {
+  it("admits a placeholder on the justified allowlist", async () => {
     const dir = tempDir();
     cpSync(contentDir, dir, { recursive: true });
     addPlaceholderArea(dir);
@@ -133,18 +138,20 @@ describe("content:gate over the production pack (CAH-PROV-3)", () => {
       "utf8",
     );
 
-    const { result } = captureStdout(() =>
-      runContentGate({
-        manifest: resolve(dir, "pack.json"),
-        contentDir: dir,
-        outputDir: tempDir(),
-        outputMode: "json",
-      }),
+    const { result } = await captureStdout(() =>
+      runCli(
+        runContentGate({
+          manifest: resolve(dir, "pack.json"),
+          contentDir: dir,
+          outputDir: tempDir(),
+          outputMode: "json",
+        }),
+      ),
     );
     expect(result).toBe("success");
   });
 
-  it("fails when an allowlist entry carries no justification", () => {
+  it("fails when an allowlist entry carries no justification", async () => {
     const dir = tempDir();
     cpSync(contentDir, dir, { recursive: true });
     addPlaceholderArea(dir);
@@ -156,13 +163,15 @@ describe("content:gate over the production pack (CAH-PROV-3)", () => {
       "utf8",
     );
 
-    const { result, printed } = captureStdout(() =>
-      runContentGate({
-        manifest: resolve(dir, "pack.json"),
-        contentDir: dir,
-        outputDir: tempDir(),
-        outputMode: "json",
-      }),
+    const { result, printed } = await captureStdout(() =>
+      runCli(
+        runContentGate({
+          manifest: resolve(dir, "pack.json"),
+          contentDir: dir,
+          outputDir: tempDir(),
+          outputMode: "json",
+        }),
+      ),
     );
     expect(result).toBe("validation-error");
     expect(printed).toContain("justification");

@@ -7,11 +7,23 @@ import type { CampaignState } from "@bluewave/campaign";
 import {
   CANONICAL_RESEARCH_FIELD_IDS,
   RESEARCH_FIELD_PRIORITY_WEIGHTS,
+  type CommitMonthResponse,
 } from "@bluewave/campaign-engine";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { SaveStore } from "@bluewave/persistence";
+import { ManagedRuntime } from "effect";
 import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test";
+import type { BridgeResult } from "../../shared/bridge-contract.js";
+import type {
+  ResearchPriorityOutcome,
+  ResearchScreenProjection,
+  SetResearchPriorityCommandPayload,
+} from "../../shared/research-contract.js";
+import type {
+  ConstructionCommandQueuedOutcome,
+  SubmitConstructionCommandPayload,
+} from "../../shared/construction-contract.js";
 import {
   clearCampaignSessionsForTest,
   getCampaignSession,
@@ -22,14 +34,41 @@ import {
   clearResearchWorkspacesForTest,
   researchEnvelopesForExecution,
 } from "../researchWorkspace.js";
+import { projectCommandExit } from "../runtime/bridgeResult.js";
+import type { CommandProgram } from "../runtime/commandProgram.js";
+import { desktopMainLayer } from "../runtime/desktopMainLayer.js";
 import { toSaveableState } from "../saveHelpers.js";
-import { commitMonth } from "./commitMonth.js";
-import { inspectResearchScreen, setResearchPriorityCommand } from "./researchCommands.js";
-import { submitConstructionCommand } from "./constructionCommands.js";
+import { commitMonthProgram } from "./commitMonth.js";
+import {
+  inspectResearchScreenProgram,
+  setResearchPriorityCommandProgram,
+} from "./researchCommands.js";
+import { submitConstructionCommandProgram } from "./constructionCommands.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, "../../../../..");
 const GENERATED_ARTIFACT = resolve(REPO_ROOT, "content", "generated", "1880");
+
+// One shared runtime for every research program; the services delegate to the
+// same in-memory session/queue registries the tests populate directly.
+const runtime = ManagedRuntime.make(desktopMainLayer());
+
+/** Runs a command program through the desktop service graph and projects its wire envelope. */
+async function runProgram<A>(program: CommandProgram, payload: unknown): Promise<BridgeResult<A>> {
+  return projectCommandExit(await runtime.runPromiseExit(program(payload))) as BridgeResult<A>;
+}
+
+const inspectResearchScreen = (sessionId: string) =>
+  runProgram<ResearchScreenProjection>(inspectResearchScreenProgram, sessionId);
+const setResearchPriorityCommand = (payload: SetResearchPriorityCommandPayload) =>
+  runProgram<ResearchPriorityOutcome>(setResearchPriorityCommandProgram, payload);
+const submitConstructionCommand = (payload: SubmitConstructionCommandPayload) =>
+  runProgram<ConstructionCommandQueuedOutcome>(submitConstructionCommandProgram, payload);
+const commitMonth = (payload: {
+  sessionId: string;
+  expectedRevision: number;
+  transportRequestId: string;
+}) => runProgram<CommitMonthResponse>(commitMonthProgram, payload);
 
 /**
  * desktop-engine-feature-gate INC-2 acceptance tests (spec AC-1..AC-5):
@@ -156,6 +195,23 @@ describe("research commands", () => {
   });
 
   describe("setResearchPriorityCommand (AC-2..AC-4)", () => {
+    it("returns SESSION_NOT_FOUND for a well-formed submit against an unknown session", async () => {
+      const result = await setResearchPriorityCommand(
+        priorityPayload("no-such-session", fullPriorities()),
+      );
+      expect(result).toMatchObject({ outcome: "error", reason: "SESSION_NOT_FOUND" });
+    });
+
+    it("rejects a malformed wire payload at the schema boundary", async () => {
+      const result = await runProgram(setResearchPriorityCommandProgram, {
+        sessionId: "issue-session",
+        expectedRevision: 0,
+        transportRequestId: "req-x",
+        fieldPriorities: { GUNNERY: 1.5 },
+      });
+      expect(result).toMatchObject({ outcome: "error", reason: "INVALID_PAYLOAD" });
+    });
+
     it("queues a real engine envelope pinned to the session snapshot hash", async () => {
       const saveDir = resolve(saveRoot, "issue-1");
       registerProductionSession("issue-session", saveDir);
@@ -214,32 +270,47 @@ describe("research commands", () => {
       expect(researchEnvelopesForExecution("apply-session", after.snapshot)).toEqual([]);
     });
 
-    it("AC-3: rejects unknown-field / missing-field / non-integer priorities; session untouched", async () => {
+    it("AC-3: rejects invalid priority records without touching the session or queue", async () => {
       const saveDir = resolve(saveRoot, "invalid-1");
       registerProductionSession("invalid-session", saveDir);
       const pristine = ukFieldPriorities(requireSessionState("invalid-session"));
 
-      const unknown = await setResearchPriorityCommand(
+      // An unknown field that pushes the record past the canonical field set is
+      // refused at the wire boundary before any service is resolved.
+      const overCap = await setResearchPriorityCommand(
         priorityPayload("invalid-session", { ...fullPriorities(), NUCLEAR_FUSION: 2 }),
+      );
+      expect(overCap).toMatchObject({ outcome: "error", reason: "INVALID_PAYLOAD" });
+
+      // A non-integer weight also never reaches the handler mirror: the wire
+      // schema rejects it as INVALID_PAYLOAD.
+      const nonInteger = await setResearchPriorityCommand(
+        priorityPayload("invalid-session", { ...fullPriorities(), GUNNERY: 1.5 }),
+      );
+      expect(nonInteger).toMatchObject({ outcome: "error", reason: "INVALID_PAYLOAD" });
+
+      // A missing-field record passes the wire shape and is surfaced by the
+      // engine-mirror validation with its stable code.
+      const partial = await setResearchPriorityCommand(
+        priorityPayload("invalid-session", { GUNNERY: 4, MACHINERY: 2 }),
+      );
+      expect(partial).toMatchObject({
+        outcome: "rejected",
+        reason: "RESEARCH_PRIORITY_CONSTRAINT_VIOLATED",
+      });
+
+      // A same-size unknown field (one canonical field replaced) also reaches
+      // the mirror, which reports the unknown id.
+      const sameSizeUnknown = fullPriorities();
+      delete sameSizeUnknown[CANONICAL_RESEARCH_FIELD_IDS[0]!];
+      sameSizeUnknown.NUCLEAR_FUSION = 2;
+      const unknown = await setResearchPriorityCommand(
+        priorityPayload("invalid-session", sameSizeUnknown),
       );
       expect(unknown.outcome).toBe("rejected");
       if (unknown.outcome !== "rejected") return;
       expect(unknown.reason).toBe("RESEARCH_PRIORITY_CONSTRAINT_VIOLATED");
       expect(unknown.diagnostics.join(" ")).toContain("NUCLEAR_FUSION");
-
-      const partial = await setResearchPriorityCommand(
-        priorityPayload("invalid-session", { GUNNERY: 4, MACHINERY: 2 }),
-      );
-      expect(partial.outcome).toBe("rejected");
-      if (partial.outcome !== "rejected") return;
-      expect(partial.reason).toBe("RESEARCH_PRIORITY_CONSTRAINT_VIOLATED");
-
-      const nonInteger = await setResearchPriorityCommand(
-        priorityPayload("invalid-session", { ...fullPriorities(), GUNNERY: 1.5 }),
-      );
-      expect(nonInteger.outcome).toBe("rejected");
-      if (nonInteger.outcome !== "rejected") return;
-      expect(nonInteger.reason).toBe("RESEARCH_PRIORITY_CONSTRAINT_VIOLATED");
 
       // Session + queue untouched by every rejection.
       const session = requireSessionState("invalid-session");

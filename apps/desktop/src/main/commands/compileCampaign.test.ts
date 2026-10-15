@@ -1,16 +1,45 @@
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { resolve } from "node:path";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { SaveStore } from "@bluewave/persistence";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import { Effect, Layer, ManagedRuntime } from "effect";
+import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test";
 import type { CampaignConfiguration } from "@bluewave/campaign-engine";
-import { compileCampaign, type CompileCampaignDeps } from "./compileCampaign.js";
+import type { BridgeResult } from "../../shared/bridge-contract.js";
+import type { CompileCampaignResult } from "../../shared/campaign-command-contract.js";
+import { projectCommandExit } from "../runtime/bridgeResult.js";
+import { desktopMainLayer } from "../runtime/desktopMainLayer.js";
+import { NativeDialog } from "../runtime/platform.js";
+import { compileCampaignProgram } from "./compileCampaign.js";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const REPO_ROOT = resolve(__dirname, "../../../../..");
-const GENERATED_ARTIFACT = resolve(REPO_ROOT, "content", "generated", "1880");
+// The programs resolve `NativeDialog` from the Layer; the fake answers from
+// these test-scoped variables, so the real electron dialog is never touched.
+let chooseSaveDirectoryAnswer: string | null = null;
+let chooseSaveDirectoryCalls = 0;
+
+const runtime = ManagedRuntime.make(
+  Layer.mergeAll(
+    desktopMainLayer(),
+    Layer.succeed(NativeDialog, {
+      chooseSaveDirectory: () => {
+        chooseSaveDirectoryCalls += 1;
+        return Effect.succeed(chooseSaveDirectoryAnswer);
+      },
+      choosePackageDirectory: () => Effect.succeed(null),
+      chooseCopyDirectory: () => Effect.succeed(null),
+    }),
+  ),
+);
+
+/** Runs the compile program through the desktop service graph and projects its wire envelope. */
+async function compileCampaign(
+  configuration: CampaignConfiguration,
+): Promise<BridgeResult<CompileCampaignResult>> {
+  return projectCommandExit(
+    await runtime.runPromiseExit(compileCampaignProgram(configuration)),
+  ) as BridgeResult<CompileCampaignResult>;
+}
 
 function baseConfiguration(overrides: Partial<CampaignConfiguration> = {}): CampaignConfiguration {
   return {
@@ -35,31 +64,25 @@ describe("compileCampaign", () => {
 
   beforeEach(() => {
     saveRoot = mkdtempSync(resolve(tmpdir(), "bw-desktop-compile-"));
+    chooseSaveDirectoryAnswer = resolve(saveRoot, "save");
+    chooseSaveDirectoryCalls = 0;
   });
 
   afterEach(() => {
     rmSync(saveRoot, { recursive: true, force: true });
   });
 
-  function deps(overrides: Partial<CompileCampaignDeps> = {}): CompileCampaignDeps {
-    return {
-      artifactDir: GENERATED_ARTIFACT,
-      chooseSaveDirectory: async () => resolve(saveRoot, "save"),
-      generateSessionId: () => "session-fixed",
-      ...overrides,
-    };
-  }
-
   it("compiles the real production pack, saves it, and returns a session id", async () => {
-    const result = await compileCampaign(baseConfiguration(), deps());
+    const result = await compileCampaign(baseConfiguration());
     expect(result.outcome).toBe("success");
     if (result.outcome !== "success") return;
-    expect(result.value.sessionId).toBe("session-fixed");
+    expect(typeof result.value.sessionId).toBe("string");
+    expect(result.value.sessionId.length).toBeGreaterThan(0);
   });
 
   it("round-trips nations/designs/designFamilies through SaveStore.load intact (Map-serialization fix)", async () => {
     const saveDir = resolve(saveRoot, "save");
-    const result = await compileCampaign(baseConfiguration(), deps());
+    const result = await compileCampaign(baseConfiguration());
     expect(result.outcome).toBe("success");
 
     const store = new SaveStore();
@@ -85,41 +108,31 @@ describe("compileCampaign", () => {
   });
 
   it("rejects a configuration that fails DESIGN-03 validation before compiling anything", async () => {
-    const chooseSaveDirectory = vi.fn(async () => resolve(saveRoot, "save"));
-    const result = await compileCampaign(
-      baseConfiguration({ campaignSeed: "not-hex" }),
-      deps({ chooseSaveDirectory }),
-    );
+    const result = await compileCampaign(baseConfiguration({ campaignSeed: "not-hex" }));
     expect(result.outcome).toBe("rejected");
     if (result.outcome !== "rejected") return;
     expect(result.reason).toBe("INVALID_CAMPAIGN_CONFIGURATION");
-    expect(chooseSaveDirectory).not.toHaveBeenCalled();
+    expect(chooseSaveDirectoryCalls).toBe(0);
   });
 
   it("rejects Spain — a zero-design/zero-construction nation — as a player slot", async () => {
-    const chooseSaveDirectory = vi.fn(async () => resolve(saveRoot, "save"));
-    const result = await compileCampaign(
-      baseConfiguration({ playerSlotId: "spain" }),
-      deps({ chooseSaveDirectory }),
-    );
+    const result = await compileCampaign(baseConfiguration({ playerSlotId: "spain" }));
     expect(result.outcome).toBe("rejected");
     if (result.outcome !== "rejected") return;
     expect(result.reason).toBe("PLAYER_SLOT_NOT_SUPPORTED");
-    expect(chooseSaveDirectory).not.toHaveBeenCalled();
+    expect(chooseSaveDirectoryCalls).toBe(0);
   });
 
   it("rejects an unknown player slot", async () => {
-    const result = await compileCampaign(baseConfiguration({ playerSlotId: "atlantis" }), deps());
+    const result = await compileCampaign(baseConfiguration({ playerSlotId: "atlantis" }));
     expect(result.outcome).toBe("rejected");
     if (result.outcome !== "rejected") return;
     expect(result.reason).toBe("UNKNOWN_PLAYER_SLOT");
   });
 
   it("rejects without writing a save when the user cancels the save-location dialog", async () => {
-    const result = await compileCampaign(
-      baseConfiguration(),
-      deps({ chooseSaveDirectory: async () => null }),
-    );
+    chooseSaveDirectoryAnswer = null;
+    const result = await compileCampaign(baseConfiguration());
     expect(result.outcome).toBe("rejected");
     if (result.outcome !== "rejected") return;
     expect(result.reason).toBe("SAVE_LOCATION_CANCELLED");

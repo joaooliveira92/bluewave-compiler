@@ -1,62 +1,120 @@
-import { existsSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   CANONICAL_SCENARIO_IDS,
   type CampaignSnapshot,
   type CampaignState,
 } from "@bluewave/campaign";
+import type { CommitMonthResponse } from "@bluewave/campaign-engine";
 import { createEnvelope } from "@bluewave/deterministic";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { SaveStore } from "@bluewave/persistence";
-import { ManagedRuntime } from "effect";
+import { Effect, Layer, ManagedRuntime } from "effect";
 import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test";
-import { readSessionMetadata, writeSessionMetadata } from "../campaignSessionMetadata.js";
+import type { BridgeResult } from "../../shared/bridge-contract.js";
+import type {
+  DivisionCommandOutcome,
+  DivisionScreenProjection,
+} from "../../shared/division-contract.js";
 import {
   clearCampaignSessionsForTest,
   getCampaignSession,
   registerCampaignSession,
 } from "../campaignSessions.js";
 import { compileProductionCampaignFromArtifact } from "../compiler.js";
+import { SESSION_METADATA_FILENAME } from "../campaignSessionMetadata.js";
 import { clearPendingWorkspacesForTest, pendingEnvelopesForExecution } from "../pendingCommands.js";
+import { projectCommandExit } from "../runtime/bridgeResult.js";
+import { desktopMainLayer } from "../runtime/desktopMainLayer.js";
+import type { CommandProgram } from "../runtime/commandProgram.js";
+import { NativeDialog } from "../runtime/platform.js";
+import { ProjectStore } from "../runtime/projectStore.js";
 import { toSaveableState } from "../saveHelpers.js";
-import { commitMonth } from "./commitMonth.js";
-import { inspectDivisionScreen, submitDivisionCommand } from "./divisionCommands.js";
+import { commitMonthProgram } from "./commitMonth.js";
+import { inspectDivisionScreenProgram, submitDivisionCommandProgram } from "./divisionCommands.js";
 import {
   clearConstructionWorkspacesForTest,
   getConstructionWorkspace,
   hasConstructionWorkspace,
 } from "../constructionWorkspace.js";
 import {
-  assessCopyTarget,
   closeCampaignProgram,
-  copyCampaign,
+  copyCampaignProgram,
   saveCampaignProgram,
 } from "./sessionCommands.js";
-import { projectCommandExit } from "../runtime/bridgeResult.js";
-import { desktopMainLayer } from "../runtime/desktopMainLayer.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const GENERATED_ARTIFACT = resolve(__dirname, "../../../../..", "content", "generated", "1880");
 
-// Runs the session programs through one shared runtime; the services delegate to
-// the same in-memory registries the tests manipulate directly.
-const sessionRuntime = ManagedRuntime.make(desktopMainLayer());
+// A fake `NativeDialog` (the copy prompt) merged over the real graph. It answers
+// from these test-scoped variables, so the real electron dialog is never touched.
+let chooseCopyDirectoryAnswer: string | null = null;
+let chooseCopyDirectoryCalls = 0;
+
+const runtime = ManagedRuntime.make(
+  Layer.mergeAll(
+    desktopMainLayer(),
+    Layer.succeed(NativeDialog, {
+      chooseSaveDirectory: () => Effect.succeed(null),
+      choosePackageDirectory: () => Effect.succeed(null),
+      chooseCopyDirectory: () => {
+        chooseCopyDirectoryCalls += 1;
+        return Effect.succeed(chooseCopyDirectoryAnswer);
+      },
+    }),
+  ),
+);
+
+async function runProgram<A>(program: CommandProgram, payload: unknown): Promise<BridgeResult<A>> {
+  return projectCommandExit(await runtime.runPromiseExit(program(payload))) as BridgeResult<A>;
+}
+
 const saveCampaign = (sessionId: string) =>
-  sessionRuntime
-    .runPromiseExit(saveCampaignProgram(sessionId))
-    .then((exit) => projectCommandExit(exit));
+  runtime.runPromiseExit(saveCampaignProgram(sessionId)).then((exit) => projectCommandExit(exit));
 const closeCampaign = (sessionId: string) =>
-  sessionRuntime
-    .runPromiseExit(closeCampaignProgram(sessionId))
-    .then((exit) => projectCommandExit(exit));
+  runtime.runPromiseExit(closeCampaignProgram(sessionId)).then((exit) => projectCommandExit(exit));
+const copyCampaign = (sessionId: string) =>
+  runtime.runPromiseExit(copyCampaignProgram(sessionId)).then((exit) => projectCommandExit(exit));
+const commitMonth = (payload: {
+  sessionId: string;
+  expectedRevision: number;
+  transportRequestId: string;
+}) => runProgram<CommitMonthResponse>(commitMonthProgram, payload);
+const inspectDivisionScreen = (sessionId: string) =>
+  runProgram<DivisionScreenProjection>(inspectDivisionScreenProgram, sessionId);
+const submitDivisionCommand = (payload: unknown) =>
+  runProgram<DivisionCommandOutcome>(submitDivisionCommandProgram, payload);
+
+/** Fixture sidecar write, mirroring the `ProjectStore` implementation. */
+function writeSessionMetadata(saveDir: string, metadata: unknown): void {
+  writeFileSync(
+    join(saveDir, SESSION_METADATA_FILENAME),
+    JSON.stringify(metadata, null, 2),
+    "utf8",
+  );
+}
+
+function readSessionMetadata(saveDir: string): unknown {
+  return JSON.parse(readFileSync(join(saveDir, SESSION_METADATA_FILENAME), "utf8"));
+}
 
 describe("session commands (save / close / copy)", () => {
   let root: string;
 
   beforeEach(() => {
     root = mkdtempSync(resolve(tmpdir(), "bw-desktop-session-"));
+    chooseCopyDirectoryAnswer = null;
+    chooseCopyDirectoryCalls = 0;
   });
   afterEach(() => {
     rmSync(root, { recursive: true, force: true });
@@ -228,7 +286,8 @@ describe("session commands (save / close / copy)", () => {
     it("writes a loadable copy with the session sidecar, leaving the original untouched", async () => {
       const { saveDir, state } = register("k1");
       const copyDir = resolve(root, "the-copy");
-      const result = await copyCampaign("k1", { chooseCopyDirectory: async () => copyDir });
+      chooseCopyDirectoryAnswer = copyDir;
+      const result = await copyCampaign("k1");
       expect(result).toMatchObject({
         outcome: "success",
         value: { revision: 0, location: copyDir },
@@ -245,31 +304,37 @@ describe("session commands (save / close / copy)", () => {
 
     it("does nothing when the player cancels the dialog", async () => {
       register("k2");
-      const result = await copyCampaign("k2", { chooseCopyDirectory: async () => null });
+      chooseCopyDirectoryAnswer = null;
+      const result = await copyCampaign("k2");
       expect(result).toMatchObject({ outcome: "rejected", reason: "SAVE_LOCATION_CANCELLED" });
     });
 
     it("refuses to copy a campaign onto itself", async () => {
       const { saveDir } = register("k3");
-      const result = await copyCampaign("k3", { chooseCopyDirectory: async () => saveDir });
+      chooseCopyDirectoryAnswer = saveDir;
+      const result = await copyCampaign("k3");
       expect(result).toMatchObject({ outcome: "rejected", reason: "COPY_TARGET_IS_SOURCE" });
       expect(savesIn(saveDir)).toBe(1);
     });
 
     describe("target safety", () => {
-      const ask = (target: string) => ({ chooseCopyDirectory: async () => target });
+      const ask = (target: string) => {
+        chooseCopyDirectoryAnswer = target;
+      };
 
       it("refuses another spelling of the source folder (trailing slash, ./, symlink)", async () => {
         const { saveDir } = register("t1");
         for (const spelled of [`${saveDir}/`, `${saveDir}/../t1`, `${saveDir}/.`]) {
-          expect(await copyCampaign("t1", ask(spelled))).toMatchObject({
+          ask(spelled);
+          expect(await copyCampaign("t1")).toMatchObject({
             outcome: "rejected",
             reason: "COPY_TARGET_IS_SOURCE",
           });
         }
         const link = resolve(root, "link-to-t1");
         symlinkSync(saveDir, link);
-        expect(await copyCampaign("t1", ask(link))).toMatchObject({
+        ask(link);
+        expect(await copyCampaign("t1")).toMatchObject({
           outcome: "rejected",
           reason: "COPY_TARGET_IS_SOURCE",
         });
@@ -278,11 +343,13 @@ describe("session commands (save / close / copy)", () => {
 
       it("refuses a target inside the source, or a folder that contains the source", async () => {
         const { saveDir } = register("t2");
-        expect(await copyCampaign("t2", ask(resolve(saveDir, "nested")))).toMatchObject({
+        ask(resolve(saveDir, "nested"));
+        expect(await copyCampaign("t2")).toMatchObject({
           outcome: "rejected",
           reason: "COPY_TARGET_INSIDE_SOURCE",
         });
-        expect(await copyCampaign("t2", ask(root))).toMatchObject({
+        ask(root);
+        expect(await copyCampaign("t2")).toMatchObject({
           outcome: "rejected",
           reason: "COPY_TARGET_CONTAINS_SOURCE",
         });
@@ -293,7 +360,8 @@ describe("session commands (save / close / copy)", () => {
         register("t3");
         const other = register("t3-other");
         const before = readSessionMetadata(other.saveDir);
-        const result = await copyCampaign("t3", ask(other.saveDir));
+        ask(other.saveDir);
+        const result = await copyCampaign("t3");
         expect(result).toMatchObject({ outcome: "rejected", reason: "COPY_TARGET_NOT_EMPTY" });
         expect(savesIn(other.saveDir)).toBe(1);
         expect(readSessionMetadata(other.saveDir)).toEqual(before);
@@ -303,12 +371,14 @@ describe("session commands (save / close / copy)", () => {
         register("t4");
         const empty = resolve(root, "empty");
         mkdirSync(empty);
-        expect(await copyCampaign("t4", ask(empty))).toMatchObject({ outcome: "success" });
+        ask(empty);
+        expect(await copyCampaign("t4")).toMatchObject({ outcome: "success" });
         expect(savesIn(empty)).toBe(1);
 
         const file = resolve(root, "a-file");
         writeFileSync(file, "x");
-        expect(await copyCampaign("t4", ask(file))).toMatchObject({
+        ask(file);
+        expect(await copyCampaign("t4")).toMatchObject({
           outcome: "rejected",
           reason: "COPY_TARGET_NOT_A_DIRECTORY",
         });
@@ -316,35 +386,31 @@ describe("session commands (save / close / copy)", () => {
 
       it("refuses, before asking anything, when the campaign has no session file to carry over", async () => {
         const { saveDir } = register("t5");
-        rmSync(resolve(saveDir, "session.json"));
-        let asked = false;
-        const result = await copyCampaign("t5", {
-          chooseCopyDirectory: async () => {
-            asked = true;
-            return resolve(root, "x");
-          },
-        });
+        rmSync(join(saveDir, SESSION_METADATA_FILENAME));
+        chooseCopyDirectoryAnswer = resolve(root, "x");
+        const result = await copyCampaign("t5");
         expect(result).toMatchObject({ outcome: "error", reason: "SESSION_METADATA_MISSING" });
-        expect(asked).toBe(false);
+        expect(chooseCopyDirectoryCalls).toBe(0);
         expect(existsSync(resolve(root, "x"))).toBe(false);
       });
 
-      it("assessCopyTarget accepts a brand-new sibling folder", () => {
+      it("assessCopyTarget accepts a brand-new sibling folder", async () => {
         const { saveDir } = register("t6");
-        expect(assessCopyTarget(saveDir, resolve(root, "brand-new"))).toBeNull();
+        const problem = await runtime.runPromise(
+          Effect.gen(function* () {
+            const projects = yield* ProjectStore;
+            return yield* projects.assessCopyTarget(saveDir, resolve(root, "brand-new"));
+          }),
+        );
+        expect(problem).toBeNull();
       });
     });
 
     it("fails honestly for an unknown session without asking the player anything", async () => {
-      let asked = false;
-      const result = await copyCampaign("nope", {
-        chooseCopyDirectory: async () => {
-          asked = true;
-          return null;
-        },
-      });
+      chooseCopyDirectoryAnswer = null;
+      const result = await copyCampaign("nope");
       expect(result).toMatchObject({ outcome: "error", reason: "SESSION_NOT_FOUND" });
-      expect(asked).toBe(false);
+      expect(chooseCopyDirectoryCalls).toBe(0);
     });
   });
 });
