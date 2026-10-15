@@ -25,15 +25,9 @@ import {
 import { Effect } from "effect";
 import type { BridgeResult } from "../../shared/bridge-contract.js";
 import type {
-  DesignCommandOutcome,
   DesignStudyPreview,
-  ProjectDraftView,
-  RebuildableShipView,
   RebuildCheckView,
-  RebuildCommandOutcome,
   RebuildFindingView,
-  ReviseCommandOutcome,
-  ShipDraftView,
 } from "../../shared/design-contract.js";
 import {
   LoadProjectDraftPayloadSchema,
