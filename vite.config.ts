@@ -62,4 +62,181 @@ export default defineConfig({
       },
     ],
   },
+  run: {
+    cache: { scripts: true, tasks: false },
+    tasks: {
+      "gate:git-state": { command: "node scripts/preflight.cjs" },
+      "gate:single-copy-self-test": {
+        command: "node scripts/assert-single-effect.mjs --self-test",
+        dependsOn: ["gate:git-state"],
+      },
+      "gate:single-copy": {
+        command: "node scripts/assert-single-effect.mjs",
+        dependsOn: ["gate:single-copy-self-test"],
+      },
+      "gate:runtime-free-self-test": {
+        command: "node scripts/assert-runtime-free.mjs --self-test",
+        dependsOn: ["gate:git-state"],
+      },
+      "gate:runtime-free": {
+        command: "node scripts/assert-runtime-free.mjs",
+        dependsOn: ["gate:runtime-free-self-test"],
+      },
+      "gate:determinism-self-test": {
+        command: "node scripts/assert-authoritative-determinism.mjs --self-test",
+        dependsOn: ["gate:git-state"],
+      },
+      "gate:determinism": {
+        command: "node scripts/assert-authoritative-determinism.mjs",
+        dependsOn: ["gate:determinism-self-test"],
+      },
+      "gate:tagged-errors-self-test": {
+        command: "node scripts/assert-tagged-errors.mjs --self-test",
+        dependsOn: ["gate:git-state"],
+      },
+      "gate:tagged-errors-engine": {
+        command: "node scripts/assert-tagged-errors.mjs --scope engine",
+        dependsOn: ["gate:tagged-errors-self-test"],
+      },
+      "gate:tagged-errors-surface": {
+        command: "node scripts/assert-tagged-errors.mjs --scope surface",
+        dependsOn: ["gate:tagged-errors-self-test"],
+      },
+      "gate:boundary-decode-self-test": {
+        command: "node scripts/assert-boundary-decode.mjs --self-test",
+        dependsOn: ["gate:git-state"],
+      },
+      "gate:boundary-decode-compiler": {
+        command: "node scripts/assert-boundary-decode.mjs --scope compiler",
+        dependsOn: ["gate:boundary-decode-self-test"],
+      },
+      "gate:boundary-decode-desktop": {
+        command: "node scripts/assert-boundary-decode.mjs --scope desktop",
+        dependsOn: ["gate:boundary-decode-self-test"],
+      },
+      "gate:boundary-decode-cli": {
+        command: "node scripts/assert-boundary-decode.mjs --scope cli",
+        dependsOn: ["gate:boundary-decode-self-test"],
+      },
+      "gate:stage-io-self-test": {
+        command: "node scripts/assert-no-stage-io.mjs --self-test",
+        dependsOn: ["gate:git-state"],
+      },
+      "gate:stage-io": {
+        command: "node scripts/assert-no-stage-io.mjs",
+        dependsOn: ["gate:stage-io-self-test"],
+      },
+      "gate:canonical-serialization-self-test": {
+        command: "node scripts/assert-canonical-serialization.mjs --self-test",
+        dependsOn: ["gate:git-state"],
+      },
+      "gate:canonical-serialization": {
+        command: "node scripts/assert-canonical-serialization.mjs",
+        dependsOn: ["gate:canonical-serialization-self-test"],
+      },
+      "gate:library-console-self-test": {
+        command: "node scripts/assert-no-library-console.mjs --self-test",
+        dependsOn: ["gate:git-state"],
+      },
+      "gate:library-console": {
+        command: "node scripts/assert-no-library-console.mjs",
+        dependsOn: ["gate:library-console-self-test"],
+      },
+      "gate:claude-skill-links": {
+        command: "node scripts/link-claude-skills.mjs",
+        dependsOn: ["gate:git-state"],
+      },
+      "gate:docs": { command: "node scripts/docs-check.cjs", dependsOn: ["gate:git-state"] },
+      "gate:doc-budgets": {
+        command: "node scripts/verify-doc-budgets.mjs",
+        dependsOn: ["gate:git-state"],
+      },
+      "gate:dependency-policy": {
+        command: "node scripts/verify-package-dependencies.mjs",
+        dependsOn: ["gate:git-state"],
+      },
+      "gate:unknown-casts": {
+        command: "node scripts/verify-no-unknown-casts.mjs",
+        dependsOn: ["gate:git-state"],
+      },
+      "gate:torpedo-model-constants-self-test": {
+        command: "node scripts/verify-no-torpedo-model-constants.mjs --self-test",
+        dependsOn: ["gate:git-state"],
+      },
+      "gate:torpedo-model-constants": {
+        command: "node scripts/verify-no-torpedo-model-constants.mjs",
+        dependsOn: ["gate:torpedo-model-constants-self-test"],
+      },
+      "gate:upgradepath-refit-readers-self-test": {
+        command: "node scripts/verify-no-upgradepath-refit-readers.mjs --self-test",
+        dependsOn: ["gate:git-state"],
+      },
+      "gate:upgradepath-refit-readers": {
+        command: "node scripts/verify-no-upgradepath-refit-readers.mjs",
+        dependsOn: ["gate:upgradepath-refit-readers-self-test"],
+      },
+      "gate:test-focus": {
+        command: "node scripts/verify-test-focus.mjs",
+        dependsOn: ["gate:git-state"],
+      },
+      "gate:tracker-consistency": {
+        command: "node scripts/verify-tracker-consistency.mjs",
+        dependsOn: ["gate:git-state"],
+      },
+      "gate:version-coherence": {
+        command: "node scripts/verify-version-coherence.mjs",
+        dependsOn: ["gate:git-state"],
+      },
+      "gate:check-parity": {
+        command: "node scripts/verify-check-parity.mjs",
+        dependsOn: ["gate:git-state"],
+      },
+      "gate:tsgo-integration": {
+        command: "node scripts/verify-tsgo-integration.mjs",
+        dependsOn: ["gate:git-state"],
+      },
+      "gate:content-lock": {
+        command: "node scripts/verify-content-lock.mjs",
+        dependsOn: ["gate:git-state"],
+      },
+      "gate:content-placeholder-gate": {
+        command: "node scripts/verify-content-gate.mjs",
+        dependsOn: ["gate:content-lock"],
+      },
+      "gate:codemod-determinism": {
+        command: "node scripts/verify-codemod-determinism.mjs",
+        dependsOn: ["gate:git-state"],
+      },
+      "gates:preflight": {
+        command: "node -p 0",
+        dependsOn: [
+          "gate:single-copy",
+          "gate:runtime-free",
+          "gate:determinism",
+          "gate:tagged-errors-engine",
+          "gate:tagged-errors-surface",
+          "gate:boundary-decode-compiler",
+          "gate:boundary-decode-desktop",
+          "gate:boundary-decode-cli",
+          "gate:stage-io",
+          "gate:canonical-serialization",
+          "gate:library-console",
+          "gate:claude-skill-links",
+          "gate:docs",
+          "gate:doc-budgets",
+          "gate:dependency-policy",
+          "gate:unknown-casts",
+          "gate:torpedo-model-constants",
+          "gate:upgradepath-refit-readers",
+          "gate:test-focus",
+          "gate:tracker-consistency",
+          "gate:version-coherence",
+          "gate:check-parity",
+          "gate:tsgo-integration",
+          "gate:content-placeholder-gate",
+          "gate:codemod-determinism",
+        ],
+      },
+    },
+  },
 });

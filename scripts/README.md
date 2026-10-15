@@ -8,8 +8,8 @@ generate repository artefacts.
 - **Git hooks** (`.githooks/`, from `prepare` → `core.hooksPath`): `pre-commit`
   runs `preflight`, `pre-push` adds `pnpm lint:effect` (ADR-0139), `commit-msg`
   checks the subject; reinstall with `pnpm hooks:install`.
-- **`pnpm preflight`** runs `scripts/run-gates.mjs`, a bounded, dependency-aware
-  scheduler; also run by `pnpm dev` and CI.
+- **`pnpm preflight`** runs `vp run gates:preflight`, the `vite.config.ts` gate
+  DAG (ADR-0161); also `pnpm dev` and CI.
 - **`pnpm check`** adds format, lint, `lint:effect`, `test:scripts`, licences,
   typecheck, build, tests, balance reports, and desktop E2E.
 
@@ -17,7 +17,7 @@ generate repository artefacts.
 
 | Script | Invoke | Purpose |
 | --- | --- | --- |
-| `run-gates.mjs` | `pnpm preflight` | Scheduler: bounded concurrency, `needs` edges, per-gate timeout (`BLUEWAVE_GATE_CONCURRENCY` / `_TIMEOUT_MS` / `_FAIL_FAST`). |
+| `run.tasks` | `pnpm preflight` | Gate DAG: `dependsOn` edges, `cache: false`, `VP_RUN_CONCURRENCY_LIMIT` (ADR-0161). |
 | `preflight.cjs` | (gate) | Fail fast on an in-progress merge/rebase or conflict markers. |
 | `link-claude-skills.mjs` | (gate, `prepare`) | Recreate the `.claude/skills` → `.agents/skills` symlinks for Claude Code. |
 | `assert-single-effect.mjs` | (gate) | `effect` single-copy invariant: `--self-test` (9 fixtures) then the lockfile. |

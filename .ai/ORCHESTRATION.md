@@ -74,7 +74,7 @@ validation gate → commit**.
 The orchestrator runs the full gate itself and records exact observed results in
 the sprint's validation report (`.ai/reports/<slug>.md`):
 
-- clean uncached build (`pnpm -w turbo run build --force`);
+- clean uncached build (`vp run -r build --no-cache`);
 - `tsc -b`, `pnpm lint`, `pnpm format`;
 - full test suite;
 - determinism: cross-process child run twice (byte-identical) + golden verify

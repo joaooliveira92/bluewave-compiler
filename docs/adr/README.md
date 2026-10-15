@@ -152,6 +152,7 @@ Repo process, docs/ADR authority, and release gates.
 | 0150 | [ADR-0150-authoritative-determinism-gate.md](ADR-0150-authoritative-determinism-gate.md) | The authoritative-determinism ratchet gate | accepted | — |
 | 0151 | [ADR-0151-rules-compliance-ratchet-gates.md](ADR-0151-rules-compliance-ratchet-gates.md) | The RULES.md compliance ratchet gates | accepted | — |
 | 0152 | [ADR-0152-errors-by-reachability.md](ADR-0152-errors-by-reachability.md) | Errors are tagged by reachability — `Data.TaggedError` inside, `readonly _tag` at the renderer boundary | accepted | — |
+| 0161 | [ADR-0161-consolidate-on-the-vite-plus-task-runner.md](ADR-0161-consolidate-on-the-vite-plus-task-runner.md) | Consolidate task orchestration on the Vite+ task runner | accepted | — |
 
 ## Archive
 
