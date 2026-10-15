@@ -221,16 +221,12 @@ and ADR-0161 §2. SPM-R5 is unchanged and becomes the derive's sole mass-applica
 mechanism.
 
 The inventory against the tree at `1f34161b` found exactly **six derive inputs with no part
-home**, which Stage 1 (17a-2) must give typed homes before the derive can read parts:
-
-- `allowedZones`, `forbidsCoLocation`, `buildWorkMicro`, `productionLine` — declared
-  `(none)` and rejected as `PARTCAT_UNMAPPED_FIELD` (`partCatalogue.ts`);
-- `attributes.flammableBp` — read at `compileStages.ts`, un-authored today (always `0`);
-- the legacy `ComponentCategory` token — parts carry `family` + `spec.weaponCategory` only,
-  so a code-owned family→category adapter is needed (`ComponentSummary.category` stays).
-
-Everything else the derive reads already has a typed destination (height, centre of gravity,
-electrical/cooling load and the capability attributes included). **17a-2 (Stage 1) is
-unblocked and is the next slice**; it is a schema change as well as a compiler change, and
-moves the content lock/`contentArtifactHash`/`contentBundleHash` when the codemod emits the
-new homes (re-pinned through the approved process). D-11/D-12 are updated to match.
+home** — `allowedZones`, `forbidsCoLocation`, `buildWorkMicro`, `productionLine`,
+`attributes.flammableBp` (read but un-authored today) and the legacy `ComponentCategory`
+token, which needs a code-owned part→category adapter. Stage 1 (17a-2) gives each a typed
+home; ADR-0163 §Context carries the authoritative list and evidence, and everything else the
+derive reads already has a typed destination (height, centre of gravity, electrical/cooling
+load and the capability attributes included). **17a-2 (Stage 1) is unblocked and is the next
+slice**; it is a schema change as well as a compiler change, and moves the content
+lock/`contentArtifactHash`/`contentBundleHash` when the codemod emits the new homes
+(re-pinned through the approved process). D-11/D-12 are updated to match.

@@ -71,7 +71,11 @@ runtime cutover. This is that decision.
 
 ## Decision
 
-### 1. The derive consumes the canonical part representation; a part carries evaluated derive inputs, never formulas
+### 1. The compiler is rewritten to consume the part representation directly; a part carries evaluated derive inputs, never formulas
+
+This is the ticket's second option — the compiler is rewritten to consume the part
+representation rather than parts carrying the legacy formulas — with the clarification that
+the derive inputs the parts carry are evaluated values and their bases, never formulas.
 
 The production derive is rewritten (Stage 1, ticket 17a-2) to read every per-placement
 metric from the part itself:
@@ -98,10 +102,12 @@ part's quantities or attributes.
 `allowedZones`, `forbidsCoLocation`, `buildWorkMicro`, `productionLine` and
 `attributes.flammableBp` each gain a typed field (or a documented, typed projection) on the
 part or its slot/entry, and the legacy `ComponentCategory` becomes a code-owned
-family→category adapter. They are **not** re-expressed as formulas and never as a
-free-form legacy bag (ADR-0154 §19). Until these homes exist, `partCatalogue.ts` rejects
-them (`PARTCAT_UNMAPPED_FIELD`), which is why Stage 1 is a schema change as well as a
-compiler change.
+**part→category adapter** over a part's `family`, `provides` and `spec` — a `fitting`
+provides six interfaces, and the derive branches on `GENERATOR`, `DIRECTOR`/`RANGEFINDER`
+and `MAGAZINE`, so `family` alone is not enough. They are **not** re-expressed as formulas
+and never as a free-form legacy bag (ADR-0154 §19). Until these homes exist,
+`partCatalogue.ts` rejects them (`PARTCAT_UNMAPPED_FIELD`), which is why Stage 1 is a schema
+change as well as a compiler change.
 
 ### 3. No `ComponentDef` is reconstructed
 
@@ -110,7 +116,7 @@ A `ComponentDef`-shaped projection is rejected ([ADR-0161](ADR-0161-derive-first
 §2): it would present the legacy shape — and, if it carried formulas, the legacy strings —
 as if the parts had authored them, a second content authority that could diverge silently.
 The public `ComponentSummary` contract may keep its `category` field because it is fed by
-the code-owned family→category adapter (§2), not by a synthesized catalogue.
+the code-owned part→category adapter (§2), not by a synthesized catalogue.
 
 ### 4. Effect on SPM-R5
 
@@ -121,13 +127,13 @@ and are now the derive's sole mass-application mechanism. No new basis is introd
 
 ### 5. Nation filtering and the resolution key
 
-`ctx.catalogue` is nation-filtered (`catalogueForNation` overlays national gun models and
-variants and enforces the calibre ceiling) while the part model is nation-agnostic. Stage 1
-therefore introduces a **nation-aware part view** built from the parts (a part's `nation`
-and `lifecycle` as the filter; national models as `extends` variants), replacing
-`catalogueForNation`. A placement resolves against that view by its part family or id (a
-gun family id, a fitting or launcher id) rather than by a catalogue lookup. The exact
-shape is Stage 1/3.
+`ctx.catalogue` is not the whole buildable catalogue: `catalogueForNation` overlays national
+gun models and variants and enforces the calibre ceiling, so it is nation-filtered. The
+compiled part index is not itself filtered — the parts carry an optional `nation`, a
+lifecycle and `extends` variants, so the nation-filtered set is reproducible from the parts.
+Stage 1 therefore replaces `catalogueForNation` with that reproduction, and a placement
+resolves by its part family or id (a gun family id, a fitting or launcher id) rather than by
+a catalogue lookup. The exact shape is Stage 1/3.
 
 ### 6. Migration and golden discipline
 
@@ -141,6 +147,9 @@ shape is Stage 1/3.
   content lock and `contentArtifactHash`/`contentBundleHash` move deliberately and are
   re-pinned through the approved process (ADR-0145, SPM-R25). Later basis or authored-value
   changes remain SPM-R25 approved diffs.
+- Design-file identity (`persistence.ts` `componentHash`/`encodeDesignFile`) is defined over
+  the same component/part mapping and moves in Stage 3 (17c), not here: this decision fixes
+  only where the derive's inputs live.
 
 ## Consequences
 
