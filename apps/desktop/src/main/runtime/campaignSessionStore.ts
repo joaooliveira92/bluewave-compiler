@@ -1,7 +1,7 @@
 // The in-memory campaign-session registry as a service (INC-3; ADR-0159). The
-// process-local session, construction-workspace and pending-command state (no
-// persistence of its own — the authoritative record is the `SaveStore` package)
-// is resolved through the Layer rather than by importing the module-level Maps.
+// process-local session + construction-workspace state (no persistence of its
+// own — the authoritative record is the `SaveStore` package) is resolved through
+// the Layer rather than by importing the module-level Maps.
 import { Context, Effect, Layer } from "effect";
 import {
   getCampaignSession,
@@ -9,8 +9,12 @@ import {
   removeCampaignSession,
   type CampaignSessionRecord,
 } from "../campaignSessions.js";
-import { clearConstructionWorkspace } from "../constructionWorkspace.js";
-import { clearPendingEnvelopes } from "../pendingCommands.js";
+import {
+  clearConstructionWorkspace,
+  getConstructionWorkspace,
+  hasConstructionWorkspace,
+  type ConstructionWorkspace,
+} from "../constructionWorkspace.js";
 import { SessionNotFound } from "./commandError.js";
 
 export class CampaignSessionStore extends Context.Service<
@@ -19,8 +23,11 @@ export class CampaignSessionStore extends Context.Service<
     readonly get: (sessionId: string) => Effect.Effect<CampaignSessionRecord, SessionNotFound>;
     readonly register: (record: CampaignSessionRecord) => Effect.Effect<void>;
     readonly remove: (sessionId: string) => Effect.Effect<void>;
+    readonly getConstructionWorkspace: (
+      record: CampaignSessionRecord,
+    ) => Effect.Effect<ConstructionWorkspace>;
+    readonly hasConstructionWorkspace: (sessionId: string) => Effect.Effect<boolean>;
     readonly clearConstructionWorkspace: (sessionId: string) => Effect.Effect<void>;
-    readonly clearPendingEnvelopes: (sessionId: string) => Effect.Effect<void>;
   }
 >()("bluewave/desktop/CampaignSessionStore") {}
 
@@ -34,8 +41,9 @@ export function campaignSessionStoreLayer(): Layer.Layer<CampaignSessionStore> {
     },
     register: (record) => Effect.sync(() => registerCampaignSession(record)),
     remove: (sessionId) => Effect.sync(() => removeCampaignSession(sessionId)),
+    getConstructionWorkspace: (record) => Effect.sync(() => getConstructionWorkspace(record)),
+    hasConstructionWorkspace: (sessionId) => Effect.sync(() => hasConstructionWorkspace(sessionId)),
     clearConstructionWorkspace: (sessionId) =>
       Effect.sync(() => clearConstructionWorkspace(sessionId)),
-    clearPendingEnvelopes: (sessionId) => Effect.sync(() => clearPendingEnvelopes(sessionId)),
   });
 }

@@ -10,6 +10,7 @@ import type {
 import { readSessionMetadata, writeSessionMetadata } from "../campaignSessionMetadata.js";
 import { getCampaignSession } from "../campaignSessions.js";
 import { CampaignSessionStore } from "../runtime/campaignSessionStore.js";
+import { CommandQueueStore } from "../runtime/commandQueueStore.js";
 import type { CommandError } from "../runtime/commandError.js";
 import { ProjectStore } from "../runtime/projectStore.js";
 
@@ -51,14 +52,19 @@ export const saveCampaignProgram = (
 /** `closeCampaign` as an Effect program (INC-3): drops every session-scoped store. */
 export const closeCampaignProgram = (
   sessionId: string,
-): Effect.Effect<BridgeResult<{ closed: true }>, CommandError, CampaignSessionStore> =>
+): Effect.Effect<
+  BridgeResult<{ closed: true }>,
+  CommandError,
+  CampaignSessionStore | CommandQueueStore
+> =>
   Effect.gen(function* () {
     const sessions = yield* CampaignSessionStore;
+    const queue = yield* CommandQueueStore;
     // Fails with SESSION_NOT_FOUND when the session is not open.
     yield* sessions.get(sessionId);
     // Queued-but-uncommitted commands (diplomacy, divisions, research, construction) and the
     // construction workspace belong to this session only.
-    yield* sessions.clearPendingEnvelopes(sessionId);
+    yield* queue.clear(sessionId);
     yield* sessions.clearConstructionWorkspace(sessionId);
     yield* sessions.remove(sessionId);
     return { outcome: "success", value: { closed: true }, diagnostics: [] };
