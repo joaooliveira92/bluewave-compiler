@@ -15,11 +15,20 @@ if (!process.env.NODE_COMPILE_CACHE) {
   process.env.NODE_COMPILE_CACHE = join(repoRoot, "node_modules", ".cache", "node-compile-cache");
 }
 
-// Shared Vitest defaults for every workspace project. `fsModuleCache` persists
-// the transform cache to disk so a rerun over a large module graph skips the
-// transform phase (the in-memory watch cache is otherwise discarded once a run
-// finishes). It is `false` in the installed vitest and `true` upstream from
-// 5.0.4, so set it explicitly to pin the behaviour.
+// Shared Vitest defaults for every workspace project.
+//
+// `testTimeout` is a deliberate, load-tolerant baseline: Vitest's 5s default is
+// fine for a suite running alone but tips over when the workspace's gates and
+// suites run together on a busy machine. A package that legitimately needs more
+// headroom (a long simulation) overrides it on top of the spread; a package that
+// dropped this baseline silently reverts to 5s, which is why
+// `scripts/verify-vitest-config-parity.mjs` gates the inheritance.
+//
+// `fsModuleCache` persists the transform cache to disk so a rerun over a large
+// module graph skips the transform phase (the in-memory watch cache is otherwise
+// discarded once a run finishes). It is `false` in the installed vitest and
+// `true` upstream from 5.0.4, so set it explicitly to pin the behaviour.
 export const sharedTestConfig = {
+  testTimeout: 15000,
   fsModuleCache: true,
 };

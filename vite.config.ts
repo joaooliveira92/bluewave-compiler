@@ -195,6 +195,14 @@ export default defineConfig({
         command: "node scripts/verify-tsgo-integration.mjs",
         dependsOn: ["gate:git-state"],
       },
+      "gate:vitest-config-self-test": {
+        command: "node scripts/verify-vitest-config-parity.mjs --self-test",
+        dependsOn: ["gate:git-state"],
+      },
+      "gate:vitest-config": {
+        command: "node scripts/verify-vitest-config-parity.mjs",
+        dependsOn: ["gate:vitest-config-self-test"],
+      },
       "gate:content-lock": {
         command: "node scripts/verify-content-lock.mjs",
         dependsOn: ["gate:git-state"],
@@ -233,6 +241,7 @@ export default defineConfig({
           "gate:version-coherence",
           "gate:check-parity",
           "gate:tsgo-integration",
+          "gate:vitest-config",
           "gate:content-placeholder-gate",
           "gate:codemod-determinism",
         ],
