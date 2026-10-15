@@ -24,5 +24,18 @@ jobs:
           node-version: "24.18.0"
       - name: Check commit subjects are Conventional Commits
         env:
-          COMMIT_RANGE: ${{ github.event_name == 'pull_request' && format('{0}..{1}', github.event.pull_request.base.sha, github.event.pull_request.head.sha) || format('{0}..{1}', github.event.before, github.sha) }}
-        run: node scripts/check-commit-msgs.cjs
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PUSH_BEFORE_SHA: ${{ github.event.before }}
+          PUSH_HEAD_SHA: ${{ github.sha }}
+        run: |
+          # A push whose `before` is the all-zero SHA (first push of a branch)
+          # has no meaningful range; leave COMMIT_RANGE unset so the check falls
+          # back to the pushed commit instead of failing closed on a bogus range.
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            echo "COMMIT_RANGE=${PR_BASE_SHA}..${PR_HEAD_SHA}" >> "$GITHUB_ENV"
+          elif [ -n "$PUSH_BEFORE_SHA" ] && [ "$PUSH_BEFORE_SHA" != "0000000000000000000000000000000000000000" ]; then
+            echo "COMMIT_RANGE=${PUSH_BEFORE_SHA}..${PUSH_HEAD_SHA}" >> "$GITHUB_ENV"
+          fi
+          node scripts/check-commit-msgs.cjs

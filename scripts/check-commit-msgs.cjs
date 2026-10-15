@@ -9,7 +9,8 @@
 //
 // Defaults to the last commit (HEAD~1..HEAD). Merge, revert, fixup! and squash!
 // commits are skipped. If the range cannot be resolved (e.g. a shallow checkout
-// or a brand-new branch), the check is skipped rather than failed.
+// or a mistyped COMMIT_RANGE), the check fails closed in CI (naming the range)
+// and skips locally, so a missing range never blocks a developer's run.
 const { execFileSync } = require("child_process");
 const { readFileSync } = require("fs");
 
@@ -32,6 +33,15 @@ const SKIP = /^(Merge |Revert |fixup!|squash!)/;
 
 function git(args) {
   return execFileSync("git", args, { encoding: "utf8" }).trim();
+}
+
+// True when the run should treat an unresolvable range as fatal. CI is the
+// authority on the committed tree, so it fails closed; a local run (an
+// unreachable COMMIT_RANGE) only skips, so a missing range never blocks an
+// unrelated run. Mirrors the `isStrictEnvironment` helper in the other gates.
+function isStrictEnvironment(env = process.env) {
+  const value = env.CI;
+  return value !== undefined && value !== "" && value !== "0" && value.toLowerCase() !== "false";
 }
 
 // commit-msg hook mode: validate one message file (first non-comment line).
@@ -64,6 +74,10 @@ let subjects;
 try {
   subjects = git(["log", "--no-merges", "--format=%s", range]).split("\n").filter(Boolean);
 } catch {
+  if (isStrictEnvironment()) {
+    console.error(`commit-msg check: range "${range}" is unavailable; failing closed`);
+    process.exit(1);
+  }
   console.log(`commit-msg check: range "${range}" is unavailable; skipping`);
   process.exit(0);
 }
