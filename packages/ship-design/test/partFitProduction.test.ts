@@ -607,12 +607,12 @@ describe("fit over every production design (characterization)", () => {
     ).findings.map((f) => f.id),
   }));
 
-  it("evaluates all 91 designs, 823 placements, 230 gun placements and 28 tube placements", () => {
-    expect(fits).toHaveLength(91);
-    expect(fits.reduce((n, d) => n + d.design.draft.placements.length, 0)).toBe(823);
+  it("evaluates all 92 designs, 825 placements, 230 gun placements and 29 tube placements", () => {
+    expect(fits).toHaveLength(92);
+    expect(fits.reduce((n, d) => n + d.design.draft.placements.length, 0)).toBe(825);
     const slotKinds = fits.flatMap((d) => d.entries.map((e) => e.slot.split(".").at(-1)));
     expect(slotKinds.filter((k) => k === "gun_mount")).toHaveLength(230);
-    expect(slotKinds.filter((k) => k === "torpedo_launcher")).toHaveLength(28);
+    expect(slotKinds.filter((k) => k === "torpedo_launcher")).toHaveLength(29);
   });
 
   it("accepts every design: nothing is excluded, and nothing is rejected silently", () => {
@@ -620,7 +620,7 @@ describe("fit over every production design (characterization)", () => {
     // the armament resolver cannot resolve (11 nations without first-class armament) are still
     // fitted here: fit is a structural rule over the part model, not the resolver.
     const status = (s: FitResult["status"]) => results.filter((x) => x.r.status === s).length;
-    expect([status("ACCEPTED"), status("REJECTED"), status("NOT_EVALUABLE")]).toEqual([91, 0, 0]);
+    expect([status("ACCEPTED"), status("REJECTED"), status("NOT_EVALUABLE")]).toEqual([92, 0, 0]);
     for (const { d, r } of results) {
       expect(r.findings, d.design.id).toEqual([]);
       expect(r.dataIssues, d.design.id).toEqual([]);
@@ -645,7 +645,7 @@ describe("fit over every production design (characterization)", () => {
     // Legacy: TECH_UNAVAILABLE (introduction in the future), COMPONENT_OBSOLETE and
     // PARAM_RANGE. Fit: FIT_NOT_YET_AVAILABLE, FIT_UNAVAILABLE and the mountCount range.
     // Technology prerequisites (`requires`) have no fit rule yet, so only designs where the
-    // legacy rule is absent are claimed equal; none of the 91 designs raises one.
+    // legacy rule is absent are claimed equal; none of the 92 designs raises one.
     for (const { d, r, legacy } of results) {
       const legacyRule = legacy.filter((id) =>
         ["TECH_UNAVAILABLE", "COMPONENT_OBSOLETE", "PARAM_RANGE"].includes(id),

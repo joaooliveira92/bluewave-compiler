@@ -6,6 +6,32 @@ designs:
   - id: kaiser_1875
     name: Kaiser (1875, armoured frigate)
     month: 1880-01
+    historical: true
+    provenance:
+      completionDate:
+        value: "13.2.1875 (Deutschland 20.7.1875; last foreign-built German capital ship)"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (germany/ger_bb_kaiser.htm)" }]
+      displacementBasis:
+        value: "8,799 t normal / 8,940 t full (Kaiser)"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (germany/ger_bb_kaiser.htm)" }]
+      armourScheme:
+        value: "steel (belt on teak backing); belt 254-127, deck 51-38, casemate 203-178, bulkheads 178, CT 50"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (germany/ger_bb_kaiser.htm)" }]
+      armamentConfiguration:
+        value: "8x1 263 mm (10.4-in) RKL/20 C/74 + 1x1 209 mm (8.2-in) RKL/22.5 C/68; no torpedo tubes as built (5x350 mm at 1897 reconstruction)"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (germany/ger_bb_kaiser.htm)" }]
+      machineryOutput:
+        value: "1 HSE, 8 rectangular boilers, 1 shaft; 5,700 ihp"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (germany/ger_bb_kaiser.htm)" }]
+      speed:
+        value: "14.5 kn; 2,470 nmi at 10 kn"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (germany/ger_bb_kaiser.htm)" }]
     draft:
       nationId: germany
       requirement:

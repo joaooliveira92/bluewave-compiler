@@ -1,6 +1,6 @@
 import { Schema } from "effect";
 
-import { ProvenanceSchema } from "./provenance.js";
+import { SourceReferenceSchema } from "./provenance.js";
 import { SHIP_ZONE_IDS } from "./ship-component.js";
 
 /**
@@ -127,13 +127,74 @@ const DesignDraftSchema = Schema.Struct({
   placements: Schema.Array(PlacementSpecSchema),
 });
 
+/**
+ * The status a reconstructed value can carry (CAH-SCH-1, ticket 39). A strict
+ * subset of the shared `SOURCE_STATUSES`: a historical reference value is either
+ * read VERIFIED (period primary/near-primary, or two independent sources that
+ * agree), DERIVED (a single compilation such as navypedia, or arithmetic on
+ * cited figures), or ESTIMATE (a reasoned value with no source).
+ */
+export const REFERENCE_VALUE_STATUSES = ["VERIFIED", "DERIVED", "ESTIMATE"] as const;
+export const REFERENCE_VALUE_STATUSES_SCHEMA = Schema.Literals(REFERENCE_VALUE_STATUSES);
+
+/**
+ * One reconstructed fact of a historical reference design (ticket 39). `value`
+ * is the fact as read (e.g. "9,387 t normal (Thunderer 9,390)"), `status` its
+ * confidence, and `sources` the real citations behind it (an array so a VERIFIED
+ * value can name both agreeing sources; at least one is required). `note` records
+ * an admitted approximation or a source conflict. The schema is structural only;
+ * the reference-design provenance test acts on it.
+ */
+export const ReferenceValueProvenanceSchema = Schema.Struct({
+  value: Schema.NonEmptyString,
+  status: REFERENCE_VALUE_STATUSES_SCHEMA,
+  sources: Schema.Array(SourceReferenceSchema).check(Schema.isMinLength(1)),
+  note: Schema.optional(Schema.String),
+});
+
+export type ReferenceValueProvenance = typeof ReferenceValueProvenanceSchema.Type;
+
+/**
+ * The machine-readable provenance every HISTORICAL reference design carries
+ * (ticket 39): the six facts the January-1880 reconstruction review grounded in
+ * `docs/research/ship-building-1880-ships-by-nation.md` and its companions. A
+ * design that declares `historical: true` must fill all six (the
+ * `referenceProvenance` test enforces it); non-historical templates omit it.
+ */
+export const ReferenceDesignProvenanceSchema = Schema.Struct({
+  completionDate: ReferenceValueProvenanceSchema,
+  displacementBasis: ReferenceValueProvenanceSchema,
+  armourScheme: ReferenceValueProvenanceSchema,
+  armamentConfiguration: ReferenceValueProvenanceSchema,
+  machineryOutput: ReferenceValueProvenanceSchema,
+  speed: ReferenceValueProvenanceSchema,
+});
+
+export type ReferenceDesignProvenance = typeof ReferenceDesignProvenanceSchema.Type;
+
+/** The six facts a historical design's provenance must cover, in report order. */
+export const REFERENCE_PROVENANCE_FIELDS = [
+  "completionDate",
+  "displacementBasis",
+  "armourScheme",
+  "armamentConfiguration",
+  "machineryOutput",
+  "speed",
+] as const;
+
 export const ReferenceDesignSchema = Schema.Struct({
   id: Schema.NonEmptyString,
   name: Schema.NonEmptyString,
   month,
   starterFor: Schema.optional(Schema.NonEmptyString),
+  /**
+   * True when the design reconstructs a documented real ship; absent/false means
+   * a non-historical doctrine or illustrative template. A historical design must
+   * carry full `provenance` (the reference-design provenance test enforces it).
+   */
+  historical: Schema.optional(Schema.Boolean),
   draft: DesignDraftSchema,
-  provenance: Schema.optional(ProvenanceSchema),
+  provenance: Schema.optional(ReferenceDesignProvenanceSchema),
 });
 
 export type ReferenceDesign = typeof ReferenceDesignSchema.Type;

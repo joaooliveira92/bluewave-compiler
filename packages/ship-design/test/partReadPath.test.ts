@@ -58,8 +58,8 @@ function legacyComponentValue(row: GunPlacement, field: "weightKg" | "costMicro"
 const FIRST_CLASS = ["france", "germany", "uk"];
 
 describe("gun read path over today's content (ship-part-model 03)", () => {
-  it("covers all 91 reference designs and all 230 gun placements", () => {
-    expect(designs.length).toBe(91);
+  it("covers all 92 reference designs and all 230 gun placements", () => {
+    expect(designs.length).toBe(92);
     expect(gunPlacements.length).toBe(230);
     expect(gunPartModel.unread).toEqual([]);
   });

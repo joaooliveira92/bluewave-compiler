@@ -8,6 +8,33 @@ designs:
     name: Mesudiye (1875, central-battery ironclad)
     month: 1880-01
     starterFor: B
+    historical: true
+    provenance:
+      completionDate:
+        value: "12.1875 (navypedia text also gives 1876-7)"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (turkey/tu_bb_mesudiye.htm)" }]
+        note: "The source conflicts internally on the completion date; the earlier 1875 reading is used."
+      displacementBasis:
+        value: "8,938 t normal"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (turkey/tu_bb_mesudiye.htm)" }]
+      armourScheme:
+        value: "wrought iron; belt 305-152 (ends 127-76), battery 254-178, CT 203 (no separate deck)"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (turkey/tu_bb_mesudiye.htm)" }]
+      armamentConfiguration:
+        value: "12x1 254 mm (10-in) Armstrong 18-ton RML (battery) + 3x1 178 mm (7-in) Armstrong 7.5-ton RML (upper deck); no torpedoes documented"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (turkey/tu_bb_mesudiye.htm)" }]
+      machineryOutput:
+        value: "1 x 2-cyl HSE, 8 rectangular boilers; 7,431 ihp"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (turkey/tu_bb_mesudiye.htm)" }]
+      speed:
+        value: "13.7 kn"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (turkey/tu_bb_mesudiye.htm)" }]
     draft:
       nationId: ottoman_empire
       requirement:
