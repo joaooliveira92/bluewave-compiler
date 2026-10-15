@@ -1,4 +1,8 @@
-import { referenceDesignsFromLoadouts, type DesignDraft } from "@bluewave/ship-design";
+import {
+  referenceDesignsFromLoadouts,
+  type DesignDraft,
+  type ReferenceDesignProvenance,
+} from "@bluewave/ship-design";
 import type { ShipBuildingCatalogue } from "@bluewave/content-compiler";
 
 import { ContentArtifactError, readContentArtifact } from "./contentArtifact.js";
@@ -10,6 +14,10 @@ export interface RawReferenceDesignFile {
   readonly name: string;
   readonly month: string;
   readonly starterFor?: string;
+  /** True when the design reconstructs a documented real ship (ticket 39). */
+  readonly historical?: boolean;
+  /** Machine-readable provenance of the reconstructed facts (historical designs only, ticket 39). */
+  readonly provenance?: ReferenceDesignProvenance;
   readonly draft: DesignDraft;
 }
 
@@ -32,6 +40,7 @@ export function readReferenceDesigns(): RawReferenceDesignFile[] {
     return referenceDesignsFromLoadouts(
       catalogue.designLoadouts as Parameters<typeof referenceDesignsFromLoadouts>[0],
       catalogue.partModel,
+      catalogue.referenceDesigns as Parameters<typeof referenceDesignsFromLoadouts>[2],
     );
   }
   return catalogue.referenceDesigns as RawReferenceDesignFile[];

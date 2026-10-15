@@ -21,7 +21,11 @@ import { type NationNavalProfile, resolveNavalProfile } from "./nationProfile.js
 import type { AuthoredArmamentContent } from "./armamentContent.js";
 import type { StarterDesign } from "./shipTypeRoster.js";
 import type { DesignDraft } from "./compileShared.js";
-import type { CompiledPartModel, ReferenceDesignLoadoutData } from "@bluewave/content-schema";
+import type {
+  CompiledPartModel,
+  ReferenceDesignLoadoutData,
+  ReferenceDesignProvenance,
+} from "@bluewave/content-schema";
 import { buildProductionPartModel } from "./compileProduction.js";
 import type { DraftCompileContent } from "./compileDraft.js";
 import {
@@ -31,12 +35,24 @@ import {
 } from "./partCompatibility.js";
 import { rebuildDraft } from "./partCatalogueReaders.js";
 
+// Re-exported so the desktop main process can type a reference design's provenance without importing the
+// content-schema package directly (its content loaders must not pull in the schema; a main-process test pins that).
+export type { ReferenceDesignProvenance, ReferenceValueProvenance } from "@bluewave/content-schema";
+
 /** A raw reference-design entry as authored in `reference-designs.yaml` (its `starterFor` is optional). */
 export interface RawReferenceDesign {
   readonly id: string;
   readonly name: string;
   readonly month: string;
   readonly starterFor?: string;
+  /**
+   * True when the design reconstructs a documented real ship (ticket 39); carried
+   * through from content so the Drawing Board and the AI can tell a historical
+   * reconstruction from a doctrine template without reading YAML comments.
+   */
+  readonly historical?: boolean;
+  /** Machine-readable provenance of every reconstructed fact (historical designs only, ticket 39). */
+  readonly provenance?: ReferenceDesignProvenance;
   readonly draft: DesignDraft;
 }
 
@@ -143,12 +159,17 @@ export function unlockedTechIds(
 export function referenceDesignsFromLoadouts(
   loadouts: readonly ReferenceDesignLoadoutData[],
   model: CompiledPartModel,
+  authored?: readonly RawReferenceDesign[],
 ): RawReferenceDesign[] {
   const production = buildProductionPartModel({
     parts: Object.values(model.partIndex.byId),
     slotTemplates: model.slotTemplates,
     platforms: model.platforms,
   });
+  // Ticket 39: the loadout carries only the mechanical facts (a `historical`/`provenance`
+  // passthrough would duplicate it). The authored catalogue entry is the source for those
+  // metadata fields, joined back by id so the read path is not a dead end.
+  const authoredById = new Map((authored ?? []).map((design) => [design.id, design] as const));
   return loadouts.map((loadout) => {
     const slots = platformSlots(production.compatibility, loadout.loadout.platform) ?? [];
     const rebuilt = rebuildDraft({
@@ -161,11 +182,14 @@ export function referenceDesignsFromLoadouts(
     if (rebuilt.draft === null || rebuilt.issues.length > 0) {
       throw new Error(`reference design '${loadout.id}' does not rebuild from its parts loadout`);
     }
+    const source = authoredById.get(loadout.id);
     return {
       id: loadout.id,
       name: loadout.name,
       month: loadout.month,
       ...(loadout.starterFor === undefined ? {} : { starterFor: loadout.starterFor }),
+      ...(source?.historical === undefined ? {} : { historical: source.historical }),
+      ...(source?.provenance === undefined ? {} : { provenance: source.provenance }),
       draft: rebuilt.draft,
     };
   });
@@ -220,7 +244,7 @@ export function buildShipBuildingContent(data: ShipBuildingData): ShipBuildingCo
   // them; the legacy `referenceDesigns` array remains the equivalence-harness baseline.
   const referenceDesigns =
     data.partModel !== undefined && data.designLoadouts !== undefined
-      ? referenceDesignsFromLoadouts(data.designLoadouts, data.partModel)
+      ? referenceDesignsFromLoadouts(data.designLoadouts, data.partModel, data.referenceDesigns)
       : (data.referenceDesigns ?? []);
   const environmentFor = (month: string, nationId?: string): WorkshopEnvironment => {
     const profile = nationId === undefined ? null : resolveNavalProfile(profiles, nationId, month);

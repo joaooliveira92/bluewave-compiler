@@ -10,6 +10,32 @@ designs:
     starterFor: B
     name: Matador (1879, coast-defence monitor)
     month: 1880-01
+    historical: true
+    provenance:
+      completionDate:
+        value: "1879 (sister Draak 1878)"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (netherlands/nl_bb_matador.htm)" }]
+      displacementBasis:
+        value: "1,968 t normal"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (netherlands/nl_bb_matador.htm)" }]
+      armourScheme:
+        value: "wrought iron; side 140-115, turret 305-230, deck 25"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (netherlands/nl_bb_matador.htm)" }]
+      armamentConfiguration:
+        value: "1x2 283 mm (11.1-in) Krupp No.1 in 1 twin turret; no torpedoes"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (netherlands/nl_bb_matador.htm)" }]
+      machineryOutput:
+        value: "2 HC, 4 cylindrical boilers; 690 ihp"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (netherlands/nl_bb_matador.htm)" }]
+      speed:
+        value: "7.5 kn"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (netherlands/nl_bb_matador.htm)" }]
     draft:
       nationId: netherlands
       requirement:

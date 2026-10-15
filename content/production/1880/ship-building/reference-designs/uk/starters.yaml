@@ -6,6 +6,7 @@ designs:
     starterFor: DD
     name: Havock-like destroyer (1893)
     month: 1895-06
+    historical: false
     draft:
       nationId: uk
       requirement:
@@ -117,6 +118,7 @@ designs:
     starterFor: B
     name: Majestic-like battleship (1895)
     month: 1896-01
+    historical: false
     draft:
       nationId: uk
       requirement:
@@ -901,6 +903,33 @@ designs:
     starterFor: B
     name: Alexandra (1877, central-battery ironclad)
     month: 1880-01
+    historical: true
+    provenance:
+      completionDate:
+        value: "31.1.1877 (laid down 5.3.1873, launched 7.4.1875)"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (uk/brit_bb1_alexandra.html)" }]
+      displacementBasis:
+        value: "9,492 t normal (9,490 t per content-1 note)"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (uk/brit_bb1_alexandra.html)" }]
+      armourScheme:
+        value: "wrought iron; belt 305-152 (3.2 m deep), deck 38-25, lower battery 305 / upper 203, bulkheads 203-127"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (uk/brit_bb1_alexandra.html)" }]
+      armamentConfiguration:
+        value: "2x1 279 mm (11-in) RML Mk II + 10x1 254 mm (10-in) RML Mk I/II; 6x1 100/21 20-pdr 16-cwt BL saluting; 4x356 mm (14-in) above-water torpedo carriages"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (uk/brit_bb1_alexandra.html)" }]
+        note: "navypedia's four-carriage torpedo fit conflicts with p1-1880-torpedo-armament.md ('no tube count')."
+      machineryOutput:
+        value: "sails + 2 x 3-cyl IVC (first RN vertical compound engines), 12 cylindrical boilers, 2 shafts; 8,498 ihp"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (uk/brit_bb1_alexandra.html)" }]
+      speed:
+        value: "15.1 kn (fastest steamer afloat on completion)"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (uk/brit_bb1_alexandra.html)" }]
     draft:
       nationId: uk
       requirement:

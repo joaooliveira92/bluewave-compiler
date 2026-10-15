@@ -11,6 +11,32 @@ designs:
     starterFor: B
     name: Vasco da Gama (1876, coast-defence casemate ironclad)
     month: 1880-01
+    historical: true
+    provenance:
+      completionDate:
+        value: "1876"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (portugal/pr_bb_vasco_da_gama.htm)" }]
+      displacementBasis:
+        value: "2,384 t normal"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (portugal/pr_bb_vasco_da_gama.htm)" }]
+      armourScheme:
+        value: "wrought iron; belt 229-102 (complete), battery 254-152"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (portugal/pr_bb_vasco_da_gama.htm)" }]
+      armamentConfiguration:
+        value: "2x1 263 mm (10.4-in) RK L/20 C/74 + 1x1 149 mm (5.9-in) RK L/22 C/75 + 4x1 67 mm (2.6-in) Krupp; no torpedoes documented"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (portugal/pr_bb_vasco_da_gama.htm)" }]
+      machineryOutput:
+        value: "2 VC; 3,000 ihp"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (portugal/pr_bb_vasco_da_gama.htm)" }]
+      speed:
+        value: "10.3 kn"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (portugal/pr_bb_vasco_da_gama.htm)" }]
     draft:
       nationId: portugal
       requirement:

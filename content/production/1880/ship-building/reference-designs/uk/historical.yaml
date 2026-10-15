@@ -5,6 +5,7 @@ designs:
   - id: torpedo_cruiser_1880
     name: Torpedo cruiser (1880, CL)
     month: 1880-01
+    historical: false
     draft:
       nationId: uk
       requirement:
@@ -106,6 +107,36 @@ designs:
   - id: devastator_1873
     name: Devastation (1873, turret ironclad)
     month: 1880-01
+    historical: true
+    provenance:
+      completionDate:
+        value: "19.4.1873 (lead ship; Thunderer 26.5.1877)"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (uk/brit_bb1_devastation.html)" }]
+      displacementBasis:
+        value: "9,387 t normal (Thunderer 9,390); 9,330 t per period annual"
+        status: VERIFIED
+        sources:
+          [
+            { title: "T. A. Brassey (ed.), The Naval Annual 1886", year: 1886, page: "l.4639" },
+            { title: "navypedia.org (uk/brit_bb1_devastation.html)" },
+          ]
+      armourScheme:
+        value: "wrought iron; belt 305-216 mm (two strakes), deck 76-51, turret 356-254, breastwork 305-254, CT 229-152"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (uk/brit_bb1_devastation.html)" }]
+      armamentConfiguration:
+        value: "2x2 305 mm (12-in) RML Mk II = 4 guns in 2 twin turrets; 2x356 mm (14-in) above-water torpedo tubes added 1879"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (uk/brit_bb1_devastation.html)" }]
+      machineryOutput:
+        value: "2 x 2-cyl HSE trunk, 8 rectangular boilers, 2 shafts; 6,640 ihp"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (uk/brit_bb1_devastation.html)" }]
+      speed:
+        value: "13.8 kn max; 4,700 nmi at 10 kn"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (uk/brit_bb1_devastation.html)" }]
     draft:
       nationId: uk
       requirement:
@@ -248,6 +279,36 @@ designs:
   - id: dreadnought_1875
     name: Dreadnought (1875, turret ironclad)
     month: 1880-01
+    historical: true
+    provenance:
+      completionDate:
+        value: "15.2.1879 (laid down 10.9.1870, launched 8.3.1875)"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (uk/brit_bb1_dreadnought.html)" }]
+      displacementBasis:
+        value: "10,886 t normal; 10,820 t per period annual"
+        status: VERIFIED
+        sources:
+          [
+            { title: "T. A. Brassey (ed.), The Naval Annual 1886", year: 1886, page: "l.3602" },
+            { title: "navypedia.org (uk/brit_bb1_dreadnought.html)" },
+          ]
+      armourScheme:
+        value: "wrought iron; belt 356-203 (lower edge), deck 76-64, turret 356 (two 178 mm plates), citadel 356-279"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (uk/brit_bb1_dreadnought.html)" }]
+      armamentConfiguration:
+        value: "2x2 318 mm (12.5-in) RML Mk I = 4 guns in 2 twin turrets; 2x356 mm (14-in) beam torpedo tubes"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (uk/brit_bb1_dreadnought.html)" }]
+      machineryOutput:
+        value: "2 x 2-cyl VC, 12 cylindrical boilers, 2 shafts; 8,206 ihp"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (uk/brit_bb1_dreadnought.html)" }]
+      speed:
+        value: "14.5 kn max"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (uk/brit_bb1_dreadnought.html)" }]
     draft:
       nationId: uk
       requirement:
@@ -390,6 +451,32 @@ designs:
   - id: iris_1879
     name: Iris (1879, dispatch vessel)
     month: 1880-01
+    historical: true
+    provenance:
+      completionDate:
+        value: "4.1879 (Iris; Mercury 9.1879)"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (uk/brit_cr_iris.htm)" }]
+      displacementBasis:
+        value: "3,730 t normal"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (uk/brit_cr_iris.htm)" }]
+      armourScheme:
+        value: "nil - steel hull, extensive subdivision; coal bunkers in the wing compartments are the only side protection"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (uk/brit_cr_iris.htm)" }]
+      armamentConfiguration:
+        value: "10x1 160 mm (6.3-in) 64-pdr 71-cwt RML, 4/side + 1 fwd + 1 aft; no torpedo tubes as built (rearmed 1880; 356 mm added 1886-87)"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (uk/brit_cr_iris.htm)" }]
+      machineryOutput:
+        value: "sails + 2 x 4-cyl HC direct-action, 8 oval + 4 cylindrical boilers, 2 shafts; 6,000 ihp design, 7,330 ihp trials (Iris)"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (uk/brit_cr_iris.htm)" }]
+      speed:
+        value: "17.5 kn design; Iris 17.89 kn, Mercury 18.57 kn trials"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (uk/brit_cr_iris.htm)" }]
     draft:
       nationId: uk
       requirement:
@@ -497,6 +584,33 @@ designs:
   - id: tb2_1879
     name: TB2 (1879, first-class torpedo boat)
     month: 1880-01
+    historical: true
+    provenance:
+      completionDate:
+        value: "TB2-TB9 1878-79 (TB10-TB12 1880); TB2-TB9 in service by Jan 1880"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (uk/brit_dd_tb2.htm)" }]
+      displacementBasis:
+        value: "28 t normal / 32 t full"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (uk/brit_dd_tb2.htm)" }]
+      armourScheme:
+        value: "none"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (uk/brit_dd_tb2.htm)" }]
+      armamentConfiguration:
+        value: "1 x 406 mm (16-in) tube; 1880s: 2 x 356 mm (14-in) dropping gear"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (uk/brit_dd_tb2.htm)" }]
+        note: "The model carries the 14-in above-water tube: no 16-in tube exists in content (documented approximation)."
+      machineryOutput:
+        value: "1 x 2-cyl VCE + 1 locomotive boiler, 1 shaft; 460 ihp"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (uk/brit_dd_tb2.htm)" }]
+      speed:
+        value: "20 kn"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (uk/brit_dd_tb2.htm)" }]
     draft:
       nationId: uk
       requirement:

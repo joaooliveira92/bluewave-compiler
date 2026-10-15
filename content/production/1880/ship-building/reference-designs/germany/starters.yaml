@@ -7,6 +7,32 @@ designs:
     name: Sachsen (1878, armoured corvette)
     month: 1880-01
     starterFor: B
+    historical: true
+    provenance:
+      completionDate:
+        value: "20.10.1878 (only Sachsen of the class in service Jan 1880; Bayern and Wuerttemberg 1881, Baden 1883)"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (germany/ger_bb_sachsen.htm)" }]
+      displacementBasis:
+        value: "7,677 t normal / 7,935 t full (Sachsen)"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (germany/ger_bb_sachsen.htm)" }]
+      armourScheme:
+        value: "wrought iron (patented sandwich); citadel 254-203 sides, 152 transverse bulkheads, deck 75-50, barbettes 254, CT 140"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (germany/ger_bb_sachsen.htm)" }]
+      armamentConfiguration:
+        value: "6x1 263 mm (10.2-in) RKL/22 C/76 in four barbettes; 6x1 87 mm RKL/24 + 8x1 37 mm SK; no torpedo tubes as built (3x350 mm 1886)"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (germany/ger_bb_sachsen.htm)" }]
+      machineryOutput:
+        value: "2 HSE, 8 rectangular boilers, 2 shafts; 5,000 ihp"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (germany/ger_bb_sachsen.htm)" }]
+      speed:
+        value: "13.5 kn; 1,940 nmi at 10 kn"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (germany/ger_bb_sachsen.htm)" }]
     draft:
       nationId: germany
       requirement:

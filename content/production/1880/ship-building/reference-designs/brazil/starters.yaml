@@ -10,6 +10,38 @@ designs:
     starterFor: B
     name: Sete de Setembro (1874, casemate ironclad)
     month: 1880-01
+    historical: true
+    provenance:
+      completionDate:
+        value: "4.7.1874"
+        status: DERIVED
+        sources:
+          [{ title: "naval-encyclopedia.com (industrial-era/the-imperial-brazilian-navy.php)" }]
+      displacementBasis:
+        value: "2,174 t"
+        status: DERIVED
+        sources:
+          [{ title: "naval-encyclopedia.com (industrial-era/the-imperial-brazilian-navy.php)" }]
+      armourScheme:
+        value: "wrought iron; belt 114, casemate 114, deck 12.7"
+        status: DERIVED
+        sources:
+          [{ title: "naval-encyclopedia.com (industrial-era/the-imperial-brazilian-navy.php)" }]
+      armamentConfiguration:
+        value: "4x1 300-pdr Whitworth RML in a central casemate (pivot); 2-pdr + Nordenfelt/Hotchkiss machine guns; no torpedoes documented (Brazil bought 4 torpedo boats by 1879)"
+        status: DERIVED
+        sources:
+          [{ title: "naval-encyclopedia.com (industrial-era/the-imperial-brazilian-navy.php)" }]
+      machineryOutput:
+        value: "2 shafts compound, 4 boilers; 2,000 ihp"
+        status: DERIVED
+        sources:
+          [{ title: "naval-encyclopedia.com (industrial-era/the-imperial-brazilian-navy.php)" }]
+      speed:
+        value: "12 kn"
+        status: DERIVED
+        sources:
+          [{ title: "naval-encyclopedia.com (industrial-era/the-imperial-brazilian-navy.php)" }]
     draft:
       nationId: brazil
       requirement:

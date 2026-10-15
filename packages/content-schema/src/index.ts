@@ -7,12 +7,22 @@ export {
   TorpedoMountSchema,
   TORPEDO_MOUNT_TYPE_VALUES,
 } from "./design.js";
-export type { DesignDraft, ReferenceDesign } from "./reference-design.js";
+export type {
+  DesignDraft,
+  ReferenceDesign,
+  ReferenceDesignProvenance,
+  ReferenceValueProvenance,
+} from "./reference-design.js";
 export {
   ACCOMMODATION_STANDARDS,
   ARMOUR_REGION_IDS,
   MOUNT_SIDES,
+  ReferenceDesignProvenanceSchema,
   ReferenceDesignSchema,
+  ReferenceValueProvenanceSchema,
+  REFERENCE_PROVENANCE_FIELDS,
+  REFERENCE_VALUE_STATUSES,
+  REFERENCE_VALUE_STATUSES_SCHEMA,
 } from "./reference-design.js";
 export type {
   CampaignConstruction,

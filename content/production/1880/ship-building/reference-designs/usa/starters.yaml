@@ -9,6 +9,32 @@ designs:
     starterFor: B
     name: Canonicus (1864/1880, coast-defence monitor)
     month: 1880-01
+    historical: true
+    provenance:
+      completionDate:
+        value: "16.4.1864 (Canonicus class 1864-71; several in service Jan 1880)"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (usa/us_mon_canonicus.htm)" }]
+      displacementBasis:
+        value: "2,100 t normal"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (usa/us_mon_canonicus.htm)" }]
+      armourScheme:
+        value: "wrought iron; side 127-76, turret 254, deck 38"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (usa/us_mon_canonicus.htm)" }]
+      armamentConfiguration:
+        value: "1x2 381 mm (15-in) long Dahlgren smoothbore in 1 turret; no torpedoes"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (usa/us_mon_canonicus.htm)" }]
+      machineryOutput:
+        value: "1 Ericsson VL, 2 boilers; 320 ihp"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (usa/us_mon_canonicus.htm)" }]
+      speed:
+        value: "8 kn"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (usa/us_mon_canonicus.htm)" }]
     draft:
       nationId: usa
       requirement:

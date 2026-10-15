@@ -8,6 +8,36 @@ designs:
     name: Petr Velikiy (1876, turret ship)
     month: 1880-01
     starterFor: B
+    historical: true
+    provenance:
+      completionDate:
+        value: "15.10.1876"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (russia/ru_bb_pyotr_velikiy.htm)" }]
+      displacementBasis:
+        value: "9,790 t normal / 10,460 t full; 9,340 t per period annual (loading basis differs)"
+        status: VERIFIED
+        sources:
+          [
+            { title: "T. A. Brassey (ed.), The Naval Annual 1886", year: 1886, page: "l.2899" },
+            { title: "navypedia.org (russia/ru_bb_pyotr_velikiy.htm)" },
+          ]
+      armourScheme:
+        value: "wrought iron; belt 356-292 (ends 254-203), deck 76, citadel 356, turrets 356"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (russia/ru_bb_pyotr_velikiy.htm)" }]
+      armamentConfiguration:
+        value: "2x2 305 mm (12-in) obr.1867 = 4 guns in 2 twin turrets; 6x1 87 mm 4-pdr obr.1867 + 2x4 25 mm Palmkrantz; no torpedo tubes as built (356 mm carriages added 1880)"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (russia/ru_bb_pyotr_velikiy.htm)" }]
+      machineryOutput:
+        value: "2 HRCR, 12 rectangular boilers; 6,400 ihp (defective engines until the 1881 refit)"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (russia/ru_bb_pyotr_velikiy.htm)" }]
+      speed:
+        value: "12.3 kn"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (russia/ru_bb_pyotr_velikiy.htm)" }]
     draft:
       nationId: russia
       requirement:

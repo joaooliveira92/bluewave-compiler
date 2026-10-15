@@ -550,6 +550,32 @@ designs:
     name: Redoutable (1878, central-battery ironclad)
     month: 1880-01
     starterFor: B
+    historical: true
+    provenance:
+      completionDate:
+        value: "31.12.1878 (laid down 18.7.1873, launched 18.9.1876)"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (france/fr_bb_redoutable.htm)" }]
+      displacementBasis:
+        value: "9,224 t normal (9,430 t full per content-1)"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (france/fr_bb_redoutable.htm)" }]
+      armourScheme:
+        value: "wrought iron; belt 350-220 (complete, 1.5 m below to 1.5 m above wl), deck 60-45, battery 300-240"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (france/fr_bb_redoutable.htm)" }]
+      armamentConfiguration:
+        value: "8x1 274 mm (10.8-in) M1875; 6x1 139 mm (5.5-in) M1870 + 12x5 37 mm revolving; 2x350 mm above-water beam torpedo tubes"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (france/fr_bb_redoutable.htm)" }]
+      machineryOutput:
+        value: "1 HRCR compound, 8 oval boilers, 1 shaft; 6,200 ihp"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (france/fr_bb_redoutable.htm)" }]
+      speed:
+        value: "14.7 kn max"
+        status: DERIVED
+        sources: [{ title: "navypedia.org (france/fr_bb_redoutable.htm)" }]
     draft:
       nationId: france
       requirement:

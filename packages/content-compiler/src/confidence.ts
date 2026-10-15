@@ -179,7 +179,13 @@ function walkProvenance(
   }
   if (!isRecord(value)) return;
   const provenance = value["provenance"];
-  if (isRecord(provenance)) {
+  // Only a CAH-PROV-1 record (which always carries `sourceStatus`/`confidence`) is a
+  // provenance location. A reference design's per-value provenance (ticket 39) uses a
+  // different shape under the same key, so it is skipped rather than mislabelled blank.
+  if (
+    isRecord(provenance) &&
+    (typeof provenance["sourceStatus"] === "string" || typeof provenance["confidence"] === "string")
+  ) {
     out.push({
       collection,
       recordId,
