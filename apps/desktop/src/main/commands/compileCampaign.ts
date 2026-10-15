@@ -1,4 +1,3 @@
-import { randomUUID } from "node:crypto";
 import { createInitialCampaignState } from "@bluewave/campaign";
 import { supportedPlayerSlotIds } from "@bluewave/campaign-engine";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
@@ -8,7 +7,7 @@ import { CampaignSessionStore } from "../runtime/campaignSessionStore.js";
 import { CommandFailed } from "../runtime/commandError.js";
 import { withSchema } from "../runtime/commandProgram.js";
 import { ContentArtifact } from "../runtime/contentArtifact.js";
-import { NativeDialog } from "../runtime/platform.js";
+import { IdGenerator, NativeDialog } from "../runtime/platform.js";
 import { ProjectStore } from "../runtime/projectStore.js";
 import { toSaveableState } from "../saveHelpers.js";
 
@@ -48,6 +47,7 @@ export const compileCampaignProgram = withSchema(
       const projects = yield* ProjectStore;
       const sessions = yield* CampaignSessionStore;
       const content = yield* ContentArtifact;
+      const ids = yield* IdGenerator;
 
       const sessionCollector = new DiagnosticCollector();
       const session = createInitialCampaignState(configuration, sessionCollector);
@@ -132,7 +132,7 @@ export const compileCampaignProgram = withSchema(
           ),
         );
 
-      const sessionId = randomUUID();
+      const sessionId = yield* ids.next();
       yield* sessions.register({
         sessionId,
         saveDir,

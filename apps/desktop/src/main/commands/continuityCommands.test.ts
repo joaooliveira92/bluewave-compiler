@@ -46,7 +46,7 @@ import { readReferenceDesigns } from "../referenceDesigns.js";
 import { projectCommandExit } from "../runtime/bridgeResult.js";
 import { desktopMainLayer } from "../runtime/desktopMainLayer.js";
 import type { CommandProgram } from "../runtime/commandProgram.js";
-import { NativeDialog } from "../runtime/platform.js";
+import { IdGenerator, NativeDialog } from "../runtime/platform.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, "../../../../..");
@@ -57,6 +57,12 @@ const GENERATED_ARTIFACT = resolve(REPO_ROOT, "content", "generated", "1880");
 let chooseSaveDirectoryAnswer: string | null = null;
 let choosePackageDirectoryAnswer: string | null = null;
 
+// Session ids are injected (production-hardening ticket 04): a deterministic,
+// per-call counter proves compile/load take the id from the `IdGenerator`
+// service rather than an ambient `randomUUID()`.
+let idCounter = 0;
+const nextTestId = () => `test-session-${String(idCounter++)}`;
+
 const runtime = ManagedRuntime.make(
   Layer.mergeAll(
     desktopMainLayer(),
@@ -65,6 +71,7 @@ const runtime = ManagedRuntime.make(
       choosePackageDirectory: () => Effect.succeed(choosePackageDirectoryAnswer),
       chooseCopyDirectory: () => Effect.succeed(null),
     }),
+    Layer.succeed(IdGenerator, { next: () => Effect.sync(nextTestId) }),
   ),
 );
 
@@ -127,6 +134,7 @@ describe("campaign continuance commands (save, load, verify, replay, recover)", 
   beforeEach(() => {
     saveRoot = mkdtempSync(resolve(tmpdir(), "bw-desktop-continuity-"));
     nextSessionOrdinal = 0;
+    idCounter = 0;
     chooseSaveDirectoryAnswer = null;
     choosePackageDirectoryAnswer = null;
   });
@@ -269,6 +277,17 @@ describe("campaign continuance commands (save, load, verify, replay, recover)", 
     const after = getCampaignSession(load.value.sessionId)!;
     expect(Number(after.state.snapshot.turnNumber)).toBe(2);
     expect(after.month).toEqual({ month: 3, year: 1880 });
+  });
+
+  it("takes the loaded session id from the injected IdGenerator (deterministic in tests)", async () => {
+    const saveDir = resolve(saveRoot, "save-id");
+    await compileAndSave(saveDir); // consumes test-session-0
+    restartApp();
+    packageAt(saveDir);
+    const load = await loadCampaign();
+    expect(load.outcome).toBe("success");
+    if (load.outcome !== "success") return;
+    expect(load.value.sessionId).toBe("test-session-1");
   });
 
   it("surfaces a human-readable incompatible-version message through the load bridge result (ADR-0113)", async () => {

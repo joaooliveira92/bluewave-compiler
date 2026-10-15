@@ -12,6 +12,8 @@ import {
   appPathsLayer,
   Clock,
   clockLayer,
+  IdGenerator,
+  idGeneratorLayer,
   NativeDialog,
   nativeDialogLayer,
 } from "./platform.js";
@@ -32,7 +34,8 @@ export type CommandEnv =
   | DraftStore
   | NativeDialog
   | AppPaths
-  | Clock;
+  | Clock
+  | IdGenerator;
 
 /**
  * The desktop main service graph. `CrashReporter` resolves its `AppPaths` +
@@ -48,6 +51,7 @@ export function desktopMainLayer(): Layer.Layer<CommandEnv> {
     commandQueueStoreLayer(),
     sidecarStoresLayer(),
     nativeDialogLayer(),
+    idGeneratorLayer(),
     replayServiceLayer(),
     crashReporterLayer().pipe(Layer.provideMerge(platform)),
   );
