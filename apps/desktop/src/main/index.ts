@@ -5,7 +5,7 @@ import { join, resolve } from "node:path";
 import { applyContentSecurityPolicy } from "./csp.js";
 import { createCampaignCommandDispatcher, defaultCommandRegistry } from "./campaignBridge.js";
 import { ContentArtifactError, loadContentArtifact } from "./contentArtifact.js";
-import { contentArtifactLayer, type ContentArtifact } from "./runtime/contentArtifact.js";
+import { desktopMainLayer, type CommandEnv } from "./runtime/desktopMainLayer.js";
 import {
   captureCrash,
   createCrashLimiter,
@@ -188,7 +188,7 @@ function createWindow(): BrowserWindow {
 }
 
 /** The desktop main runtime, providing the Layer's services (INC-1; ADR-0159). */
-type DesktopMainRuntime = ManagedRuntime.ManagedRuntime<ContentArtifact, never>;
+type DesktopMainRuntime = ManagedRuntime.ManagedRuntime<CommandEnv, never>;
 
 function registerIpc(runtime: DesktopMainRuntime): void {
   const dispatchCampaignCommand = createCampaignCommandDispatcher(
@@ -284,7 +284,7 @@ if (!app.requestSingleInstanceLock()) {
   });
 
   void app.whenReady().then(async () => {
-    const runtime = ManagedRuntime.make(contentArtifactLayer());
+    const runtime = ManagedRuntime.make(desktopMainLayer());
 
     if (isDev && reactDevToolsRequested) {
       try {

@@ -11,6 +11,7 @@ const COMMAND_ERROR_TAGS: ReadonlySet<string> = new Set([
   "InvalidCommandPayload",
   "CommandRejected",
   "CommandFailed",
+  "SessionNotFound",
 ]);
 
 /** Structural `_tag` guard (never `instanceof`; RULES.md §Errors). */
@@ -45,6 +46,12 @@ export function projectCommandError<A>(error: CommandError): BridgeResult<A> {
       return { outcome: "rejected", reason: error.reason, diagnostics: error.diagnostics };
     case "CommandFailed":
       return { outcome: "error", reason: error.reason, diagnostics: error.diagnostics };
+    case "SessionNotFound":
+      return {
+        outcome: "error",
+        reason: "SESSION_NOT_FOUND",
+        diagnostics: [`No active campaign session ${error.sessionId}`],
+      };
   }
 }
 

@@ -1,7 +1,7 @@
 # INC-3 — Persistence and session services
 
 **Type:** implementation
-**Status:** open
+**Status:** resolved
 **Blocked by:** INC-1
 **Frontier:** no
 
@@ -35,3 +35,41 @@ them as Effect programs.
   a single construction-time ref, not per-command construction.
 - Do not delete the `default*Deps` objects here; INC-5 retires them once all call
   sites resolve from context.
+
+## Answer
+
+Resolved 2026-10-14 on branch `feat/effect-apps-runtime`, behaviour-preserving.
+**Split:** this ticket landed the persistence/session **services** and the
+dialog-free session commands; the continuity/replay/copy/construction command
+migrations moved to **INC-3b** (they depend on the `NativeDialog` service from
+INC-4), so INC-3 is not silently over-scoped.
+
+**What landed.**
+- `runtime/campaignSessionStore.ts` — `CampaignSessionStore` `Context.Service`
+  (`get` fails `SessionNotFound`, `register`, `remove`, `clearConstructionWorkspace`,
+  `clearPendingEnvelopes`) + `campaignSessionStoreLayer`.
+- `runtime/projectStore.ts` — `ProjectStore` (`isCurrent`, `save`) + layer, mapping
+  a store throw to `SAVE_FAILED` `CommandFailed`.
+- `runtime/desktopMainLayer.ts` — the combined `CommandEnv` (`ContentArtifact |
+  ProjectStore | CampaignSessionStore`) and `desktopMainLayer()`.
+- `commandError.ts`/`bridgeResult.ts` — `SessionNotFound` tag + its
+  `SESSION_NOT_FOUND` projection.
+- `commands/sessionCommands.ts` — `saveCampaignProgram` and `closeCampaignProgram`
+  as Effect programs (`copyCampaign` stays legacy — it needs the dialog).
+- `campaignBridge.ts` — `CommandProgram` R widened to `CommandEnv`, a
+  `withSchemaProgram` decode adapter (fails `InvalidCommandPayload`), the two
+  commands moved from the legacy registry to `defaultCommandPrograms`, and the
+  default runtime built from `desktopMainLayer()`.
+- `index.ts` — the app runtime now uses `desktopMainLayer()`.
+
+**Validation.**
+- `pnpm --filter @bluewave/desktop typecheck`.
+- Targeted: `sessionCommands` (18), `campaignBridge` (44), `continuityCommands` (20).
+- Full desktop suite: **2017 passed / 1 skipped**.
+- `pnpm preflight` 37/37.
+
+**Carried to INC-3b:** `CommandQueueStore`/`ReplayService` (beyond the pending
+envelopes already on `CampaignSessionStore`), and migrating the continuity
+(`loadCampaign`, `listCampaigns`, `verifyCampaign`, `replayCampaign`,
+`recoverCampaign`), `copyCampaign`, and construction snapshot-mutation commands —
+all of which need `NativeDialog` (INC-4).

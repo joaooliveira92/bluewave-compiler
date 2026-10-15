@@ -10,6 +10,7 @@ import {
 import { createEnvelope } from "@bluewave/deterministic";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { SaveStore } from "@bluewave/persistence";
+import { ManagedRuntime } from "effect";
 import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test";
 import { readSessionMetadata, writeSessionMetadata } from "../campaignSessionMetadata.js";
 import {
@@ -27,10 +28,29 @@ import {
   getConstructionWorkspace,
   hasConstructionWorkspace,
 } from "../constructionWorkspace.js";
-import { assessCopyTarget, closeCampaign, copyCampaign, saveCampaign } from "./sessionCommands.js";
+import {
+  assessCopyTarget,
+  closeCampaignProgram,
+  copyCampaign,
+  saveCampaignProgram,
+} from "./sessionCommands.js";
+import { projectCommandExit } from "../runtime/bridgeResult.js";
+import { desktopMainLayer } from "../runtime/desktopMainLayer.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const GENERATED_ARTIFACT = resolve(__dirname, "../../../../..", "content", "generated", "1880");
+
+// Runs the session programs through one shared runtime; the services delegate to
+// the same in-memory registries the tests manipulate directly.
+const sessionRuntime = ManagedRuntime.make(desktopMainLayer());
+const saveCampaign = (sessionId: string) =>
+  sessionRuntime
+    .runPromiseExit(saveCampaignProgram(sessionId))
+    .then((exit) => projectCommandExit(exit));
+const closeCampaign = (sessionId: string) =>
+  sessionRuntime
+    .runPromiseExit(closeCampaignProgram(sessionId))
+    .then((exit) => projectCommandExit(exit));
 
 describe("session commands (save / close / copy)", () => {
   let root: string;

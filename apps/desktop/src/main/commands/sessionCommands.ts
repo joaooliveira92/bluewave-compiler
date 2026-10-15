@@ -1,26 +1,68 @@
 import { existsSync, readdirSync, realpathSync, statSync } from "node:fs";
 import { basename, dirname, join, resolve, sep } from "node:path";
 import { SaveStore } from "@bluewave/persistence";
+import { Effect } from "effect";
 import type { BridgeResult } from "../../shared/bridge-contract.js";
 import type {
   CopyCampaignResult,
   SaveCampaignResult,
 } from "../../shared/campaign-command-contract.js";
 import { readSessionMetadata, writeSessionMetadata } from "../campaignSessionMetadata.js";
-import { getCampaignSession, removeCampaignSession } from "../campaignSessions.js";
-import { clearConstructionWorkspace } from "../constructionWorkspace.js";
-import { clearPendingEnvelopes } from "../pendingCommands.js";
+import { getCampaignSession } from "../campaignSessions.js";
+import { CampaignSessionStore } from "../runtime/campaignSessionStore.js";
+import type { CommandError } from "../runtime/commandError.js";
+import { ProjectStore } from "../runtime/projectStore.js";
 
 /**
- * The campaign's own lifecycle commands: save, close, and save-a-copy.
+ * The campaign's own lifecycle commands: save, close, and save-a-copy (INC-3;
+ * ADR-0159).
  *
- * `commitMonth` already persists every committed month to the campaign's package, so
- * the live state and the active save only differ if the package was altered outside the
- * app. `saveCampaign` therefore compares the active save's full-content hash with
- * the live state's (`SaveStore.isCurrent`): it re-writes only when they differ (a missing, stale or altered
- * package) and is a no-op otherwise — safe to click repeatedly without piling up
- * identical versioned copies. A spurious mismatch only costs one extra save.
+ * `commitMonth` already persists every committed month to the campaign's package,
+ * so the live state and the active save only differ if the package was altered
+ * outside the app. `saveCampaign` therefore compares the active save's
+ * full-content hash with the live state's (`SaveStore.isCurrent`): it re-writes
+ * only when they differ (a missing, stale or altered package) and is a no-op
+ * otherwise — safe to click repeatedly without piling up identical versioned
+ * copies. A spurious mismatch only costs one extra save.
  */
+
+/** `saveCampaign` as an Effect program (INC-3): resolves the session and persists through services. */
+export const saveCampaignProgram = (
+  sessionId: string,
+): Effect.Effect<
+  BridgeResult<SaveCampaignResult>,
+  CommandError,
+  CampaignSessionStore | ProjectStore
+> =>
+  Effect.gen(function* () {
+    const sessions = yield* CampaignSessionStore;
+    const projects = yield* ProjectStore;
+    const record = yield* sessions.get(sessionId);
+
+    // Compare full content, not just the turn: construction and research can change the live
+    // state within a turn. (`rawHash` is no use here — it does not cover nation data.)
+    const revision = Number(record.state.snapshot.turnNumber);
+    if (!(yield* projects.isCurrent(record.state, record.saveDir))) {
+      yield* projects.save(record.state, record.saveDir);
+    }
+    return { outcome: "success", value: { revision }, diagnostics: [] };
+  });
+
+/** `closeCampaign` as an Effect program (INC-3): drops every session-scoped store. */
+export const closeCampaignProgram = (
+  sessionId: string,
+): Effect.Effect<BridgeResult<{ closed: true }>, CommandError, CampaignSessionStore> =>
+  Effect.gen(function* () {
+    const sessions = yield* CampaignSessionStore;
+    // Fails with SESSION_NOT_FOUND when the session is not open.
+    yield* sessions.get(sessionId);
+    // Queued-but-uncommitted commands (diplomacy, divisions, research, construction) and the
+    // construction workspace belong to this session only.
+    yield* sessions.clearPendingEnvelopes(sessionId);
+    yield* sessions.clearConstructionWorkspace(sessionId);
+    yield* sessions.remove(sessionId);
+    return { outcome: "success", value: { closed: true }, diagnostics: [] };
+  });
 
 export interface SessionCommandDeps {
   /** Ask the player where to put a copy; null when they cancel. */
@@ -46,38 +88,6 @@ const sessionNotFound = (sessionId: string) =>
     reason: "SESSION_NOT_FOUND",
     diagnostics: [`No active campaign session ${sessionId}`],
   }) as const;
-
-export async function saveCampaign(sessionId: string): Promise<BridgeResult<SaveCampaignResult>> {
-  const record = getCampaignSession(sessionId);
-  if (!record) return sessionNotFound(sessionId);
-
-  const revision = Number(record.state.snapshot.turnNumber);
-  const store = new SaveStore();
-  try {
-    // Compare full content, not just the turn: construction and research can change the live
-    // state within a turn. (`rawHash` is no use here — it does not cover nation data.)
-    if (!store.isCurrent(record.state, record.saveDir)) store.save(record.state, record.saveDir);
-  } catch (error) {
-    return {
-      outcome: "error",
-      reason: "SAVE_FAILED",
-      diagnostics: [error instanceof Error ? error.message : String(error)],
-    };
-  }
-  return { outcome: "success", value: { revision }, diagnostics: [] };
-}
-
-/** Everything the app holds in memory for a session goes when the campaign closes. */
-export async function closeCampaign(sessionId: string): Promise<BridgeResult<{ closed: true }>> {
-  const record = getCampaignSession(sessionId);
-  if (!record) return sessionNotFound(sessionId);
-  // Queued-but-uncommitted commands (diplomacy, divisions, research, construction) and the
-  // construction workspace belong to this session only.
-  clearPendingEnvelopes(sessionId);
-  clearConstructionWorkspace(sessionId);
-  removeCampaignSession(sessionId);
-  return { outcome: "success", value: { closed: true }, diagnostics: [] };
-}
 
 /**
  * `path` resolved the way the filesystem will see it: symlinks followed on the part that

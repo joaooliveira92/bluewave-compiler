@@ -2,7 +2,7 @@
 
 **Type:** implementation
 **Status:** open
-**Blocked by:** INC-2, INC-3, INC-4
+**Blocked by:** INC-2, INC-3, INC-3b, INC-4
 **Frontier:** no
 
 **What to build:** Make the `campaign:execute` registry a dispatcher over

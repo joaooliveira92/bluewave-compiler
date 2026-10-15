@@ -96,7 +96,11 @@ import { inspectDivisionScreen, submitDivisionCommand } from "./commands/divisio
 import { inspectCampaign } from "./commands/inspectCampaign.js";
 import { inspectBattleHistory } from "./commands/inspectBattleHistory.js";
 import { inspectMap } from "./commands/inspectMap.js";
-import { closeCampaign, copyCampaign, saveCampaign } from "./commands/sessionCommands.js";
+import {
+  closeCampaignProgram,
+  copyCampaign,
+  saveCampaignProgram,
+} from "./commands/sessionCommands.js";
 import { inspectOpeningBriefing } from "./commands/inspectOpeningBriefing.js";
 import { inspectPriorities } from "./commands/inspectPriorities.js";
 import { listNewGameOptionsProgram } from "./commands/listNewGameOptions.js";
@@ -111,11 +115,12 @@ import {
 import { projectCommandExit } from "./runtime/bridgeResult.js";
 import {
   CommandFailed,
+  InvalidCommandPayload,
   NotImplemented,
   UnknownCommand,
   type CommandError,
 } from "./runtime/commandError.js";
-import { ContentArtifact, contentArtifactLayer } from "./runtime/contentArtifact.js";
+import { type CommandEnv, desktopMainLayer } from "./runtime/desktopMainLayer.js";
 
 /**
  * The `campaign:execute` command registry. Command name is validated at
@@ -148,7 +153,7 @@ export type CommandRegistry = Partial<Record<CampaignCommandName, CampaignComman
  */
 export type CommandProgram = (
   payload: unknown,
-) => Effect.Effect<BridgeResult<unknown>, CommandError, ContentArtifact>;
+) => Effect.Effect<BridgeResult<unknown>, CommandError, CommandEnv>;
 
 /** Formats an Effect `SchemaError`'s issue tree into Zod-style per-field messages. */
 const formatIssues = SchemaIssue.makeFormatterStandardSchemaV1();
@@ -216,11 +221,24 @@ function payloadless(
 }
 
 /**
- * Every command the bridge routes, keyed by its contract name. The `withSchema`
- * adapter keeps each handler typed against its own payload while the registry
- * stays uniformly keyed, so a missing entry is a `NOT_IMPLEMENTED` response
- * rather than a missing `switch` case.
+ * Adapts a typed Effect program to a {@link CommandProgram} by decoding the wire
+ * payload against `schema` first (INC-3); a decode failure fails with
+ * `InvalidCommandPayload`, preserving the `INVALID_PAYLOAD` envelope.
  */
+function withSchemaProgram<T>(
+  schema: Schema.ConstraintDecoder<T, never>,
+  run: (payload: T) => Effect.Effect<BridgeResult<unknown>, CommandError, CommandEnv>,
+): CommandProgram {
+  return (payload) =>
+    Effect.gen(function* () {
+      const decoded = Schema.decodeUnknownResult(schema)(payload);
+      if (Result.isFailure(decoded)) {
+        return yield* new InvalidCommandPayload({ issues: issueMessages(decoded.failure) });
+      }
+      return yield* run(decoded.success);
+    });
+}
+
 /**
  * Commands migrated to Effect programs. The dispatcher prefers these over the
  * legacy {@link CommandRegistry}; INC-2..INC-5 widen this set until the registry
@@ -230,8 +248,20 @@ export const defaultCommandPrograms: Partial<Record<CampaignCommandName, Command
   listNewGameOptions: () => listNewGameOptionsProgram,
   inspectDrawingBoardContent: () => inspectDrawingBoardContentProgram,
   inspectPresentationContent: () => inspectPresentationContentProgram,
+  saveCampaign: withSchemaProgram(SessionIdPayloadSchema, (sessionId) =>
+    saveCampaignProgram(sessionId),
+  ),
+  closeCampaign: withSchemaProgram(SessionIdPayloadSchema, (sessionId) =>
+    closeCampaignProgram(sessionId),
+  ),
 };
 
+/**
+ * Every command the bridge routes, keyed by its contract name. The `withSchema`
+ * adapter keeps each handler typed against its own payload while the registry
+ * stays uniformly keyed, so a missing entry is a `NOT_IMPLEMENTED` response
+ * rather than a missing `switch` case.
+ */
 export const defaultCommandRegistry: CommandRegistry = {
   compileCampaign: withSchema(CampaignConfigurationPayloadSchema, (payload) =>
     compileCampaign(payload, defaultCompileCampaignDeps),
@@ -349,8 +379,6 @@ export const defaultCommandRegistry: CommandRegistry = {
   submitBudgetAllocation: withSchema(SubmitBudgetAllocationPayloadSchema, (payload) =>
     submitBudgetAllocation(payload),
   ),
-  saveCampaign: withSchema(SessionIdPayloadSchema, (sessionId) => saveCampaign(sessionId)),
-  closeCampaign: withSchema(SessionIdPayloadSchema, (sessionId) => closeCampaign(sessionId)),
   copyCampaign: withSchema(SessionIdPayloadSchema, (sessionId) => copyCampaign(sessionId)),
   readUiState: withSchema(SessionIdPayloadSchema, (sessionId) => readUiState(sessionId)),
   writeUiState: withSchema(WriteUiStatePayloadSchema, (payload) => writeUiState(payload)),
@@ -408,7 +436,7 @@ function liftLegacy(
  */
 export function createCampaignCommandDispatcher(
   registry: CommandRegistry,
-  getRuntime: () => ManagedRuntime.ManagedRuntime<ContentArtifact, never>,
+  getRuntime: () => ManagedRuntime.ManagedRuntime<CommandEnv, never>,
   programs: Partial<Record<CampaignCommandName, CommandProgram>> = defaultCommandPrograms,
 ): (command: string, payload: unknown) => Promise<BridgeResult<unknown>> {
   return async (command, payload) => {
@@ -436,15 +464,15 @@ export function createCampaignCommandDispatcher(
   };
 }
 
-let commandRuntimeSingleton: ManagedRuntime.ManagedRuntime<ContentArtifact, never> | undefined;
+let commandRuntimeSingleton: ManagedRuntime.ManagedRuntime<CommandEnv, never> | undefined;
 
 /**
  * The process-wide default runtime for the dispatcher. The Electron main process
  * builds and owns its own runtime (disposed on quit); this lazy singleton serves
  * tests and any non-Electron caller of {@link dispatchCampaignCommand}.
  */
-export function getDefaultCommandRuntime(): ManagedRuntime.ManagedRuntime<ContentArtifact, never> {
-  commandRuntimeSingleton ??= ManagedRuntime.make(contentArtifactLayer());
+export function getDefaultCommandRuntime(): ManagedRuntime.ManagedRuntime<CommandEnv, never> {
+  commandRuntimeSingleton ??= ManagedRuntime.make(desktopMainLayer());
   return commandRuntimeSingleton;
 }
 
