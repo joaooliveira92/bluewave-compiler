@@ -4,6 +4,7 @@
 // fail-closed parse path, and the guarded-root discovery.
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { fileURLToPath } from "node:url";
 
 import { SCOPES, findUntaggedErrors, scanTaggedErrors } from "../assert-tagged-errors.mjs";
 
@@ -68,7 +69,7 @@ void test("fails closed on a parse error", () => {
 });
 
 void test("the real tree passes both scopes", () => {
-  const repoRoot = new URL("../..", import.meta.url).pathname;
+  const repoRoot = fileURLToPath(new URL("../..", import.meta.url));
   for (const roots of Object.values(SCOPES)) {
     assert.deepEqual(scanTaggedErrors(repoRoot, roots), []);
   }
