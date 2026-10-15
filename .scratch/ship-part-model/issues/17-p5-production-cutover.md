@@ -56,6 +56,38 @@ and completes the retirement.
    re-pin is an SPM-R25 approved diff with the report attached and an owner sign-off —
    this ticket explicitly lifts ticket 15's "goldens unchanged" freeze.
 
+## Derive-first clarification (ADR-0161)
+
+**Read [ADR-0161](../../../docs/adr/ADR-0161-derive-first-ship-part-cutover.md) before
+starting any slice.** It supplements ADR-0154/ADR-0160 and fixes the order this ticket
+must be worked in; it does not supersede them.
+
+- **The production compile is not parts-native yet.** Every production `compileDesign`
+  reaches `resolveDesignComponents` (`packages/ship-design/src/compileStages.ts`), which
+  evaluates the legacy `ComponentDef` **formulas** (`def.weightKg`, `def.attributes.*`,
+  `def.constants`, `def.parameters`). The parts barrier itself derives through that
+  compile (`compileDesignFromLoadout` → `rebuildDraft` → `compileDesignThroughFit` →
+  `compileDesign`). `ctx.catalogue` stays the nation-filtered legacy `ComponentDef[]`
+  until a parts-native derive exists.
+- **The canonical part model carries no formulas.** ADR-0154 §15: a part stores an
+  affine quantity decomposition (`fixed + perUnit × count`) over one count parameter,
+  and the facts the schema has no field for (component height, centre of gravity,
+  electrical and cooling load, other attributes) "stay on adapter-side records, never on
+  a part." A general part → `ComponentDef` reconstruction therefore does not exist, and
+  synthesizing one would be a second content authority / compatibility wrapper —
+  forbidden.
+- **17c must not be read as permission to remove the legacy production catalogue
+  first.** Doing so would break every production compile. A **Stage 0 derive-input
+  decision** must be recorded (as an accepted ADR) before any runtime cutover: decides
+  whether canonical parts carry the derive inputs or the compiler is rewritten to
+  consume the affine representation directly, and states the effect on SPM-R5.
+
+The 17b-1/17b-2 read-only and edit-path migrations are correct and stay; do not roll
+them back. ADR-0161 carries the stage-by-stage entry/exit criteria, the authoritative
+representation before/after each stage, the reader inventory, the compatibility
+lifetime, and the concurrent-session boundary (`apps/desktop/src/main/**`, owned by
+`feat/effect-apps-runtime`).
+
 ## Acceptance criteria
 
 - [ ] Production compiles designs through the parts barrier; no production caller of
@@ -76,13 +108,21 @@ and completes the retirement.
 
 | Slice | Delivers | Acceptance |
 | --- | --- | --- |
+| **Stage 0** Derive-input decision | An accepted ADR fixing whether canonical parts carry the derive inputs or the compiler is rewritten to consume the affine part representation, with the rejected alternative and the SPM-R5 effect recorded. **No runtime cutover may begin before this (ADR-0161).** | new — decision recorded |
+| **17a-2** Parts-native derive | The phase-engine derive callers ported off `ctx.catalogue` (`packages/ship-design/src/{compile,compileStages,armamentCompile}.ts`, nation filtering, upgrade/variant behaviour); no production compiler reconstructs or requires `Map<string, ComponentDef>`. | AC 1, 2 (derive) |
 | **17a** Production barrier wiring | `compileDesignFromLoadout` runs on the three desktop design commands; the legacy catalogue is still present but unused for that compile. Round-trip test: the same draft compiles identically from its loadout. | AC 1 (desktop surface only) |
 | **17b** Designer reads parts | The Shipbuilding workspace and shared design-workspace layer take their catalogue/facts from the parts (or a parts-derived DTO). Snapshot/aria proof. | AC 1, 6 |
-| **17c** Retire the legacy formats | `ComponentDef` guns, `componentVariants`, profile `gunModels`, `upgradePath`, the P1 read-path adapters and the armament adapter deleted; content lock + goldens re-pinned via an approved diff. | AC 2, 3, 5 |
+| **17c** Retire the legacy formats | **Only after 17a-2 (parts-native derive) and the Stage 2 no-new-reader gate (ADR-0161):** `ComponentDef` guns, `componentVariants`, profile `gunModels`, `upgradePath`, the P1 read-path adapters and the armament adapter deleted; content lock + goldens re-pinned via an approved diff. | AC 2, 3, 5 |
 | **17d** Freeze the baseline | Legacy baseline pipeline removed; equivalence harness runs against the frozen committed report; `@bluewave/content-codemod` deleted. | AC 4 |
 
 **Blocked by 15** for the record only — 15's no-reader slice landed; 17 owns the
 remaining retirement and is the frontier.
+
+See [ADR-0161](../../../docs/adr/ADR-0161-derive-first-ship-part-cutover.md) for the
+entry/exit criteria, the authoritative representation before/after each stage, the
+reader inventory, the compatibility lifetime and the concurrent-session boundary. The
+full sequence is Stage 0 → 17a-2 → 17b-3/17c consumers → 17c runtime catalogue and
+persistence → 17c/17d retirement; 17c is not the first step.
 
 ## Comments
 
@@ -159,8 +199,10 @@ byte-identical); the commit carries `Golden-Repin: not-needed`.
 **17b-3 remains:** retire `content.components` from the designer once design-file identity and
 the nation-filtered reads have a home, then 17c/17d as below.
 
-**Known, unresolved (not introduced by 17b-1):** `pnpm check:golden-repin` is red on `dev` — the
-committed 17a commit `a9eae221` changed authoritative ship-design source without a same-commit
-golden re-pin or a `Golden-Repin: not-needed` trailer. The orchestrator owns that commit and
-its trailer. `pnpm check:golden` (11/11) and `pnpm check:equivalence` are green, so 17b-1 moved
-no golden or content hash.
+**Resolved after 17b-1:** `pnpm check:golden-repin` was red on `dev` because the 17a
+commit `a9eae221` changed authoritative ship-design source without a same-commit golden
+re-pin or a `Golden-Repin: not-needed` trailer. Commit `6348b128`
+(`chore(golden): advance the re-pin ratchet past the 17a cut-over`) advanced
+`scripts/golden-repin.baseline`; `pnpm check:golden-repin` is green at `85f896cc`
+(verified: `ok (8 commit(s) in "a9eae221…85f896cc")`). `pnpm check:golden` (11/11) and
+`pnpm check:equivalence` are green, so 17b-1/17b-2 moved no golden or content hash.

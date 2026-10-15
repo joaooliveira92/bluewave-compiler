@@ -1,7 +1,7 @@
 # Architecture decision records
 
 One ADR per durable decision: `ADR-NNNN-<slug>.md`. New decisions take the
-highest existing number + 1 (the next number is ADR-0161).
+highest existing number + 1 (the next number is ADR-0162).
 Refresh this table from each file's H1 when one is added or re-titled.
 (ADR-0043 was never written; the sequence intentionally continues at 0044.)
 See [DESIGN amendments](AMENDMENTS.md) for which ADRs amend which DESIGN doc.
@@ -100,6 +100,7 @@ Ship design, classification, construction, repair, and rebuild.
 | 0157 | [ADR-0157-torpedoes-as-parts-and-compiled-torpedo.md](ADR-0157-torpedoes-as-parts-and-compiled-torpedo.md) | Torpedoes become parts, and the compiled torpedo contract | accepted | — |
 | 0158 | [ADR-0158-dockyard-project-cancellation-settlement.md](ADR-0158-dockyard-project-cancellation-settlement.md) | Cancelling a dockyard project — the settlement policy and the rebuild release | accepted | — |
 | 0160 | [ADR-0160-designer-reads-the-parts-catalogue.md](ADR-0160-designer-reads-the-parts-catalogue.md) | The designer reads the parts-derived catalogue; the compile engine keeps the runtime catalogue until 17c | accepted | — |
+| 0161 | [ADR-0161-derive-first-ship-part-cutover.md](ADR-0161-derive-first-ship-part-cutover.md) | The ship-part cutover is derive-first — the legacy catalogue retires only after a parts-native derive pipeline exists | accepted | — |
 
 ## National content
 
