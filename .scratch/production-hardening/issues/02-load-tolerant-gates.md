@@ -34,7 +34,7 @@ explicit heavy-suite budget) is what changed here.
   (`scripts/run-heavy-tests.mjs`, phase-engine long simulations, `--maxWorkers=2`), `test:e2e`
   (Playwright, separate `desktop-e2e.yml` workflow).
 - E2E load tolerance: `apps/desktop/playwright.config.ts` sets `timeout: 120_000`, `workers: 1`, and
-  retries transient failures in CI.
+  retries a transient failure once locally / twice in CI.
 
 **Changed here (production-hardening ticket 02):**
 
@@ -60,3 +60,9 @@ and `test:e2e` (30 passed). `node scripts/verify-check-parity.mjs` → ok (17 st
 **Note on overlap:** the broader "bound the whole workspace test run below everything-at-once" ask is
 maintainability-hardening ticket 04 (`Status: open`); it is a different tracker and was not touched
 here. `vp run`'s pinned `--concurrency-limit 4` already satisfies this ticket's criterion.
+
+**Follow-up (2026-10-15, during ticket 05's gate):** the `construction-batch` e2e flaked once under the
+full `pnpm check` load (a campaign compile exceeding a per-step `toBeVisible` timeout), passing in
+isolation. That exposed a gap in this ticket's fix: `playwright.config.ts` retried only in CI
+(`retries: CI ? 2 : 0`), so a transient failure failed the *local* `pnpm check` too. The retry is now
+`CI ? 2 : 1` — a transient e2e failure is retried once locally, as the ticket specifies.

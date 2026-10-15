@@ -12,7 +12,12 @@ export default defineConfig({
   expect: { timeout: 15_000 },
   fullyParallel: false,
   workers: 1,
-  retries: CI ? 2 : 0,
+  // A transient, load-induced failure (e.g. a campaign compile that exceeds a
+  // per-step timeout while the host is busy) is retried: once locally, twice in
+  // CI. Without the local retry a flake fails `pnpm check` even though the spec
+  // passes in isolation (production-hardening ticket 02). A genuine failure
+  // still fails after the retry.
+  retries: CI ? 2 : 1,
   outputDir: "test-results",
   reporter: CI ? "github" : "list",
   use: {
