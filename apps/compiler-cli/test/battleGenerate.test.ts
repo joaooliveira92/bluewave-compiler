@@ -13,6 +13,7 @@ vi.mock("@bluewave/persistence", async (importOriginal) => ({
 }));
 
 import { runBattleGenerate, type BattleGenerateCliOptions } from "../src/commands.js";
+import { runCli } from "./runCli.js";
 
 function stdoutSpy() {
   return vi.spyOn(process.stdout, "write").mockImplementation(() => true as any);
@@ -137,19 +138,19 @@ function baseOptions(): BattleGenerateCliOptions {
 }
 
 describe("runBattleGenerate", () => {
-  it("returns validation-error when the save cannot be loaded", () => {
+  it("returns validation-error when the save cannot be loaded", async () => {
     saveStoreMocks.load.mockReturnValue(undefined);
-    expect(runBattleGenerate(baseOptions(), "/s")).toBe("validation-error");
+    expect(await runCli(runBattleGenerate(baseOptions(), "/s"))).toBe("validation-error");
   });
 
-  it("generates battles from a saved snapshot and prints a human summary", () => {
+  it("generates battles from a saved snapshot and prints a human summary", async () => {
     saveStoreMocks.load.mockReturnValue({
       snapshot: fixtureSnapshot(),
       envelope: {},
       rawHash: "h",
     });
     const spy = stdoutSpy();
-    const result = runBattleGenerate(baseOptions(), "/s");
+    const result = await runCli(runBattleGenerate(baseOptions(), "/s"));
     expect(result).toBe("success");
     const output = spy.mock.calls.map((c) => c[0]).join("");
     expect(output).toContain("Battle generation complete");
@@ -158,14 +159,14 @@ describe("runBattleGenerate", () => {
     spy.mockRestore();
   });
 
-  it("emits structured JSON output in --json mode", () => {
+  it("emits structured JSON output in --json mode", async () => {
     saveStoreMocks.load.mockReturnValue({
       snapshot: fixtureSnapshot(),
       envelope: {},
       rawHash: "h",
     });
     const spy = stdoutSpy();
-    const result = runBattleGenerate({ ...baseOptions(), outputMode: "json" }, "/s");
+    const result = await runCli(runBattleGenerate({ ...baseOptions(), outputMode: "json" }, "/s"));
     expect(result).toBe("success");
     const output = spy.mock.calls.map((c) => c[0]).join("");
     const jsonLine = output.split("\n").find((line) => line.includes("battleIds"));
@@ -178,14 +179,14 @@ describe("runBattleGenerate", () => {
     spy.mockRestore();
   });
 
-  it("defaults campaignMonth from the snapshot's turnNumber and rulesetVersion from the snapshot", () => {
+  it("defaults campaignMonth from the snapshot's turnNumber and rulesetVersion from the snapshot", async () => {
     saveStoreMocks.load.mockReturnValue({
       snapshot: fixtureSnapshot(),
       envelope: {},
       rawHash: "h",
     });
     const spy = stdoutSpy();
-    const result = runBattleGenerate({ ...baseOptions(), outputMode: "json" }, "/s");
+    const result = await runCli(runBattleGenerate({ ...baseOptions(), outputMode: "json" }, "/s"));
     expect(result).toBe("success");
     const output = spy.mock.calls.map((c) => c[0]).join("");
     const jsonLine = output.split("\n").find((line) => line.includes("battleIds"));
@@ -199,16 +200,18 @@ describe("runBattleGenerate", () => {
     spy.mockRestore();
   });
 
-  it("honors explicit overrides for campaignMonth and rulesetVersion instead of the snapshot defaults", () => {
+  it("honors explicit overrides for campaignMonth and rulesetVersion instead of the snapshot defaults", async () => {
     saveStoreMocks.load.mockReturnValue({
       snapshot: fixtureSnapshot(),
       envelope: {},
       rawHash: "h",
     });
     const spy = stdoutSpy();
-    const result = runBattleGenerate(
-      { ...baseOptions(), outputMode: "json", campaignMonth: "1880-06", rulesetVersion: "2.0.0" },
-      "/s",
+    const result = await runCli(
+      runBattleGenerate(
+        { ...baseOptions(), outputMode: "json", campaignMonth: "1880-06", rulesetVersion: "2.0.0" },
+        "/s",
+      ),
     );
     expect(result).toBe("success");
     const output = spy.mock.calls.map((c) => c[0]).join("");

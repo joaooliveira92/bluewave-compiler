@@ -17,13 +17,15 @@
 // is not flagged.
 //
 // The `cli` scope is the developer entry point ADR-0151 §Alternatives protects.
-// Its file→state reads are decoded where an honest schema exists — campaign
-// state (`StorableCampaignStateSchema`), the command ledger, the final hash and
-// the placeholder allowlist — and the rest are a reviewed, justified ALLOWLIST
-// (ADR-0151 §2): `CommandEnvelope<CommandBody>` (no `CommandBody` schema exists
-// anywhere) and the two hand-authored debug fixtures whose malformed contents
-// the combat engine is meant to reject downstream. The scope still ratchets: a
-// NEW `JSON.parse(...) as T` in `compiler-cli` fails closed.
+// Every `commands.ts` file→state read is decoded: campaign state
+// (`StorableCampaignStateSchema`), the command ledger, the final hash, the
+// placeholder allowlist, the `artifact.sig.json` envelope, and the three
+// `bwc` debug/state files (`BattleAdvanceMinuteFile`, `GunneryResolveShotFile`
+// and the replay `commands.json`). The one remaining reviewed exception is
+// `main.ts`'s `turn:execute` `--commands` read: there is no `CommandBody` schema
+// in `@bluewave/commands` for it to decode with — `CommandLifecycle.validate`
+// re-validates every envelope at issue time. The scope still ratchets: a NEW
+// `JSON.parse(...) as T` in `compiler-cli` fails closed.
 //
 // Usage: `node scripts/assert-boundary-decode.mjs [--scope compiler|desktop|cli|all] [--self-test] [--strict]`
 //   (`--strict` fails on a stale allowlist entry; CI is always strict)
@@ -57,34 +59,15 @@ export const SCOPES = {
  * few entry-point exceptions read better spelled out than hashed. ADR-0151 §2
  * records this as the one deviation from the hashed-fingerprint convention.
  *
- * Only the genuinely unmodelled reads remain. `CommandEnvelope<CommandBody>` at
- * `main.ts:251` / `commands.ts:827` has no schema anywhere (the desktop's
- * `campaignCommandSchemas.ts` holds IPC wire payloads, not `CommandBody`), and
- * the `BattleAdvanceMinuteFile` / `GunneryResolveShotFile` fixtures are
- * hand-authored debug inputs whose malformed contents the combat engine is meant
- * to reject downstream (the tests assert `TACTICAL_STATE_INVARIANT_FAILED` /
- * `GUNNERY_ACCURACY_FACTOR_MISSING` reach the adapter). Decoding them at the CLI
- * would change behaviour. Every other `bwc` file→state read is decoded.
+ * Only the genuinely unmodelled read remains. `CommandEnvelope<CommandBody>` at
+ * `main.ts:166` has no schema to decode with (the desktop's
+ * `campaignCommandSchemas.ts` holds IPC wire payloads, not `CommandBody`, and the
+ * CLI's `commands.ts` replay read uses its own local `CommandBody` trust class).
+ * Decoding it in `main.ts` would need the same trust class, which belongs to
+ * whoever owns that file.
  * @type {Readonly<Record<string, Readonly<Record<string, {count: number, reason: string}>>>>}
  */
 export const ALLOWLIST = {
-  "apps/compiler-cli/src/commands.ts": {
-    'JSON.parse(readFileSync(resolvedPath, "utf8")) as BattleAdvanceMinuteFile': {
-      count: 1,
-      reason:
-        "bwc battle:advance-minute reads a hand-authored debug fixture; advanceMinute validates the tactical invariants downstream (TACTICAL_STATE_INVARIANT_FAILED).",
-    },
-    'JSON.parse(readFileSync(resolvedPath, "utf8")) as GunneryResolveShotFile': {
-      count: 1,
-      reason:
-        "bwc gunnery:resolve-shot reads a hand-authored debug fixture; the gunnery primitives validate the factors downstream (GUNNERY_ACCURACY_FACTOR_MISSING).",
-    },
-    'JSON.parse(readFileSync(commandsPath, "utf8")) as CommandEnvelope<CommandBody>[]': {
-      count: 1,
-      reason:
-        "bwc replay re-reads the commands.json its own turn:execute wrote; ReplayVerifier re-runs each command through CommandLifecycle (no CommandBody schema exists to decode it).",
-    },
-  },
   "apps/compiler-cli/src/main.ts": {
     "JSON.parse(raw) as CommandEnvelope<CommandBody>[]": {
       count: 1,

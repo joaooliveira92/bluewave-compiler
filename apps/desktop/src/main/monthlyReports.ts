@@ -1,14 +1,11 @@
 import { existsSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { Result, Schema } from "effect";
-import type { BridgeResult } from "../shared/bridge-contract.js";
-import type {
-  MonthlyReportEntry,
-  MonthlyReports,
-  ReadMonthlyReportsResult,
-} from "../shared/campaign-command-contract.js";
-import { getCampaignSession } from "./campaignSessions.js";
-import { MonthlyReportsSchema } from "./campaignCommandSchemas.js";
+import { Effect, Result, Schema } from "effect";
+import type { MonthlyReportEntry, MonthlyReports } from "../shared/campaign-command-contract.js";
+import { MonthlyReportsSchema, SessionIdPayloadSchema } from "./campaignCommandSchemas.js";
+import { CampaignSessionStore } from "./runtime/campaignSessionStore.js";
+import { withSchema } from "./runtime/commandProgram.js";
+import { ReportsStore } from "./runtime/sidecarStores.js";
 
 /**
  * The per-campaign monthly-report history sidecar (spec §16 "Report history").
@@ -42,6 +39,11 @@ export function emptyMonthlyReports(): MonthlyReports {
  * Tolerant read (acceptance: missing/corrupt -> empty, never crashes). A
  * missing file, unparseable JSON, or a shape that fails `MonthlyReportsSchema`
  * all fall back to `emptyMonthlyReports()`.
+ *
+ * The raw `node:*` read lives here (not in the command program): the
+ * `ReportsStore` service wraps this helper, so the Effect program never
+ * touches the filesystem directly. `commitMonth` still calls it directly when
+ * appending a derived report, so it stays exported.
  */
 export function loadMonthlyReports(saveDir: string): MonthlyReports {
   const path = join(saveDir, MONTHLY_REPORTS_FILENAME);
@@ -68,6 +70,9 @@ export function loadMonthlyReports(saveDir: string): MonthlyReports {
  * write removes the tmp artifact. Cancellation is checked before any fs work;
  * unlike an authoritative save there is no pointer to advance (this is
  * app-owned history, not a campaign save).
+ *
+ * `commitMonth` calls this directly to append a derived report; the
+ * `ReportsStore` service wraps the same helper. It stays exported.
  */
 export function saveMonthlyReports(
   saveDir: string,
@@ -97,24 +102,21 @@ export function appendMonthlyReport(
 }
 
 /**
- * `readMonthlyReports(sessionId) -> { reports }`. Reads the session's sidecar,
- * tolerantly (missing/corrupt -> empty). The renderer renders the returned
- * entries read-only; main is the only writer.
+ * `readMonthlyReports(sessionId) -> { reports }` as an Effect command program
+ * (ADR-0159). Reads the session's sidecar through `ReportsStore`, tolerantly
+ * (missing/corrupt -> empty). The renderer renders the returned entries
+ * read-only; main is the only writer. The session is resolved through
+ * `CampaignSessionStore`, whose `SessionNotFound` failure projects to the same
+ * `SESSION_NOT_FOUND` envelope as before.
  */
-export async function readMonthlyReports(
-  sessionId: string,
-): Promise<BridgeResult<ReadMonthlyReportsResult>> {
-  const record = getCampaignSession(sessionId);
-  if (!record) {
-    return {
-      outcome: "error",
-      reason: "SESSION_NOT_FOUND",
-      diagnostics: [`No active campaign session ${sessionId}`],
-    };
-  }
-  return {
-    outcome: "success",
-    value: { reports: loadMonthlyReports(record.saveDir).reports },
-    diagnostics: [],
-  };
-}
+export const readMonthlyReportsProgram = withSchema(SessionIdPayloadSchema, (sessionId) =>
+  Effect.gen(function* () {
+    const sessions = yield* CampaignSessionStore;
+    const record = yield* sessions.get(sessionId);
+
+    const reports = yield* ReportsStore;
+    const data = yield* reports.load(record.saveDir);
+
+    return { outcome: "success" as const, value: { reports: data.reports }, diagnostics: [] };
+  }),
+);

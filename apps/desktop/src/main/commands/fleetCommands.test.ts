@@ -3,33 +3,71 @@ import { tmpdir } from "node:os";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { CampaignState } from "@bluewave/campaign";
+import type { CommitMonthResponse } from "@bluewave/campaign-engine";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { SaveStore } from "@bluewave/persistence";
+import { ManagedRuntime } from "effect";
 import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test";
-import { dispatchCampaignCommand } from "../campaignBridge.js";
+import type { BridgeResult } from "../../shared/bridge-contract.js";
+import type {
+  CancelMovementCommandPayload,
+  FleetScreenProjection,
+  MovementCommandOutcome,
+  ReplaceMovementCommandPayload,
+  SubmitMovementCommandPayload,
+} from "../../shared/fleet-contract.js";
 import {
   clearCampaignSessionsForTest,
   getCampaignSession,
   registerCampaignSession,
 } from "../campaignSessions.js";
-import { clearPendingWorkspacesForTest } from "../pendingCommands.js";
 import { compileProductionCampaignFromArtifact } from "../compiler.js";
+import { clearPendingWorkspacesForTest } from "../pendingCommands.js";
+import { projectCommandExit } from "../runtime/bridgeResult.js";
+import type { CommandProgram } from "../runtime/commandProgram.js";
+import { desktopMainLayer } from "../runtime/desktopMainLayer.js";
 import { toSaveableState } from "../saveHelpers.js";
-import { commitMonth } from "./commitMonth.js";
-import { inspectFleetScreen } from "./fleetCommands.js";
+import { commitMonthProgram } from "./commitMonth.js";
+import {
+  cancelMovementCommandProgram,
+  inspectFleetScreenProgram,
+  replaceMovementCommandProgram,
+  submitMovementCommandProgram,
+} from "./fleetCommands.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, "../../../../..");
 const GENERATED_ARTIFACT = resolve(REPO_ROOT, "content", "generated", "1880");
 
-/**
- * Desktop-mvp ticket 15 acceptance tests: `inspectFleetScreen` against the
- * real production pack (uk has authored fleets + ports and a compiled
- * fleet/ship spread). Movement commands stay bridge-level NOT_IMPLEMENTED
- * stubs — proven by dispatching them and asserting the session is untouched.
- */
+// One shared runtime for every fleet program; the services delegate to the same
+// in-memory session/queue registries the tests populate directly.
+const runtime = ManagedRuntime.make(desktopMainLayer());
 
-describe("fleet commands", () => {
+/** Runs a command program through the desktop service graph and projects its wire envelope. */
+async function runProgram<A>(program: CommandProgram, payload: unknown): Promise<BridgeResult<A>> {
+  return projectCommandExit(await runtime.runPromiseExit(program(payload))) as BridgeResult<A>;
+}
+
+const inspectFleetScreen = (sessionId: string) =>
+  runProgram<FleetScreenProjection>(inspectFleetScreenProgram, sessionId);
+const submitMovementCommand = (payload: SubmitMovementCommandPayload) =>
+  runProgram<MovementCommandOutcome>(submitMovementCommandProgram, payload);
+const replaceMovementCommand = (payload: ReplaceMovementCommandPayload) =>
+  runProgram<MovementCommandOutcome>(replaceMovementCommandProgram, payload);
+const cancelMovementCommand = (payload: CancelMovementCommandPayload) =>
+  runProgram<MovementCommandOutcome>(cancelMovementCommandProgram, payload);
+const commitMonth = (payload: {
+  sessionId: string;
+  expectedRevision: number;
+  transportRequestId: string;
+}) => runProgram<CommitMonthResponse>(commitMonthProgram, payload);
+
+/**
+ * Desktop-mvp ticket 15 acceptance tests: the fleet commands as native Effect
+ * programs against the real production pack (uk has authored fleets + ports and
+ * a compiled fleet/ship spread).
+ */
+describe("fleet commands (Effect programs)", () => {
   let saveRoot: string;
 
   beforeEach(() => {
@@ -68,10 +106,53 @@ describe("fleet commands", () => {
     return state;
   }
 
-  it("returns SESSION_NOT_FOUND for an unregistered session", async () => {
-    const result = await inspectFleetScreen("no-such-session");
-    expect(result.outcome).toBe("error");
-    if (result.outcome === "error") expect(result.reason).toBe("SESSION_NOT_FOUND");
+  it("returns SESSION_NOT_FOUND for an unregistered session on every command", async () => {
+    const inspect = await inspectFleetScreen("no-such-session");
+    expect(inspect).toMatchObject({ outcome: "error", reason: "SESSION_NOT_FOUND" });
+
+    const submit = await submitMovementCommand({
+      sessionId: "no-such-session",
+      divisionId: "fleet_gbr_home",
+      fromAreaId: "eng_home_coast",
+      toAreaId: "sea_english_channel",
+      expectedRevision: 0,
+      transportRequestId: "tx-0",
+    });
+    expect(submit).toMatchObject({ outcome: "error", reason: "SESSION_NOT_FOUND" });
+
+    const replace = await replaceMovementCommand({
+      sessionId: "no-such-session",
+      commandId: "cmd-x",
+      divisionId: "fleet_gbr_home",
+      fromAreaId: "eng_home_coast",
+      toAreaId: "sea_english_channel",
+      expectedRevision: 0,
+      transportRequestId: "tx-0",
+    });
+    expect(replace).toMatchObject({ outcome: "error", reason: "SESSION_NOT_FOUND" });
+
+    const cancel = await cancelMovementCommand({
+      sessionId: "no-such-session",
+      commandId: "cmd-x",
+      expectedRevision: 0,
+      transportRequestId: "tx-0",
+    });
+    expect(cancel).toMatchObject({ outcome: "error", reason: "SESSION_NOT_FOUND" });
+  });
+
+  it("rejects a malformed wire payload at the schema boundary", async () => {
+    const inspect = await runProgram(inspectFleetScreenProgram, { sessionId: 123 });
+    expect(inspect).toMatchObject({ outcome: "error", reason: "INVALID_PAYLOAD" });
+
+    const submit = await runProgram(submitMovementCommandProgram, {
+      sessionId: "mv",
+      divisionId: "fleet_gbr_home",
+      fromAreaId: "eng_home_coast",
+      toAreaId: "sea_english_channel",
+      expectedRevision: -1,
+      transportRequestId: "tx-0",
+    });
+    expect(submit).toMatchObject({ outcome: "error", reason: "INVALID_PAYLOAD" });
   });
 
   it("shows the player nation's real divisions, ships, and ports for the open campaign", async () => {
@@ -105,8 +186,6 @@ describe("fleet commands", () => {
     // Real compiled ship names/designs, with status derived from the real
     // isUnderConstruction flag (HMS Inflexible is under construction in the
     // production pack; HMS Dreadnought/Alexandra are commissioned).
-    // designId is the compiled ship's designVersionId verbatim — HMS Inflexible
-    // is linked to its real compiled design (des_gbr_inflexible).
     const inflexible = homeView!.ships.find((s) => s.name === "HMS Inflexible");
     expect(inflexible).toBeDefined();
     const compiledInflexible = homeFleet!.ships.find((s) => s.id === "gbr_inflexible")!;
@@ -180,8 +259,8 @@ describe("fleet commands", () => {
   });
 
   describe("movement orders (ADR-0062)", () => {
-    function submit(over: Record<string, unknown> = {}) {
-      return dispatchCampaignCommand("submitMovementCommand", {
+    function submit(over: Partial<SubmitMovementCommandPayload> = {}) {
+      return submitMovementCommand({
         sessionId: "mv",
         divisionId: "fleet_gbr_home",
         fromAreaId: "eng_home_coast",
@@ -238,6 +317,30 @@ describe("fleet commands", () => {
       expect(await listed()).toEqual([]);
     });
 
+    it("rejects a stale revision without queueing", async () => {
+      registerProductionSession("mv", resolve(saveRoot, "mv"), "uk");
+      const result = await submit({ expectedRevision: 5, transportRequestId: "tx-stale" });
+      expect(result).toMatchObject({ outcome: "rejected", reason: "REVISION_MISMATCH" });
+      expect(await listed()).toEqual([]);
+    });
+
+    it("replays the same transport request and rejects a conflicting body (idempotency)", async () => {
+      registerProductionSession("mv", resolve(saveRoot, "mv"), "uk");
+      const first = await submit();
+      expect(first.outcome).toBe("success");
+      // Same transportRequestId + same body replays.
+      const replay = await submit();
+      expect(replay).toMatchObject({ outcome: "success" });
+      if (first.outcome === "success" && replay.outcome === "success") {
+        expect(replay.value.command.commandId).toBe(first.value.command.commandId);
+      }
+      expect(await listed()).toHaveLength(1);
+      // Same transportRequestId + different body is a conflict.
+      const conflict = await submit({ toAreaId: "sea_north_sea" });
+      expect(conflict).toMatchObject({ outcome: "rejected", reason: "IDEMPOTENCY_CONFLICT" });
+      expect(await listed()).toHaveLength(1);
+    });
+
     it("keeps one order per fleet: a second order replaces the first, and cancel drops it", async () => {
       registerProductionSession("mv", resolve(saveRoot, "mv"), "uk");
       await submit();
@@ -246,7 +349,7 @@ describe("fleet commands", () => {
       expect(orders).toHaveLength(1);
       expect(orders[0]!.toAreaId).toBe("sea_north_sea");
 
-      const replaced = await dispatchCampaignCommand("replaceMovementCommand", {
+      const replaced = await replaceMovementCommand({
         sessionId: "mv",
         commandId: orders[0]!.commandId,
         divisionId: "fleet_gbr_home",
@@ -258,7 +361,7 @@ describe("fleet commands", () => {
       expect(replaced.outcome).toBe("success");
       expect((await listed())[0]!.toAreaId).toBe("sea_english_channel");
 
-      const cancelled = await dispatchCampaignCommand("cancelMovementCommand", {
+      const cancelled = await cancelMovementCommand({
         sessionId: "mv",
         commandId: orders[0]!.commandId,
         expectedRevision: 0,
@@ -273,13 +376,24 @@ describe("fleet commands", () => {
 
     it("rejects cancelling or replacing an order that does not exist", async () => {
       registerProductionSession("mv", resolve(saveRoot, "mv"), "uk");
-      const cancel = await dispatchCampaignCommand("cancelMovementCommand", {
+      const cancel = await cancelMovementCommand({
         sessionId: "mv",
         commandId: "nope",
         expectedRevision: 0,
         transportRequestId: "tx-9",
       });
       expect(cancel).toMatchObject({ outcome: "rejected", reason: "COMMAND_NOT_FOUND" });
+
+      const replace = await replaceMovementCommand({
+        sessionId: "mv",
+        commandId: "nope",
+        divisionId: "fleet_gbr_home",
+        fromAreaId: "eng_home_coast",
+        toAreaId: "sea_english_channel",
+        expectedRevision: 0,
+        transportRequestId: "tx-9",
+      });
+      expect(replace).toMatchObject({ outcome: "rejected", reason: "COMMAND_NOT_FOUND" });
     });
   });
 });

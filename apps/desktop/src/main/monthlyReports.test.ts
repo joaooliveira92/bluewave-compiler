@@ -2,18 +2,26 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "no
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { buildPrioritiesProjection, type CommitMonthResponse } from "@bluewave/campaign-engine";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
-import { buildPrioritiesProjection } from "@bluewave/campaign-engine";
 import { SaveStore } from "@bluewave/persistence";
+import { ManagedRuntime } from "effect";
 import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test";
-import type { MonthlyReportEntry } from "../shared/campaign-command-contract.js";
+import type { BridgeResult } from "../shared/bridge-contract.js";
+import type {
+  MonthlyReportEntry,
+  ReadMonthlyReportsResult,
+} from "../shared/campaign-command-contract.js";
 import {
   clearCampaignSessionsForTest,
   getCampaignSession,
   registerCampaignSession,
 } from "./campaignSessions.js";
 import { compileProductionCampaignFromArtifact } from "./compiler.js";
-import { commitMonth } from "./commands/commitMonth.js";
+import { commitMonthProgram } from "./commands/commitMonth.js";
+import { projectCommandExit } from "./runtime/bridgeResult.js";
+import type { CommandProgram } from "./runtime/commandProgram.js";
+import { desktopMainLayer } from "./runtime/desktopMainLayer.js";
 import { toSaveableState } from "./saveHelpers.js";
 import {
   MONTHLY_REPORTS_FILENAME,
@@ -21,13 +29,30 @@ import {
   appendMonthlyReport,
   emptyMonthlyReports,
   loadMonthlyReports,
-  readMonthlyReports,
+  readMonthlyReportsProgram,
   saveMonthlyReports,
 } from "./monthlyReports.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, "../../../..");
 const GENERATED_ARTIFACT = resolve(REPO_ROOT, "content", "generated", "1880");
+
+const runtime = ManagedRuntime.make(desktopMainLayer());
+
+/** Runs a command program through the desktop service graph and projects its wire envelope. */
+async function runProgram(
+  program: CommandProgram,
+  payload: unknown,
+): Promise<BridgeResult<unknown>> {
+  return projectCommandExit(await runtime.runPromiseExit(program(payload)));
+}
+
+/** Runs the commit-month program through the desktop service graph. */
+const commitMonth = (payload: {
+  sessionId: string;
+  expectedRevision: number;
+  transportRequestId: string;
+}) => runProgram(commitMonthProgram, payload) as Promise<BridgeResult<CommitMonthResponse>>;
 
 const entry = (month: number): MonthlyReportEntry => ({
   reportId: `save-${month}`,
@@ -136,10 +161,10 @@ describe("monthly-reports sidecar", () => {
     registerProductionSession("session-missing", saveDir);
 
     expect(loadMonthlyReports(saveDir)).toEqual({ reports: [] });
-    const read = await readMonthlyReports("session-missing");
+    const read = await runProgram(readMonthlyReportsProgram, "session-missing");
     expect(read.outcome).toBe("success");
     if (read.outcome !== "success") return;
-    expect(read.value.reports).toEqual([]);
+    expect((read.value as ReadMonthlyReportsResult).reports).toEqual([]);
   });
 
   it("is tolerant of a corrupt monthly-reports.json (unparseable or wrong shape -> empty)", async () => {
@@ -155,17 +180,26 @@ describe("monthly-reports sidecar", () => {
     writeFileSync(path, JSON.stringify({ reports: [{ turn: 1 }] }), "utf8");
     expect(loadMonthlyReports(saveDir)).toEqual({ reports: [] });
 
-    const read = await readMonthlyReports("session-corrupt");
+    const read = await runProgram(readMonthlyReportsProgram, "session-corrupt");
     expect(read.outcome).toBe("success");
     if (read.outcome !== "success") return;
-    expect(read.value.reports).toEqual([]);
+    expect((read.value as ReadMonthlyReportsResult).reports).toEqual([]);
   });
 
   it("returns SESSION_NOT_FOUND for an unknown session", async () => {
-    const read = await readMonthlyReports("no-such-session");
+    const read = await runProgram(readMonthlyReportsProgram, "no-such-session");
     expect(read.outcome).toBe("error");
     if (read.outcome !== "error") return;
     expect(read.reason).toBe("SESSION_NOT_FOUND");
+  });
+
+  it("rejects a payload that fails the wire schema (INVALID_PAYLOAD)", async () => {
+    for (const payload of ["", { sessionId: 123 }]) {
+      expect(await runProgram(readMonthlyReportsProgram, payload)).toMatchObject({
+        outcome: "error",
+        reason: "INVALID_PAYLOAD",
+      });
+    }
   });
 
   it("commitMonth appends a faithful report and survives a save/load cycle", async () => {
@@ -180,12 +214,13 @@ describe("monthly-reports sidecar", () => {
     expect(result.outcome).toBe("success");
     if (result.outcome !== "success") return;
 
-    const read = await readMonthlyReports("session-real");
+    const read = await runProgram(readMonthlyReportsProgram, "session-real");
     expect(read.outcome).toBe("success");
     if (read.outcome !== "success") return;
-    expect(read.value.reports).toHaveLength(1);
+    const reports = (read.value as ReadMonthlyReportsResult).reports;
+    expect(reports).toHaveLength(1);
 
-    const report = read.value.reports[0]!;
+    const report = reports[0]!;
     // The real response, section by section.
     expect(report.reportId).toBeTruthy();
     expect(report.campaignId).toBe(getCampaignSession("session-real")!.state.snapshot.campaignId);
@@ -232,10 +267,10 @@ describe("monthly-reports sidecar", () => {
       month: { month: 2, year: 1880 },
       state: getCampaignSession("session-real")!.state,
     });
-    const reread = await readMonthlyReports("session-reloaded");
+    const reread = await runProgram(readMonthlyReportsProgram, "session-reloaded");
     expect(reread.outcome).toBe("success");
     if (reread.outcome !== "success") return;
-    expect(reread.value.reports).toHaveLength(1);
+    expect((reread.value as ReadMonthlyReportsResult).reports).toHaveLength(1);
   });
 
   it("a second commit prepends the new month and keeps the previous report", async () => {
@@ -255,12 +290,13 @@ describe("monthly-reports sidecar", () => {
     });
     expect(second.outcome).toBe("success");
 
-    const read = await readMonthlyReports("session-two");
+    const read = await runProgram(readMonthlyReportsProgram, "session-two");
     expect(read.outcome).toBe("success");
     if (read.outcome !== "success") return;
-    expect(read.value.reports.map((report) => report.turn)).toEqual([2, 1]);
+    const reports = (read.value as ReadMonthlyReportsResult).reports;
+    expect(reports.map((report) => report.turn)).toEqual([2, 1]);
     // Newest first, with the previous report intact as the baseline for priorities.
-    expect(read.value.reports[1]?.priorities.map((priority) => priority.fingerprint)).toBeDefined();
+    expect(reports[1]?.priorities.map((priority) => priority.fingerprint)).toBeDefined();
   });
 
   it("never affects the authoritative envelope/hash", async () => {

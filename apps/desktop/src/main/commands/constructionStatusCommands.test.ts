@@ -3,10 +3,23 @@ import { tmpdir } from "node:os";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { CampaignSnapshot, CampaignState } from "@bluewave/campaign";
+import type { CommitMonthResponse } from "@bluewave/campaign-engine";
 import { createEnvelope } from "@bluewave/deterministic";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { SaveStore } from "@bluewave/persistence";
+import { ManagedRuntime } from "effect";
 import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test";
+import type { BridgeResult } from "../../shared/bridge-contract.js";
+import type {
+  AuthorizeDockExpansionCommandPayload,
+  CancelConstructionProjectCommandPayload,
+  ConstructionCommandQueuedOutcome,
+  HaltConstructionCommandPayload,
+  OrderConstructionBatchCommandPayload,
+  PlaceForeignConstructionCommandPayload,
+  ResumeConstructionCommandPayload,
+  SetAccelerationCommandPayload,
+} from "../../shared/construction-contract.js";
 import {
   clearCampaignSessionsForTest,
   getCampaignSession,
@@ -15,20 +28,52 @@ import {
 import { compileProductionCampaignFromArtifact } from "../compiler.js";
 import { pendingEnvelopesForExecution, clearPendingWorkspacesForTest } from "../pendingCommands.js";
 import { toSaveableState } from "../saveHelpers.js";
-import { commitMonth } from "./commitMonth.js";
+import { projectCommandExit } from "../runtime/bridgeResult.js";
+import type { CommandProgram } from "../runtime/commandProgram.js";
+import { desktopMainLayer } from "../runtime/desktopMainLayer.js";
+import { commitMonthProgram } from "./commitMonth.js";
 import {
-  authorizeDockExpansionCommand,
-  cancelConstructionProjectCommand,
-  haltConstructionCommand,
-  orderConstructionBatchCommand,
-  placeForeignConstructionCommand,
-  resumeConstructionCommand,
-  setAccelerationCommand,
+  authorizeDockExpansionCommandProgram,
+  cancelConstructionProjectCommandProgram,
+  haltConstructionCommandProgram,
+  orderConstructionBatchCommandProgram,
+  placeForeignConstructionCommandProgram,
+  resumeConstructionCommandProgram,
+  setAccelerationCommandProgram,
 } from "./constructionStatusCommands.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, "../../../../..");
 const GENERATED_ARTIFACT = resolve(REPO_ROOT, "content", "generated", "1880");
+
+// One shared runtime for every steering command; the services delegate to the
+// same in-memory session/queue registries the tests populate directly.
+const runtime = ManagedRuntime.make(desktopMainLayer());
+
+/** Runs a command program through the desktop service graph and projects its wire envelope. */
+async function runProgram<A>(program: CommandProgram, payload: unknown): Promise<BridgeResult<A>> {
+  return projectCommandExit(await runtime.runPromiseExit(program(payload))) as BridgeResult<A>;
+}
+
+const haltConstructionCommand = (payload: HaltConstructionCommandPayload) =>
+  runProgram<ConstructionCommandQueuedOutcome>(haltConstructionCommandProgram, payload);
+const resumeConstructionCommand = (payload: ResumeConstructionCommandPayload) =>
+  runProgram<ConstructionCommandQueuedOutcome>(resumeConstructionCommandProgram, payload);
+const setAccelerationCommand = (payload: SetAccelerationCommandPayload) =>
+  runProgram<ConstructionCommandQueuedOutcome>(setAccelerationCommandProgram, payload);
+const cancelConstructionProjectCommand = (payload: CancelConstructionProjectCommandPayload) =>
+  runProgram<ConstructionCommandQueuedOutcome>(cancelConstructionProjectCommandProgram, payload);
+const orderConstructionBatchCommand = (payload: OrderConstructionBatchCommandPayload) =>
+  runProgram<ConstructionCommandQueuedOutcome>(orderConstructionBatchCommandProgram, payload);
+const authorizeDockExpansionCommand = (payload: AuthorizeDockExpansionCommandPayload) =>
+  runProgram<ConstructionCommandQueuedOutcome>(authorizeDockExpansionCommandProgram, payload);
+const placeForeignConstructionCommand = (payload: PlaceForeignConstructionCommandPayload) =>
+  runProgram<ConstructionCommandQueuedOutcome>(placeForeignConstructionCommandProgram, payload);
+const commitMonth = (payload: {
+  sessionId: string;
+  expectedRevision: number;
+  transportRequestId: string;
+}) => runProgram<CommitMonthResponse>(commitMonthProgram, payload);
 
 /**
  * End-to-end reachability proof for the construction steering commands (SB3-R5/R8/R11/R16): each issues a real engine
@@ -281,5 +326,21 @@ describe("construction status commands (end-to-end)", () => {
     const uk = after.state.snapshot.nations.get("uk")!;
     expect(uk.foreignContracts ?? []).toHaveLength(1);
     expect(uk.constructionProjects.some((p) => p.foreignBuilderNationId === "france")).toBe(true);
+  });
+
+  it("rejects a foreign-order payload carrying contract terms beyond the wire schema (INVALID_PAYLOAD)", async () => {
+    const result = await runProgram(placeForeignConstructionCommandProgram, {
+      sessionId: "s-strict",
+      expectedRevision: 0,
+      transportRequestId: "req-strict",
+      designVersionId: "des_gbr_inflexible",
+      builderNationId: "france",
+      quantity: 1,
+      // The renderer must never supply contract terms: `withStrictSchema` rejects
+      // the excess key at the IPC boundary before any service is resolved.
+      terms: { price: 1 },
+    });
+    expect(result.outcome).toBe("error");
+    if (result.outcome === "error") expect(result.reason).toBe("INVALID_PAYLOAD");
   });
 });

@@ -5,6 +5,7 @@ import { join } from "node:path";
 import type { TacticalBattleState, TacticalShipUnit } from "@bluewave/combat";
 import { SafeInt } from "@bluewave/contracts";
 import { runBattleAdvanceMinute, type BattleAdvanceMinuteCliOptions } from "../src/commands.js";
+import { runCli } from "./runCli.js";
 
 function stdoutSpy() {
   return vi.spyOn(process.stdout, "write").mockImplementation(() => true as any);
@@ -82,25 +83,27 @@ describe("runBattleAdvanceMinute", () => {
     rmSync(dir, { recursive: true, force: true });
   });
 
-  it("returns usage-error when --state is not provided", () => {
-    expect(runBattleAdvanceMinute(baseOptions())).toBe("usage-error");
+  it("returns usage-error when --state is not provided", async () => {
+    expect(await runCli(runBattleAdvanceMinute(baseOptions()))).toBe("usage-error");
   });
 
-  it("returns usage-error when the state file does not exist", () => {
-    expect(runBattleAdvanceMinute(baseOptions(join(dir, "missing.json")))).toBe("usage-error");
+  it("returns usage-error when the state file does not exist", async () => {
+    expect(await runCli(runBattleAdvanceMinute(baseOptions(join(dir, "missing.json"))))).toBe(
+      "usage-error",
+    );
   });
 
-  it("returns usage-error when the state file is not valid JSON", () => {
+  it("returns usage-error when the state file is not valid JSON", async () => {
     const statePath = join(dir, "state.json");
     writeFileSync(statePath, "not json", "utf8");
-    expect(runBattleAdvanceMinute(baseOptions(statePath))).toBe("usage-error");
+    expect(await runCli(runBattleAdvanceMinute(baseOptions(statePath)))).toBe("usage-error");
   });
 
-  it("advances one minute and prints a human summary", () => {
+  it("advances one minute and prints a human summary", async () => {
     const statePath = join(dir, "state.json");
     writeFileSync(statePath, JSON.stringify({ state: fixtureState() }), "utf8");
     const spy = stdoutSpy();
-    const result = runBattleAdvanceMinute(baseOptions(statePath));
+    const result = await runCli(runBattleAdvanceMinute(baseOptions(statePath)));
     expect(result).toBe("success");
     const output = spy.mock.calls.map((c) => c[0]).join("");
     expect(output).toContain("Minute 1 advanced");
@@ -110,11 +113,13 @@ describe("runBattleAdvanceMinute", () => {
     spy.mockRestore();
   });
 
-  it("emits structured JSON output in --json mode", () => {
+  it("emits structured JSON output in --json mode", async () => {
     const statePath = join(dir, "state.json");
     writeFileSync(statePath, JSON.stringify({ state: fixtureState() }), "utf8");
     const spy = stdoutSpy();
-    const result = runBattleAdvanceMinute({ ...baseOptions(statePath), outputMode: "json" });
+    const result = await runCli(
+      runBattleAdvanceMinute({ ...baseOptions(statePath), outputMode: "json" }),
+    );
     expect(result).toBe("success");
     const output = spy.mock.calls.map((c) => c[0]).join("");
     const jsonLine = output.split("\n").find((line) => line.includes("minuteHash"));
@@ -127,7 +132,7 @@ describe("runBattleAdvanceMinute", () => {
     spy.mockRestore();
   });
 
-  it("respects orders and attackRangeUm passed through the state file", () => {
+  it("respects orders and attackRangeUm passed through the state file", async () => {
     const statePath = join(dir, "state.json");
     writeFileSync(
       statePath,
@@ -139,7 +144,9 @@ describe("runBattleAdvanceMinute", () => {
       "utf8",
     );
     const spy = stdoutSpy();
-    const result = runBattleAdvanceMinute({ ...baseOptions(statePath), outputMode: "json" });
+    const result = await runCli(
+      runBattleAdvanceMinute({ ...baseOptions(statePath), outputMode: "json" }),
+    );
     expect(result).toBe("success");
     const output = spy.mock.calls.map((c) => c[0]).join("");
     const jsonLine = output.split("\n").find((line) => line.includes("minuteHash"));
@@ -148,7 +155,7 @@ describe("runBattleAdvanceMinute", () => {
     spy.mockRestore();
   });
 
-  it("routes a BluewaveError (invalid fixed-point movement state) through the ticket-01 adapter as validation-error", () => {
+  it("routes a BluewaveError (invalid fixed-point movement state) through the ticket-01 adapter as validation-error", async () => {
     const statePath = join(dir, "state.json");
     const state = fixtureState();
     state.movementStates = {
@@ -168,7 +175,7 @@ describe("runBattleAdvanceMinute", () => {
     };
     writeFileSync(statePath, JSON.stringify({ state }), "utf8");
     const spy = stdoutSpy();
-    const result = runBattleAdvanceMinute(baseOptions(statePath));
+    const result = await runCli(runBattleAdvanceMinute(baseOptions(statePath)));
     expect(result).toBe("validation-error");
     const output = spy.mock.calls.map((c) => c[0]).join("");
     expect(output).toContain("TACTICAL_STATE_INVARIANT_FAILED");

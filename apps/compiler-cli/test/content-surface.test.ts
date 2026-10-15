@@ -13,6 +13,7 @@ import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
 
 import { runContentCheck, runContentBuild, runContentVerify } from "../src/commands.js";
+import { runCli } from "./runCli.js";
 
 const here = fileURLToPath(new URL(".", import.meta.url));
 const repoRoot = resolve(here, "..", "..", "..");
@@ -31,21 +32,21 @@ afterEach(() => {
 });
 
 describe("content:check / content:build over the production pack", () => {
-  it("content:check validates the whole surface and writes nothing", () => {
+  it("content:check validates the whole surface and writes nothing", async () => {
     const out = tempDir();
-    expect(runContentCheck({ manifest, contentDir, outputDir: out, outputMode: "json" })).toBe(
-      "success",
-    );
+    expect(
+      await runCli(runContentCheck({ manifest, contentDir, outputDir: out, outputMode: "json" })),
+    ).toBe("success");
     expect(readdirSync(out)).toHaveLength(0);
   });
 
-  it("content:check reports per-collection confidence counts (CAH-PROV-2)", () => {
+  it("content:check reports per-collection confidence counts (CAH-PROV-2)", async () => {
     const out = tempDir();
     const write = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
     try {
-      expect(runContentCheck({ manifest, contentDir, outputDir: out, outputMode: "json" })).toBe(
-        "success",
-      );
+      expect(
+        await runCli(runContentCheck({ manifest, contentDir, outputDir: out, outputMode: "json" })),
+      ).toBe("success");
       const printed = write.mock.calls.map((call) => String(call[0])).join("");
       const payload = JSON.parse(printed.trim().split("\n").pop() ?? "{}") as {
         confidence: Array<{ collection: string; counts: Record<string, number> }>;
@@ -61,11 +62,11 @@ describe("content:check / content:build over the production pack", () => {
     }
   });
 
-  it("content:build emits one hash-pinned artifact covering both surfaces", () => {
+  it("content:build emits one hash-pinned artifact covering both surfaces", async () => {
     const out = tempDir();
-    expect(runContentBuild({ manifest, contentDir, outputDir: out, outputMode: "human" })).toBe(
-      "success",
-    );
+    expect(
+      await runCli(runContentBuild({ manifest, contentDir, outputDir: out, outputMode: "human" })),
+    ).toBe("success");
 
     const artifactPath = resolve(out, "content-artifact.json");
     const manifestPath = resolve(out, "content-manifest.json");
@@ -101,11 +102,11 @@ describe("content:check / content:build over the production pack", () => {
     expect(typeof manifestJson["bodyHash"]).toBe("string");
   });
 
-  it("two builds over unchanged content are byte-identical", () => {
+  it("two builds over unchanged content are byte-identical", async () => {
     const out1 = tempDir();
     const out2 = tempDir();
-    runContentBuild({ manifest, contentDir, outputDir: out1, outputMode: "json" });
-    runContentBuild({ manifest, contentDir, outputDir: out2, outputMode: "json" });
+    await runCli(runContentBuild({ manifest, contentDir, outputDir: out1, outputMode: "json" }));
+    await runCli(runContentBuild({ manifest, contentDir, outputDir: out2, outputMode: "json" }));
     expect(readFileSync(resolve(out1, "content-artifact.json"), "utf8")).toBe(
       readFileSync(resolve(out2, "content-artifact.json"), "utf8"),
     );
@@ -114,7 +115,7 @@ describe("content:check / content:build over the production pack", () => {
     );
   });
 
-  it("content:check and content:build reject a broken pack the same way", () => {
+  it("content:check and content:build reject a broken pack the same way", async () => {
     const broken = tempDir();
     cpSync(contentDir, broken, { recursive: true });
     const brokenManifest = resolve(broken, "pack.json");
@@ -134,32 +135,38 @@ designs:
     );
     const checkOut = tempDir();
     expect(
-      runContentCheck({
-        manifest: brokenManifest,
-        contentDir: broken,
-        outputDir: checkOut,
-        outputMode: "json",
-      }),
+      await runCli(
+        runContentCheck({
+          manifest: brokenManifest,
+          contentDir: broken,
+          outputDir: checkOut,
+          outputMode: "json",
+        }),
+      ),
     ).toBe("validation-error");
     expect(
-      runContentBuild({
-        manifest: brokenManifest,
-        contentDir: broken,
-        outputDir: tempDir(),
-        outputMode: "json",
-      }),
+      await runCli(
+        runContentBuild({
+          manifest: brokenManifest,
+          contentDir: broken,
+          outputDir: tempDir(),
+          outputMode: "json",
+        }),
+      ),
     ).toBe("validation-error");
   });
 });
 
 describe("content:verify over the production pack (CAH-LOCK)", () => {
-  it("verifies the production pack against the committed content lock", () => {
+  it("verifies the production pack against the committed content lock", async () => {
     expect(
-      runContentVerify({ manifest, contentDir, outputDir: tempDir(), outputMode: "json" }),
+      await runCli(
+        runContentVerify({ manifest, contentDir, outputDir: tempDir(), outputMode: "json" }),
+      ),
     ).toBe("success");
   });
 
-  it("fails on content drift naming both hashes, and succeeds once the lock is refreshed", () => {
+  it("fails on content drift naming both hashes, and succeeds once the lock is refreshed", async () => {
     const dir = tempDir();
     cpSync(contentDir, dir, { recursive: true });
     const localManifest = resolve(dir, "pack.json");
@@ -187,22 +194,26 @@ describe("content:verify over the production pack (CAH-LOCK)", () => {
       "utf8",
     );
     expect(
-      runContentVerify({
-        manifest: localManifest,
-        contentDir: dir,
-        outputDir: tempDir(),
-        outputMode: "json",
-      }),
+      await runCli(
+        runContentVerify({
+          manifest: localManifest,
+          contentDir: dir,
+          outputDir: tempDir(),
+          outputMode: "json",
+        }),
+      ),
     ).toBe("validation-error");
 
     // Refresh the lock to the rebuilt hash: verification succeeds.
     const fresh = tempDir();
-    runContentBuild({
-      manifest: localManifest,
-      contentDir: dir,
-      outputDir: fresh,
-      outputMode: "json",
-    });
+    await runCli(
+      runContentBuild({
+        manifest: localManifest,
+        contentDir: dir,
+        outputDir: fresh,
+        outputMode: "json",
+      }),
+    );
     const manifestJson = JSON.parse(
       readFileSync(resolve(fresh, "content-manifest.json"), "utf8"),
     ) as { bodyHash: string };
@@ -212,28 +223,32 @@ describe("content:verify over the production pack (CAH-LOCK)", () => {
       "utf8",
     );
     expect(
-      runContentVerify({
-        manifest: localManifest,
-        contentDir: dir,
-        outputDir: tempDir(),
-        outputMode: "json",
-      }),
+      await runCli(
+        runContentVerify({
+          manifest: localManifest,
+          contentDir: dir,
+          outputDir: tempDir(),
+          outputMode: "json",
+        }),
+      ),
     ).toBe("success");
   });
 
-  it("fails on a tampered lock naming both hashes", () => {
+  it("fails on a tampered lock naming both hashes", async () => {
     const dir = tempDir();
     cpSync(contentDir, dir, { recursive: true });
     const lockPath = resolve(dir, "content-lock.json");
     const lock = JSON.parse(readFileSync(lockPath, "utf8")) as Record<string, unknown>;
     writeFileSync(lockPath, JSON.stringify({ ...lock, bodyHash: "0".repeat(64) }, null, 2), "utf8");
     expect(
-      runContentVerify({
-        manifest: resolve(dir, "pack.json"),
-        contentDir: dir,
-        outputDir: tempDir(),
-        outputMode: "json",
-      }),
+      await runCli(
+        runContentVerify({
+          manifest: resolve(dir, "pack.json"),
+          contentDir: dir,
+          outputDir: tempDir(),
+          outputMode: "json",
+        }),
+      ),
     ).toBe("validation-error");
   });
 });

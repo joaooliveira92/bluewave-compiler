@@ -1,8 +1,8 @@
 import { placeConstructionOrder, type ConstructionOrderResult } from "@bluewave/phase-engine";
+import type { ShipBuildingContent } from "@bluewave/ship-design";
 import type { BridgeResult } from "../../../shared/bridge-contract.js";
 import type { ConstructionCommandOutcome } from "../../../shared/construction-contract.js";
 import type { CampaignSessionRecord } from "../../campaignSessions.js";
-import { loadShipBuildingContent } from "../../shipBuildingContent.js";
 
 /**
  * The construction-order check shared by submit and replace, run BEFORE anything is reserved or persisted (F2). The
@@ -18,14 +18,9 @@ export function placeOrderFor(
   record: CampaignSessionRecord,
   commandId: string,
   designId: string,
+  content: ShipBuildingContent,
   replacingCommandId?: string,
 ): PlacedOrder {
-  let content;
-  try {
-    content = loadShipBuildingContent();
-  } catch {
-    content = undefined;
-  }
   const placed = placeConstructionOrder(
     record.state.snapshot,
     {

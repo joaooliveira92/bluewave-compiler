@@ -1,18 +1,11 @@
 import { app, BrowserWindow, dialog, ipcMain, session } from "electron";
-import { ManagedRuntime } from "effect";
-import { homedir } from "node:os";
-import { join, resolve } from "node:path";
+import { Effect, ManagedRuntime } from "effect";
+import { resolve } from "node:path";
 import { applyContentSecurityPolicy } from "./csp.js";
-import { createCampaignCommandDispatcher, defaultCommandRegistry } from "./campaignBridge.js";
+import { commandPrograms, createCampaignCommandDispatcher } from "./campaignBridge.js";
 import { ContentArtifactError, loadContentArtifact } from "./contentArtifact.js";
-import { contentArtifactLayer, type ContentArtifact } from "./runtime/contentArtifact.js";
-import {
-  captureCrash,
-  createCrashLimiter,
-  installProcessCrashHandlers,
-  parseRendererCrashInput,
-  type CrashContext,
-} from "./crashSupport.js";
+import { CrashReporter } from "./runtime/crashReporter.js";
+import { desktopMainLayer, type CommandEnv } from "./runtime/desktopMainLayer.js";
 import { isDebugModeEnabled } from "./debugGate.js";
 import { withModernExtensionApi } from "./extensionSession.js";
 import {
@@ -48,37 +41,9 @@ function hardFail(message: string): void {
   app.quit();
 }
 
-/**
- * Local-only crash capture (ADR-0133): an uncaught error in main writes a
- * user-shareable support bundle beside the user data, surfaces it explicitly,
- * and quits — never leaving a blank window and never hiding the failure. No
- * network call is made.
- */
-const crashContext: CrashContext = {
-  bundleDir: join(app.getPath("userData"), "support"),
-  appVersion: app.getVersion(),
-  platform: process.platform,
-  arch: process.arch,
-  processId: process.pid,
-  homeDir: homedir(),
-  now: () => new Date(),
-  log: (message: string) => console.error(message),
-  // A render loop can emit thousands of identical errors: cap writes and dedup
-  // an identical crash, keeping the support directory bounded.
-  limiter: createCrashLimiter({ maxPerWindow: 5, windowMs: 60_000, dedupWindowMs: 60_000 }),
-  maxBundles: 20,
-};
-
-installProcessCrashHandlers(crashContext, (error, bundlePath) => {
-  console.error("[crash] uncaught error:", error);
-  dialog.showErrorBox(
-    "Bluewave",
-    "Bluewave hit an unexpected error and needs to close." +
-      (bundlePath !== null ? `\n\nA support bundle was saved to:\n${bundlePath}` : ""),
-  );
-  quitting = true;
-  app.quit();
-});
+// Crash handlers are installed at `whenReady` through the `CrashReporter`
+// service (ADR-0133/ADR-0159); the support bundle path and clock come from the
+// `AppPaths`/`Clock` services rather than module-load `app.getPath`/`new Date`.
 
 /**
  * Keep the window recoverable (ADR-0121): a crashed renderer, an unresponsive
@@ -188,28 +153,28 @@ function createWindow(): BrowserWindow {
 }
 
 /** The desktop main runtime, providing the Layer's services (INC-1; ADR-0159). */
-type DesktopMainRuntime = ManagedRuntime.ManagedRuntime<ContentArtifact, never>;
+type DesktopMainRuntime = ManagedRuntime.ManagedRuntime<CommandEnv, never>;
 
 function registerIpc(runtime: DesktopMainRuntime): void {
-  const dispatchCampaignCommand = createCampaignCommandDispatcher(
-    defaultCommandRegistry,
-    () => runtime,
-  );
+  const dispatchCampaignCommand = createCampaignCommandDispatcher(commandPrograms, () => runtime);
   ipcMain.handle("campaign:execute", (_event, command: string, payload: unknown) =>
     dispatchCampaignCommand(command, payload),
   );
 
   // Renderer crash capture (ADR-0133): validate the renderer's payload at the
-  // boundary, then write the local-only support bundle. A malformed payload is
-  // dropped rather than trusted.
+  // boundary, then write the local-only support bundle through the CrashReporter
+  // service. A malformed payload is dropped rather than trusted.
   ipcMain.on("support:report-crash", (_event, payload: unknown) => {
-    const parsed = parseRendererCrashInput(payload);
-    if (parsed === null) return;
-    captureCrash(
-      "renderer",
-      parsed.kind,
-      { message: parsed.message, stack: parsed.stack },
-      crashContext,
+    void runtime.runPromise(
+      Effect.gen(function* () {
+        const crash = yield* CrashReporter;
+        const parsed = yield* crash.parseRendererInput(payload);
+        if (parsed === null) return;
+        yield* crash.capture("renderer", parsed.kind, {
+          message: parsed.message,
+          stack: parsed.stack,
+        });
+      }).pipe(Effect.catchTag("CommandFailed", () => Effect.void)),
     );
   });
 
@@ -284,7 +249,25 @@ if (!app.requestSingleInstanceLock()) {
   });
 
   void app.whenReady().then(async () => {
-    const runtime = ManagedRuntime.make(contentArtifactLayer());
+    const runtime = ManagedRuntime.make(desktopMainLayer());
+
+    // Install the main-process crash handlers through the CrashReporter service
+    // (ADR-0133), resolved from the composed graph.
+    await runtime.runPromise(
+      Effect.gen(function* () {
+        const crash = yield* CrashReporter;
+        yield* crash.installProcessHandlers((error, bundlePath) => {
+          console.error("[crash] uncaught error:", error);
+          dialog.showErrorBox(
+            "Bluewave",
+            "Bluewave hit an unexpected error and needs to close." +
+              (bundlePath !== null ? `\n\nA support bundle was saved to:\n${bundlePath}` : ""),
+          );
+          quitting = true;
+          app.quit();
+        });
+      }),
+    );
 
     if (isDev && reactDevToolsRequested) {
       try {

@@ -32,10 +32,16 @@ export class CommandFailed extends Data.TaggedError("CommandFailed")<{
   readonly diagnostics: readonly string[];
 }> {}
 
+/** The requested campaign session is not open in this process. */
+export class SessionNotFound extends Data.TaggedError("SessionNotFound")<{
+  readonly sessionId: string;
+}> {}
+
 /** Every failure the dispatch flow can carry on its error channel. */
 export type CommandError =
   | UnknownCommand
   | NotImplemented
   | InvalidCommandPayload
   | CommandRejected
-  | CommandFailed;
+  | CommandFailed
+  | SessionNotFound;

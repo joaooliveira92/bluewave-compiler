@@ -1,7 +1,5 @@
-import { readFileSync, writeFileSync, renameSync, existsSync } from "node:fs";
-import { join } from "node:path";
 import { CANONICAL_SCENARIO_IDS } from "@bluewave/campaign";
-import { Result, Schema } from "effect";
+import { Schema } from "effect";
 
 /**
  * App-owned `session.json` sidecar at a `SaveStore` package's root directory
@@ -17,15 +15,11 @@ import { Result, Schema } from "effect";
  * - `scenarioId` — whose canonical start date ({startYear,startMonth}) the
  *   current calendar month is derived from as start + `turnNumber` months.
  *
- * The sidecar lives next to `pointer.json` (a root-level file, invisible to
- * `SaveStore.save`/`load`/`list`, which only read the per-save directories
- * and the pointer), so it neither changes `SaveStore`'s semantics nor trips
- * its integrity envelope. `compileCampaign` writes it once; `loadCampaign`
- * reads it to restore a real session; `replayCampaign` reads it for the
- * replay seed. Saves are trust-class data (ENGINEERING-CONTRACT "Security"),
- * so reads are validated (Effect Schema, ADR-0102); writes go through
- * tmp+rename like `SaveStore`'s own `updatePointer`, never leaving a partial
- * file.
+ * This module owns only the sidecar's *shape* (the schema + filename); the
+ * filesystem read/write lives in the `ProjectStore` service
+ * (`runtime/projectStore.ts`), so no command path touches `node:fs` for it.
+ * Saves are trust-class data (ENGINEERING-CONTRACT "Security"), so reads are
+ * validated with this Effect Schema (ADR-0102).
  */
 export const SESSION_METADATA_FILENAME = "session.json";
 
@@ -37,24 +31,3 @@ export const SessionMetadataSchema = Schema.Struct({
 });
 
 export type SessionMetadata = typeof SessionMetadataSchema.Type;
-
-export function writeSessionMetadata(saveDir: string, metadata: SessionMetadata): void {
-  const target = join(saveDir, SESSION_METADATA_FILENAME);
-  const tmp = `${target}.tmp`;
-  writeFileSync(tmp, JSON.stringify(metadata, null, 2), "utf8");
-  renameSync(tmp, target);
-}
-
-/** `null` when the sidecar is missing or fails schema/structure validation. */
-export function readSessionMetadata(saveDir: string): SessionMetadata | null {
-  const target = join(saveDir, SESSION_METADATA_FILENAME);
-  if (!existsSync(target)) return null;
-  try {
-    const parsed = Schema.decodeUnknownResult(SessionMetadataSchema)(
-      JSON.parse(readFileSync(target, "utf8")),
-    );
-    return Result.isSuccess(parsed) ? parsed.success : null;
-  } catch {
-    return null;
-  }
-}

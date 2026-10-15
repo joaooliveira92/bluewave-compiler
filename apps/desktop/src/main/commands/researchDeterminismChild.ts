@@ -8,13 +8,16 @@ import {
 import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { canonicalSerialize, sha256Hex } from "@bluewave/deterministic";
 import { SaveStore } from "@bluewave/persistence";
+import { ManagedRuntime } from "effect";
 import { registerCampaignSession } from "../campaignSessions.js";
 import { compileProductionCampaignFromArtifact } from "../compiler.js";
 import { resolveGeneratedContentDir } from "../contentPack.js";
 import { clearResearchWorkspacesForTest } from "../researchWorkspace.js";
+import { projectCommandExit } from "../runtime/bridgeResult.js";
+import { desktopMainLayer } from "../runtime/desktopMainLayer.js";
 import { toSaveableState } from "../saveHelpers.js";
-import { commitMonth } from "./commitMonth.js";
-import { setResearchPriorityCommand } from "./researchCommands.js";
+import { commitMonthProgram } from "./commitMonth.js";
+import { setResearchPriorityCommandProgram } from "./researchCommands.js";
 
 /**
  * Determinism child for the research-command path (desktop-engine-feature-gate
@@ -51,6 +54,7 @@ function applyKey(record: Record<string, number>): string {
 
 async function run(): Promise<void> {
   const saveDir = mkdtempSync(resolve(tmpdir(), "bw-research-det-child-"));
+  const runtime = ManagedRuntime.make(desktopMainLayer());
   try {
     const signal = new AbortController().signal;
     const collector = new DiagnosticCollector();
@@ -73,19 +77,27 @@ async function run(): Promise<void> {
       state,
     });
 
-    const issued = await setResearchPriorityCommand({
-      sessionId: "child-session",
-      expectedRevision: 0,
-      transportRequestId: "req-1",
-      fieldPriorities: fullPriorities(),
-    });
+    const issued = projectCommandExit(
+      await runtime.runPromiseExit(
+        setResearchPriorityCommandProgram({
+          sessionId: "child-session",
+          expectedRevision: 0,
+          transportRequestId: "req-1",
+          fieldPriorities: fullPriorities(),
+        }),
+      ),
+    );
     if (issued.outcome !== "success") throw new Error(`issue failed: ${issued.reason}`);
 
-    const committed = await commitMonth({
-      sessionId: "child-session",
-      expectedRevision: 0,
-      transportRequestId: "commit-1",
-    });
+    const committed = projectCommandExit(
+      await runtime.runPromiseExit(
+        commitMonthProgram({
+          sessionId: "child-session",
+          expectedRevision: 0,
+          transportRequestId: "commit-1",
+        }),
+      ),
+    );
     if (committed.outcome !== "success") {
       throw new Error(`commit failed: ${committed.reason}: ${committed.diagnostics.join("; ")}`);
     }
@@ -100,6 +112,7 @@ async function run(): Promise<void> {
     const serialized = sha256Hex(canonicalSerialize(post.snapshot));
     process.stdout.write(`${post.rawHash}\n${serialized}\n`);
   } finally {
+    await runtime.dispose();
     clearResearchWorkspacesForTest();
     rmSync(saveDir, { recursive: true, force: true });
   }

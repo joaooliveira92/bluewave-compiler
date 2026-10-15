@@ -1,25 +1,29 @@
-import type { CommandBody } from "@bluewave/commands";
 import { buildDiplomacyScreenProjection } from "@bluewave/campaign-engine";
-import type { BridgeResult } from "../../shared/bridge-contract.js";
+import type { CommandBody } from "@bluewave/commands";
+import { Effect } from "effect";
 import type {
   DiplomacyCommandBody,
-  DiplomacyCommandOutcome,
   DiplomacyScreenProjection,
-  SubmitDiplomacyCommandPayload,
 } from "../../shared/diplomacy-contract.js";
-import { getCampaignSession } from "../campaignSessions.js";
+import {
+  SessionIdPayloadSchema,
+  SubmitDiplomacyCommandPayloadSchema,
+} from "../campaignCommandSchemas.js";
+import { CampaignSessionStore } from "../runtime/campaignSessionStore.js";
+import { CommandFailed } from "../runtime/commandError.js";
+import { withSchema } from "../runtime/commandProgram.js";
 import { currentRevision, submitPlayerCommand } from "./playerCommandSupport.js";
 
 /**
  * The Diplomacy & War screen's two bridge commands
- * (desktop-diplomacy-war INC-1/INC-2), following the exact
- * `researchCommands.ts` conventions: session lookup (`SESSION_NOT_FOUND`),
- * `expectedRevision` against `snapshot.turnNumber` (`REVISION_MISMATCH` with
- * the session untouched), deterministic envelope construction, and
- * `transportRequestId` idempotency.
+ * (desktop-diplomacy-war INC-1/INC-2), as native `CommandProgram`s (INC-5;
+ * ADR-0159). Session lookup (`SESSION_NOT_FOUND`), `expectedRevision` against
+ * `snapshot.turnNumber` (`REVISION_MISMATCH` with the session untouched),
+ * deterministic envelope construction, and `transportRequestId` idempotency —
+ * the same conventions every player-command family follows.
  *
  * Authority (spec D1): the desktop ONLY queues a real engine envelope
- * through the shared per-session command queue (`pendingCommands.ts`, drained
+ * through the shared per-session command queue (`CommandQueueStore`, drained
  * by `commitMonth`); the engine (`MonthExecutor` command_collection, order
  * 6.5 diplomacy phase) is the sole mutator of politics/wars/blockades.
  * Issue-time validity is the ENGINE's own `CommandLifecycle.validate()` —
@@ -27,48 +31,42 @@ import { currentRevision, submitPlayerCommand } from "./playerCommandSupport.js"
  * code + message verbatim (e.g. `ALREADY_AT_WAR`, `DECLARE_WAR_INVALID_TARGET`,
  * `BLOCKADE_NOT_AT_WAR`) and leaves the session/queue untouched.
  */
-export async function inspectDiplomacyScreen(
-  sessionId: string,
-): Promise<BridgeResult<DiplomacyScreenProjection>> {
-  const record = getCampaignSession(sessionId);
-  if (!record) {
-    return {
-      outcome: "error",
-      reason: "SESSION_NOT_FOUND",
-      diagnostics: [`No active campaign session ${sessionId}`],
+export const inspectDiplomacyScreenProgram = withSchema(SessionIdPayloadSchema, (sessionId) =>
+  Effect.gen(function* () {
+    const sessions = yield* CampaignSessionStore;
+    const record = yield* sessions.get(sessionId);
+
+    const projection = buildDiplomacyScreenProjection(
+      record.state,
+      record.playerSlotId,
+      record.month,
+    );
+    if (!projection) {
+      return yield* new CommandFailed({
+        reason: "UNKNOWN_PLAYER_SLOT",
+        diagnostics: [`No nation ${record.playerSlotId} in session ${sessionId}`],
+      });
+    }
+
+    const value: DiplomacyScreenProjection = {
+      ...projection,
+      revision: currentRevision(record),
+      month: record.month,
     };
-  }
+    return { outcome: "success" as const, value, diagnostics: [] };
+  }),
+);
 
-  const projection = buildDiplomacyScreenProjection(
-    record.state,
-    record.playerSlotId,
-    record.month,
-  );
-  if (!projection) {
-    return {
-      outcome: "error",
-      reason: "UNKNOWN_PLAYER_SLOT",
-      diagnostics: [`No nation ${record.playerSlotId} in session ${sessionId}`],
-    };
-  }
-
-  return {
-    outcome: "success",
-    value: { ...projection, revision: currentRevision(record), month: record.month },
-    diagnostics: [],
-  };
-}
-
-export async function submitDiplomacyCommand(
-  payload: SubmitDiplomacyCommandPayload,
-): Promise<BridgeResult<DiplomacyCommandOutcome>> {
-  return submitPlayerCommand({
-    sessionId: payload.sessionId,
-    expectedRevision: payload.expectedRevision,
-    transportRequestId: payload.transportRequestId,
-    build: (record) => planDiplomacyCommand(payload.command, record.playerSlotId),
-  });
-}
+export const submitDiplomacyCommandProgram = withSchema(
+  SubmitDiplomacyCommandPayloadSchema,
+  (payload) =>
+    submitPlayerCommand({
+      sessionId: payload.sessionId,
+      expectedRevision: payload.expectedRevision,
+      transportRequestId: payload.transportRequestId,
+      build: (record) => planDiplomacyCommand(payload.command, record.playerSlotId),
+    }),
+);
 
 interface DiplomacyCommandPlan {
   readonly body: Extract<CommandBody, { type: DiplomacyCommandBody["type"] }>;

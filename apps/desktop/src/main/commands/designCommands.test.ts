@@ -4,8 +4,26 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { DiagnosticCollector } from "@bluewave/diagnostics";
 import { SaveStore } from "@bluewave/persistence";
+import { SafeInt } from "@bluewave/contracts";
+import type { CommitMonthResponse } from "@bluewave/campaign-engine";
+import { ManagedRuntime } from "effect";
 import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test";
-import { dispatchCampaignCommand } from "../campaignBridge.js";
+import type { BridgeResult } from "../../shared/bridge-contract.js";
+import type {
+  DesignCommandOutcome,
+  LoadProjectDraftPayload,
+  LoadShipDraftPayload,
+  ProjectDraftView,
+  RebuildableShipView,
+  RebuildCheckPayload,
+  RebuildCheckView,
+  RebuildCommandOutcome,
+  ReviseCommandOutcome,
+  ReviseProjectCommandPayload,
+  ShipDraftView,
+  StartRebuildCommandPayload,
+  SubmitDesignCommandPayload,
+} from "../../shared/design-contract.js";
 import {
   clearCampaignSessionsForTest,
   getCampaignSession,
@@ -13,12 +31,52 @@ import {
 } from "../campaignSessions.js";
 import { compileProductionCampaignFromArtifact } from "../compiler.js";
 import { clearPendingWorkspacesForTest } from "../pendingCommands.js";
+import { projectCommandExit } from "../runtime/bridgeResult.js";
+import type { CommandProgram } from "../runtime/commandProgram.js";
+import { desktopMainLayer } from "../runtime/desktopMainLayer.js";
 import { toSaveableState } from "../saveHelpers.js";
-import { SafeInt } from "@bluewave/contracts";
-import { commitMonth } from "./commitMonth.js";
+import { commitMonthProgram } from "./commitMonth.js";
+import {
+  checkRebuildProgram,
+  listRebuildableShipsProgram,
+  loadProjectDraftProgram,
+  loadShipDraftProgram,
+  reviseProjectCommandProgram,
+  startRebuildCommandProgram,
+  submitDesignCommandProgram,
+} from "./designCommands.js";
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../../../..");
 const GENERATED_ARTIFACT = resolve(REPO_ROOT, "content", "generated", "1880");
+
+// One shared runtime for every design program; the services delegate to the same
+// in-memory session/queue registries the tests populate directly.
+const runtime = ManagedRuntime.make(desktopMainLayer());
+
+/** Runs a command program through the desktop service graph and projects its wire envelope. */
+async function runProgram<A>(program: CommandProgram, payload: unknown): Promise<BridgeResult<A>> {
+  return projectCommandExit(await runtime.runPromiseExit(program(payload))) as BridgeResult<A>;
+}
+
+const submitDesign = (payload: SubmitDesignCommandPayload) =>
+  runProgram<DesignCommandOutcome>(submitDesignCommandProgram, payload);
+const reviseProject = (payload: ReviseProjectCommandPayload) =>
+  runProgram<ReviseCommandOutcome>(reviseProjectCommandProgram, payload);
+const loadProjectDraft = (payload: LoadProjectDraftPayload) =>
+  runProgram<ProjectDraftView>(loadProjectDraftProgram, payload);
+const listRebuildableShips = (sessionId: string) =>
+  runProgram<readonly RebuildableShipView[]>(listRebuildableShipsProgram, sessionId);
+const loadShipDraft = (payload: LoadShipDraftPayload) =>
+  runProgram<ShipDraftView>(loadShipDraftProgram, payload);
+const checkRebuild = (payload: RebuildCheckPayload) =>
+  runProgram<RebuildCheckView>(checkRebuildProgram, payload);
+const startRebuild = (payload: StartRebuildCommandPayload) =>
+  runProgram<RebuildCommandOutcome>(startRebuildCommandProgram, payload);
+const commitMonth = (payload: {
+  sessionId: string;
+  expectedRevision: number;
+  transportRequestId: string;
+}) => runProgram<CommitMonthResponse>(commitMonthProgram, payload);
 
 /**
  * Commits months until `designVersionId`'s study completes and the design joins the catalog (ADR-0085), so the wiring
@@ -174,8 +232,8 @@ describe("submitDesignCommand (ADR-0066)", () => {
     clearPendingWorkspacesForTest();
   });
 
-  const submit = (over: Record<string, unknown> = {}) =>
-    dispatchCampaignCommand("submitDesignCommand", {
+  const submit = (over: Partial<SubmitDesignCommandPayload> = {}) =>
+    submitDesign({
       sessionId: "ds",
       expectedRevision: 0,
       transportRequestId: "tx-d1",
@@ -184,14 +242,16 @@ describe("submitDesignCommand (ADR-0066)", () => {
       ...over,
     });
 
+  it("returns SESSION_NOT_FOUND for an unregistered session", async () => {
+    const r = await submit({ sessionId: "nope" });
+    expect(r).toMatchObject({ outcome: "error", reason: "SESSION_NOT_FOUND" });
+  });
+
   it("queues a valid design as a study, and the design joins the catalog when the study completes", async () => {
     const queued = await submit();
     expect(queued.outcome).toBe("success");
     if (queued.outcome !== "success") return;
-    const { designVersionId, study } = queued.value as {
-      designVersionId: string;
-      study?: { months: number; derived: boolean };
-    };
+    const { designVersionId, study } = queued.value;
     expect(designVersionId).toMatch(/^des_uk_test_cruiser_t\d+$/);
     // The production pack has study rules (ADR-0085): a new class is four months of work, not approved same-month.
     expect(study).toMatchObject({ months: 4, derived: false });
@@ -259,12 +319,23 @@ describe("submitDesignCommand (ADR-0066)", () => {
   it("rejects malformed payloads at the boundary and bad drafts by shape", async () => {
     expect((await submit({ className: "" })).outcome).toBe("error");
     expect((await submit({ draft: { nationId: "uk" } })).outcome).toBe("rejected");
-    expect((await submit({ draft: "nope" })).outcome).toBe("error");
+    const badDraft = await runProgram(submitDesignCommandProgram, {
+      sessionId: "ds",
+      expectedRevision: 0,
+      transportRequestId: "tx-bad-draft",
+      className: "Test Cruiser",
+      draft: "nope",
+    });
+    expect(badDraft.outcome).toBe("error");
   });
 
-  it("is idempotent for the same transport request and rejects a stale revision", async () => {
+  it("is idempotent for the same transport request, conflicts on a different body, and rejects a stale revision", async () => {
     expect((await submit()).outcome).toBe("success");
     expect((await submit()).outcome).toBe("success");
+    expect(await submit({ className: "Other Cruiser" })).toMatchObject({
+      outcome: "rejected",
+      reason: "IDEMPOTENCY_CONFLICT",
+    });
     expect(await submit({ expectedRevision: 5, transportRequestId: "tx-stale" })).toMatchObject({
       outcome: "rejected",
       reason: "REVISION_MISMATCH",
@@ -304,7 +375,7 @@ describe("reviseProjectCommand and loadProjectDraft (ADR-0070)", () => {
 
   /** Submits the cruiser, commits the month, and puts a project on it with `done` work complete. */
   async function projectOn(done: number): Promise<string> {
-    const queued = await dispatchCampaignCommand("submitDesignCommand", {
+    const queued = await submitDesign({
       sessionId: "rv",
       expectedRevision: revision(),
       transportRequestId: "tx-base",
@@ -312,7 +383,7 @@ describe("reviseProjectCommand and loadProjectDraft (ADR-0070)", () => {
       draft: cruiser,
     });
     if (queued.outcome !== "success") throw new Error("submit failed");
-    const designVersionId = (queued.value as { designVersionId: string }).designVersionId;
+    const designVersionId = queued.value.designVersionId;
     await advanceUntilApproved("rv", designVersionId);
     const record = getCampaignSession("rv")!;
     const snapshot = record.state.snapshot;
@@ -350,8 +421,8 @@ describe("reviseProjectCommand and loadProjectDraft (ADR-0070)", () => {
       designMarginBp: (cruiser.hull as { designMarginBp: number }).designMarginBp + 100,
     },
   };
-  const revise = (over: Record<string, unknown> = {}) =>
-    dispatchCampaignCommand("reviseProjectCommand", {
+  const revise = (over: Partial<ReviseProjectCommandPayload> = {}) =>
+    reviseProject({
       sessionId: "rv",
       expectedRevision: revision(),
       transportRequestId: `tx-rev-${Math.random()}`,
@@ -362,25 +433,19 @@ describe("reviseProjectCommand and loadProjectDraft (ADR-0070)", () => {
 
   it("loads the real draft of a revisable project", async () => {
     await projectOn(0);
-    const r = await dispatchCampaignCommand("loadProjectDraft", {
-      sessionId: "rv",
-      projectId: "con_rv",
-    });
+    const r = await loadProjectDraft({ sessionId: "rv", projectId: "con_rv" });
     expect(r.outcome).toBe("success");
-    if (r.outcome === "success")
-      expect((r.value as { draft: { hull: unknown } }).draft.hull).toEqual(cruiser.hull);
+    if (r.outcome === "success") expect(r.value.draft.hull).toEqual(cruiser.hull);
   });
 
   it("refuses to load an authored project that has no source draft", async () => {
     const snapshot = getCampaignSession("rv")!.state.snapshot;
     const authored = snapshot.nations.get("uk")!.constructionProjects[0];
     if (!authored) return; // pack with no authored project: nothing to refuse
-    expect(
-      await dispatchCampaignCommand("loadProjectDraft", {
-        sessionId: "rv",
-        projectId: authored.id,
-      }),
-    ).toMatchObject({ outcome: "rejected", reason: "PROJECT_NOT_REVISABLE" });
+    expect(await loadProjectDraft({ sessionId: "rv", projectId: authored.id })).toMatchObject({
+      outcome: "rejected",
+      reason: "PROJECT_NOT_REVISABLE",
+    });
   });
 
   it("queues a free change, answers with its tier, and the month applies it", async () => {
@@ -388,7 +453,7 @@ describe("reviseProjectCommand and loadProjectDraft (ADR-0070)", () => {
     const r = await revise();
     expect(r.outcome).toBe("success");
     if (r.outcome !== "success") return;
-    const out = r.value as { tier: string; newDesignVersionId: string };
+    const out = r.value;
     expect(out.tier).toBe("T0_FREE");
     const committed = await commitMonth({
       sessionId: "rv",
@@ -409,7 +474,7 @@ describe("reviseProjectCommand and loadProjectDraft (ADR-0070)", () => {
     await projectOn(4);
     const r = await revise();
     expect(r.outcome).toBe("success");
-    if (r.outcome === "success") expect((r.value as { tier: string }).tier).toBe("T1_REVISION");
+    if (r.outcome === "success") expect(r.value.tier).toBe("T1_REVISION");
   });
 
   it("rejects a change on a mostly built ship, queuing nothing", async () => {
@@ -443,7 +508,7 @@ describe("reviseProjectCommand and loadProjectDraft (ADR-0070)", () => {
   });
 });
 
-describe("rebuilding a ship through the bridge (ADR-0078)", () => {
+describe("rebuilding a ship through the programs (ADR-0078)", () => {
   let saveRoot: string;
   beforeEach(() => {
     saveRoot = mkdtempSync(resolve(tmpdir(), "bw-desktop-rebuild-"));
@@ -475,7 +540,7 @@ describe("rebuilding a ship through the bridge (ADR-0078)", () => {
 
   /** Submits the cruiser, commits the month, and puts a commissioned ship of that design in the player's first fleet. */
   async function builtShip(): Promise<{ shipId: string; designVersionId: string }> {
-    const queued = await dispatchCampaignCommand("submitDesignCommand", {
+    const queued = await submitDesign({
       sessionId: "rb",
       expectedRevision: revision(),
       transportRequestId: "tx-rb-base",
@@ -483,7 +548,7 @@ describe("rebuilding a ship through the bridge (ADR-0078)", () => {
       draft: cruiser,
     });
     if (queued.outcome !== "success") throw new Error("submit failed");
-    const designVersionId = (queued.value as { designVersionId: string }).designVersionId;
+    const designVersionId = queued.value.designVersionId;
     await advanceUntilApproved("rb", designVersionId);
     const record = getCampaignSession("rb")!;
     const snapshot = record.state.snapshot;
@@ -524,37 +589,36 @@ describe("rebuilding a ship through the bridge (ADR-0078)", () => {
     hull: { ...cruiser.hull, beam: Math.round(cruiser.hull.beam * 1.2) },
   };
   const check = (shipId: string, draft: unknown) =>
-    dispatchCampaignCommand("checkRebuild", { sessionId: "rb", shipId, draft });
+    checkRebuild({ sessionId: "rb", shipId, draft: draft as Record<string, unknown> });
   const start = (shipId: string, draft: unknown) =>
-    dispatchCampaignCommand("startRebuildCommand", {
+    startRebuild({
       sessionId: "rb",
       expectedRevision: revision(),
       transportRequestId: `tx-rb-${Math.random()}`,
       shipId,
-      draft,
+      draft: draft as Record<string, unknown>,
     });
 
   it("lists the ships that can be rebuilt and loads the real draft of one", async () => {
     const { shipId } = await builtShip();
-    const list = await dispatchCampaignCommand("listRebuildableShips", "rb");
+    const list = await listRebuildableShips("rb");
     expect(list.outcome).toBe("success");
-    if (list.outcome === "success")
-      expect((list.value as { shipId: string }[]).map((s) => s.shipId)).toEqual([shipId]);
-    const draft = await dispatchCampaignCommand("loadShipDraft", { sessionId: "rb", shipId });
+    if (list.outcome === "success") expect(list.value.map((s) => s.shipId)).toEqual([shipId]);
+    const draft = await loadShipDraft({ sessionId: "rb", shipId });
     expect(draft.outcome).toBe("success");
-    if (draft.outcome === "success")
-      expect((draft.value as { draft: { hull: unknown } }).draft.hull).toEqual(cruiser.hull);
+    if (draft.outcome === "success") expect(draft.value.draft.hull).toEqual(cruiser.hull);
   });
 
   it("does not offer authored ships, and refuses to load their draft", async () => {
     const snapshot = getCampaignSession("rb")!.state.snapshot;
     const authored = snapshot.nations.get("uk")!.fleets.flatMap((f) => f.ships)[0];
-    const list = await dispatchCampaignCommand("listRebuildableShips", "rb");
+    const list = await listRebuildableShips("rb");
     expect(list).toMatchObject({ outcome: "success", value: [] });
     if (authored)
-      expect(
-        await dispatchCampaignCommand("loadShipDraft", { sessionId: "rb", shipId: authored.id }),
-      ).toMatchObject({ outcome: "rejected", reason: "SHIP_NOT_REBUILDABLE" });
+      expect(await loadShipDraft({ sessionId: "rb", shipId: authored.id })).toMatchObject({
+        outcome: "rejected",
+        reason: "SHIP_NOT_REBUILDABLE",
+      });
   });
 
   it("checks a change within the limits as legal, with its measures, queuing nothing", async () => {
@@ -562,14 +626,10 @@ describe("rebuilding a ship through the bridge (ADR-0078)", () => {
     const r = await check(shipId, faster);
     expect(r.outcome).toBe("success");
     if (r.outcome !== "success") return;
-    const view = r.value as {
-      legal: boolean;
-      findings: unknown[];
-      measures: { speedChangeMilliKnots: number };
-    };
+    const view = r.value;
     expect(view.legal).toBe(true);
     expect(view.findings).toEqual([]);
-    expect(view.measures.speedChangeMilliKnots).toBeGreaterThan(0);
+    expect(view.measures!.speedChangeMilliKnots).toBeGreaterThan(0);
   });
 
   it("explains a change beyond the retained-hull limits, finding by finding", async () => {
@@ -577,15 +637,11 @@ describe("rebuilding a ship through the bridge (ADR-0078)", () => {
     const r = await check(shipId, wider);
     expect(r.outcome).toBe("success");
     if (r.outcome !== "success") return;
-    const view = r.value as {
-      legal: boolean;
-      findings: { id: string; remedies: string[] }[];
-      measures: { beamChangeBp: number };
-    };
+    const view = r.value;
     expect(view.legal).toBe(false);
     expect(view.findings.map((f) => f.id)).toContain("REBUILD_BEAM_LIMIT");
     expect(view.findings[0]!.remedies.length).toBeGreaterThanOrEqual(3);
-    expect(view.measures.beamChangeBp).toBe(2000);
+    expect(view.measures!.beamChangeBp).toBe(2000);
   });
 
   it("says when a change changes nothing", async () => {
@@ -607,7 +663,11 @@ describe("rebuilding a ship through the bridge (ADR-0078)", () => {
     const r = await check(shipId, notBuildable);
     expect(r.outcome).toBe("success");
     if (r.outcome !== "success") return;
-    const view = r.value as { legal: boolean; designProblems: string[]; measures: unknown };
+    const view = r.value as {
+      legal: boolean;
+      designProblems: readonly string[];
+      measures: unknown;
+    };
     expect(view.legal).toBe(false);
     expect(view.designProblems.length).toBeGreaterThan(0);
     expect(view.measures).toBeNull();
@@ -631,7 +691,7 @@ describe("rebuilding a ship through the bridge (ADR-0078)", () => {
     const r = await check(shipId, illegalSwap);
     expect(r.outcome).toBe("success");
     if (r.outcome !== "success") return;
-    const view = r.value as { legal: boolean; findings: { id: string }[] };
+    const view = r.value;
     expect(view.findings.map((f) => f.id)).toContain("ARMAMENT_SECONDARY_TOO_LARGE");
     expect(view.legal).toBe(false);
   });
@@ -639,7 +699,7 @@ describe("rebuilding a ship through the bridge (ADR-0078)", () => {
   // INC-12 (SB3-R25): a BULGE rebuild must grow the hull, and the check reports the versioned gain.
   it("requires a blister on a BULGE rebuild whose hull did not grow", async () => {
     const { shipId } = await builtShip();
-    const r = await dispatchCampaignCommand("checkRebuild", {
+    const r = await checkRebuild({
       sessionId: "rb",
       shipId,
       draft: faster,
@@ -647,11 +707,7 @@ describe("rebuilding a ship through the bridge (ADR-0078)", () => {
     });
     expect(r.outcome).toBe("success");
     if (r.outcome !== "success") return;
-    const view = r.value as {
-      legal: boolean;
-      findings: { id: string }[];
-      bulgeProtectionGainBp: number | null;
-    };
+    const view = r.value;
     expect(view.findings.map((f) => f.id)).toContain("REBUILD_BULGE_REQUIRED");
     expect(view.legal).toBe(false);
     expect(view.bulgeProtectionGainBp).toBeGreaterThan(0);
@@ -662,7 +718,7 @@ describe("rebuilding a ship through the bridge (ADR-0078)", () => {
     const r = await start(shipId, faster);
     expect(r.outcome).toBe("success");
     if (r.outcome !== "success") return;
-    const out = r.value as { projectId: string; newDesignVersionId: string };
+    const out = r.value;
     const committed = await commitMonth({
       sessionId: "rb",
       expectedRevision: revision(),
@@ -677,9 +733,7 @@ describe("rebuilding a ship through the bridge (ADR-0078)", () => {
     expect(project).toMatchObject({ projectType: "REBUILD", targetShipId: shipId });
     expect(snapshot.designs.has(out.newDesignVersionId)).toBe(true);
     // Once it is being rebuilt it is no longer offered.
-    expect(await dispatchCampaignCommand("listRebuildableShips", "rb")).toMatchObject({
-      value: [],
-    });
+    expect(await listRebuildableShips("rb")).toMatchObject({ value: [] });
   });
 
   it("rejects an illegal or no-op rebuild immediately, queuing nothing", async () => {
