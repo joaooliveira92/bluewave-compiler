@@ -62,4 +62,23 @@ absorbed the hook line at 519 by condensing the same bullet.
 doc-budgets within ceiling, adr-index clean). `pnpm check` (full gate) run for this ticket's commit.
 
 **Note:** the stale Turborepo managed block at the end of AGENTS.md (Turborepo was removed in
-ADR-0164) is left untouched here; pruning the docs of record is ticket 10's scope.
+ADR-0164) is out of scope here and left untouched.
+
+**Review repair (adversarial pass, `NEEDS_REWORK` → repaired).** Three findings were fixed in a
+follow-up commit:
+
+- **F1 (high) — delivery-contract contradiction.** The repo's "never merge your own work"
+  (`.ai/AUTONOMOUS-AGENT.md`, `.ai/ORCHESTRATION.md`) collided with a PR-gated `dev` that the agent
+  (admin, 0 approvals) could self-merge. Reconciled: a checks-green feature PR into `dev` may be
+  merged by its author (the deliberate relaxation that keeps sessions autonomous); "never self-merge"
+  now applies to the release PR into `main` only, which a human merges. `.ai/AUTONOMOUS-AGENT.md` and
+  `.ai/ORCHESTRATION.md` (which still said "commits on `dev`") were updated; ADR-0165 decision 2 states
+  the merge actor.
+- **F2 (medium) — false enforcement claim.** ADR-0165 claimed a red `desktop-e2e` still blocked a
+  desktop PR; GitHub blocks only on *required* checks, so it does not. Reworded to state the gap
+  plainly.
+- **F3 (medium) — wrong incident citation.** ADR-0165 attributed the `git add -A`/`git reset`
+  incident to ADR-0044, which actually records the D-4 parallel-implementation merge divergence.
+  Reworded to cite the production-hardening report + ticket 03 for the shared-checkout incident and
+  ADR-0044 as the divergence precedent.
+- Also applied F4 (entrypoint guard uses `resolve(process.argv[1])`).

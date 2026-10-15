@@ -20,6 +20,7 @@
 // environment, or network.
 
 import { execFileSync } from "node:child_process";
+import { resolve } from "node:path";
 
 /** Integration branches that must only move through a reviewed pull request. */
 export const PROTECTED_BRANCHES = ["dev", "main"];
@@ -98,7 +99,7 @@ function main() {
 
 // Only run the CLI when this module is the entrypoint, so importing it from the
 // fixtures runs nothing (the idiom the other gates use).
-if (process.argv[1] && import.meta.filename === process.argv[1]) {
+if (process.argv[1] && import.meta.filename === resolve(process.argv[1])) {
   if (process.argv.includes("--self-test")) {
     selfTest();
   } else {
