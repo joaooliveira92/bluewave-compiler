@@ -22,7 +22,7 @@ import { ReplayService } from "../runtime/replayService.js";
  * (INC-5; ADR-0159).
  *
  * "Package" here = `SaveStore`'s save directory (not the retired `.bluewave`
- * content-authoring format in `main/project.ts`). All four commands take an
+ * content-authoring format). All four commands take an
  * `undefined` payload on the IPC boundary — grounded in
  * `useCampaignFiles.ts`, which calls them payload-less — so the program
  * prompts for the package directory itself through `NativeDialog` (ticket 08:

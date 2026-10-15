@@ -17,9 +17,8 @@ import {
  * at the process boundary; deeper semantic validation (does this *combination*
  * of scenario/nation/setting actually exist, e.g. is this fleet-size setting
  * supported by this scenario) stays in `@bluewave/campaign`'s
- * `validateCampaignConfiguration` / `createInitialCampaignState`, matching
- * `campaignSaveSchema.ts`'s existing split between wire-shape validation and
- * domain-code semantics.
+ * `validateCampaignConfiguration` / `createInitialCampaignState`, following the
+ * established split between wire-shape decoding and domain-code semantics.
  *
  * Migrated from Zod to Effect Schema (ADR-0102). `Schema.Struct` strips
  * unmodeled keys by default, matching Zod's `z.object` default; the wire shape

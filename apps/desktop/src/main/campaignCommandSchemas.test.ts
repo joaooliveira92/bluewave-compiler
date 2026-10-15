@@ -19,7 +19,6 @@ import {
   UiStateSchema,
   WriteUiStatePayloadSchema,
 } from "./campaignCommandSchemas.js";
-import { LoadSaveResultSchema } from "./campaignSaveSchema.js";
 import { SessionMetadataSchema } from "./campaignSessionMetadata.js";
 import { parseMonthInput } from "./monthInput.js";
 import { WriteDrawingBoardDraftPayloadSchema } from "./drawingBoardDraft.js";
@@ -600,20 +599,6 @@ describe("parseMonthInput (month input sidecar)", () => {
   it("returns null for non-object input", () => {
     expect(parseMonthInput(null)).toBeNull();
     expect(parseMonthInput(42)).toBeNull();
-  });
-});
-
-describe("LoadSaveResultSchema (IPC response envelope)", () => {
-  it("accepts success and failure shapes", () => {
-    expectSuccess(LoadSaveResultSchema, { success: true, diagnostics: [], rawHash: "h" });
-    expectSuccess(LoadSaveResultSchema, {
-      success: false,
-      diagnostics: [{ code: "PERSISTENCE_MISSING_SAVE", severity: "error", message: "missing" }],
-    });
-  });
-
-  it("rejects a result missing diagnostics", () => {
-    expectFailure(LoadSaveResultSchema, { success: true });
   });
 });
 
