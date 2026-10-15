@@ -34,19 +34,19 @@ describe("requirement chip", () => {
 describe("componentFacts", () => {
   const view = buildWorkshopView(ref.draft, content.environmentFor(ref.month));
   const placed = ref.draft.placements[0]!;
-  const def = content.components.find((c) => c.id === placed.componentId)!;
+  const entry = content.catalogue.find((e) => e.id === placed.componentId)!;
 
   it("reports the compiler's own weight and cost for a placed fitting", () => {
     const summary = view.compiled.components.find((c) => c.instanceId === placed.instanceId)!;
-    const f = componentFacts(def, summary);
-    expect(f.name).toBe(def.displayName);
+    const f = componentFacts(entry, summary);
+    expect(f.name).toBe(entry.displayName);
     expect(f.placed).toEqual({
       weightT: summary.weightKg / 1000,
       costGbp: summary.costMicro / 1_000_000,
     });
   });
   it("has no weight or cost for a catalogue entry that is not placed", () => {
-    expect(componentFacts(def, undefined).placed).toBeNull();
+    expect(componentFacts(entry, undefined).placed).toBeNull();
   });
   it("groups the catalogue by category without losing or duplicating a component", () => {
     const groups = componentsByCategory(content.components);

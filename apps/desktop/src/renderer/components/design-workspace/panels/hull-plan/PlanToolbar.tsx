@@ -1,4 +1,9 @@
-import type { ComponentDef, DesignDraft, MountSide } from "@bluewave/ship-design";
+import type {
+  ComponentDef,
+  DesignDraft,
+  MountSide,
+  PartCatalogueEntry,
+} from "@bluewave/ship-design";
 import { Move, SquarePlus, type LucideIcon } from "lucide-react";
 import { useState } from "react";
 import { Button } from "../../../ui/button.js";
@@ -44,15 +49,15 @@ export function PlanModeButtons({
   onTool,
   draft,
   available,
-  defOf,
+  entryOf,
   onAutoPlace,
 }: {
   readonly tool: PlanTool;
   readonly onTool: (next: PlanTool) => void;
   readonly draft: DesignDraft;
-  /** Components that can be fitted this month. */
-  readonly available: readonly ComponentDef[];
-  readonly defOf: (componentId: string) => ComponentDef | undefined;
+  /** Family-level catalogue entries that can be fitted this month. */
+  readonly available: readonly PartCatalogueEntry[];
+  readonly entryOf: (componentId: string) => PartCatalogueEntry | undefined;
   /** Places the chosen component at the most level legal station (place menu). */
   readonly onAutoPlace: () => void;
 }) {
@@ -114,7 +119,7 @@ export function PlanModeButtons({
                 tool={tool}
                 draft={draft}
                 available={available}
-                defOf={defOf}
+                entryOf={entryOf}
                 onChange={(next) => {
                   onTool(next);
                   // The place menu keeps its Auto-place action in view; the move menu's controls live on the panel,
@@ -149,13 +154,13 @@ function PlanToolPicker({
   tool,
   draft,
   available,
-  defOf,
+  entryOf,
   onChange,
 }: {
   readonly tool: PlanTool;
   readonly draft: DesignDraft;
-  readonly available: readonly ComponentDef[];
-  readonly defOf: (componentId: string) => ComponentDef | undefined;
+  readonly available: readonly PartCatalogueEntry[];
+  readonly entryOf: (componentId: string) => PartCatalogueEntry | undefined;
   readonly onChange: (next: PlanTool) => void;
 }) {
   if (tool.mode === "place")
@@ -186,11 +191,11 @@ function PlanToolPicker({
         options={[
           { value: "", label: "Choose a fitting" },
           ...draft.placements.map((p) => {
-            const def = defOf(p.componentId);
-            const { icon: Icon, description } = componentCategoryMeta(def?.category ?? "");
+            const entry = entryOf(p.componentId);
+            const { icon: Icon, description } = componentCategoryMeta(entry?.category ?? "");
             return {
               value: p.instanceId,
-              label: `${def?.displayName ?? p.componentId} (${p.instanceId})`,
+              label: `${entry?.displayName ?? p.componentId} (${p.instanceId})`,
               icon: <Icon aria-hidden="true" className="size-4" />,
               description,
             };

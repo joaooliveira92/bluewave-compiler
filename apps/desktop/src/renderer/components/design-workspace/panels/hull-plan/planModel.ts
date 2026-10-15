@@ -1,4 +1,9 @@
-import type { ComponentDef, DesignDraft, WorkshopView } from "@bluewave/ship-design";
+import type {
+  ComponentDef,
+  DesignDraft,
+  PartCatalogueEntry,
+  WorkshopView,
+} from "@bluewave/ship-design";
 import type { DrawingBoardContent } from "../../content.js";
 import { type BatteryCard, batteryCards, mountNameMap } from "../../batteryView.js";
 import type { ShipEntity } from "../../selection/store.js";
@@ -22,9 +27,15 @@ export interface PlanModel {
   readonly form: DrawingBoardContent["hullForms"][number] | undefined;
   readonly frame: PlanFrame;
   readonly zones: readonly ZoneRange[];
+  /**
+   * The legacy catalogue lookup the edit path still needs (`allowedZones`, out of scope for
+   * 17b-1). Read-only displays use `entryOf`.
+   */
   readonly defOf: (componentId: string) => ComponentDef | undefined;
-  /** Components that can be fitted this month. */
-  readonly available: readonly ComponentDef[];
+  /** The parts-derived catalogue lookup for read-only displays. */
+  readonly entryOf: (componentId: string) => PartCatalogueEntry | undefined;
+  /** Family-level catalogue entries that can be fitted this month. */
+  readonly available: readonly PartCatalogueEntry[];
   readonly mounts: readonly { instanceId: string; effectiveBeamArcDeg: number }[];
   readonly batteries: readonly BatteryCard[];
   readonly mountNames: ReadonlyMap<string, string>;
@@ -62,7 +73,8 @@ export function planModel(
   );
   const zones = form?.zones ?? [];
   const defOf = (id: string) => content.components.find((c) => c.id === id);
-  const available = content.components.filter((c) => c.introduction.fromMonth <= month);
+  const entryOf = (id: string) => content.catalogue.find((e) => e.id === id);
+  const available = content.catalogue.filter((e) => e.introduction.fromMonth <= month);
   const mounts = view.compiled.weapons?.mounts ?? [];
   const batteries = batteryCards(view, draft);
   const mountNames = mountNameMap(batteries);
@@ -72,7 +84,7 @@ export function planModel(
       p.instanceId,
       {
         instanceId: p.instanceId,
-        name: defOf(p.componentId)?.displayName ?? p.componentId,
+        name: entryOf(p.componentId)?.displayName ?? p.componentId,
         mount: mountNames.get(p.instanceId),
       },
     ]),
@@ -111,6 +123,7 @@ export function planModel(
     frame,
     zones,
     defOf,
+    entryOf,
     available,
     mounts,
     batteries,

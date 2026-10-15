@@ -25,11 +25,11 @@ const SYSTEM_CATEGORIES: ReadonlySet<ComponentCategory> = new Set(
 
 describe("systems view model", () => {
   it("names why an installation is unavailable", () => {
-    for (const def of content.components) {
-      const reason = unavailableReason(def, month, techs);
-      if (def.introduction.fromMonth > month) {
+    for (const entry of content.catalogue) {
+      const reason = unavailableReason(entry, month, techs);
+      if (entry.introduction.fromMonth > month) {
         expect(reason).toContain("until");
-      } else if (def.requires.some((t) => !techs.has(t))) {
+      } else if (entry.requires.some((t) => !techs.has(t))) {
         expect(reason).toContain("Requires");
       } else {
         expect(reason).toBeNull();

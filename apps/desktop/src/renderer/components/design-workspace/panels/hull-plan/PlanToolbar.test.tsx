@@ -1,5 +1,10 @@
 import { useState } from "react";
-import type { ComponentDef, DesignDraft, MountSide } from "@bluewave/ship-design";
+import type {
+  ComponentDef,
+  DesignDraft,
+  MountSide,
+  PartCatalogueEntry,
+} from "@bluewave/ship-design";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { beforeAll, describe, expect, it, vi } from "vite-plus/test";
 import { PlanModeButtons, PlanToolOptions } from "./PlanToolbar.js";
@@ -11,6 +16,28 @@ beforeAll(() => {
 
 const gun = { id: "gun_a", displayName: "Gun A", category: "MAIN_GUN" } as ComponentDef;
 const pump = { id: "pump", displayName: "Pump", category: "AUXILIARY" } as unknown as ComponentDef;
+const gunEntry: PartCatalogueEntry = {
+  id: "gun_a",
+  displayName: "Gun A",
+  category: "MAIN_GUN",
+  introduction: { fromMonth: "1880-01", obsoleteMonth: null },
+  requires: [],
+  tags: [],
+  fcClass: null,
+  entryUnits: null,
+  rounds: null,
+};
+const pumpEntry: PartCatalogueEntry = {
+  id: "pump",
+  displayName: "Pump",
+  category: "ACCOMMODATION",
+  introduction: { fromMonth: "1880-01", obsoleteMonth: null },
+  requires: [],
+  tags: [],
+  fcClass: null,
+  entryUnits: null,
+  rounds: null,
+};
 const draft = {
   placements: [
     {
@@ -23,6 +50,7 @@ const draft = {
   ],
 } as unknown as DesignDraft;
 const defOf = (id: string) => (id === "gun_a" ? gun : id === "pump" ? pump : undefined);
+const entryOf = (id: string) => (id === "gun_a" ? gunEntry : id === "pump" ? pumpEntry : undefined);
 
 const ModeButtons = ({
   onChange,
@@ -40,8 +68,8 @@ const ModeButtons = ({
         onChange(next);
       }}
       draft={draft}
-      available={[gun, pump]}
-      defOf={defOf}
+      available={[gunEntry, pumpEntry]}
+      entryOf={entryOf}
       onAutoPlace={onAutoPlace}
     />
   );

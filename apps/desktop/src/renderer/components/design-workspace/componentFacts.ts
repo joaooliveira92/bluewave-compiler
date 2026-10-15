@@ -1,4 +1,4 @@
-import type { ComponentDef, ComponentSummary } from "@bluewave/ship-design";
+import type { ComponentDef, ComponentSummary, PartCatalogueEntry } from "@bluewave/ship-design";
 
 export interface ComponentFacts {
   readonly name: string;
@@ -14,15 +14,15 @@ const words = (s: string) => s.replaceAll("_", " ").toLowerCase();
 
 /** What the hover card shows for a component. Pure: the weight and cost are the compiler's own, never recomputed here. */
 export function componentFacts(
-  def: ComponentDef,
+  entry: PartCatalogueEntry,
   summary: ComponentSummary | undefined,
 ): ComponentFacts {
   return {
-    name: def.displayName,
-    category: words(def.category),
-    introduced: def.introduction.fromMonth,
-    obsolete: def.introduction.obsoleteMonth,
-    tags: def.tags,
+    name: entry.displayName,
+    category: words(entry.category),
+    introduced: entry.introduction.fromMonth,
+    obsolete: entry.introduction.obsoleteMonth,
+    tags: entry.tags,
     placed:
       summary === undefined
         ? null

@@ -19,7 +19,7 @@ export function HistoryPanel({
   readonly content: DrawingBoardContent;
   readonly jumpTo: (cursor: number) => void;
 }) {
-  const names = new Map(content.components.map((c) => [c.id, c.displayName]));
+  const names = new Map(content.catalogue.map((e) => [e.id, e.displayName]));
   const nameOf = (id: string) => names.get(id) ?? id;
   const steps = [`Start: ${startName}`, ...history.map((e) => describeEdit(e, nameOf))];
   return (

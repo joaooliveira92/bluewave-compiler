@@ -1,7 +1,12 @@
 import {
+  buildPartCatalogueView,
   buildShipBuildingContent,
+  legacyCatalogueView,
+  type ComponentDef,
+  type PartCatalogueEntry,
   type RawReferenceDesign,
   type ShipBuildingContent,
+  type ShipBuildingData,
 } from "@bluewave/ship-design";
 import type { DrawingBoardContentDto } from "../../../shared/content-contract.js";
 
@@ -11,6 +16,26 @@ export type ReferenceDesign = RawReferenceDesign;
 /** Ship-designer content: the runtime catalogue plus the reference designs offered as starting points. */
 export interface DrawingBoardContent extends ShipBuildingContent {
   readonly references: readonly ReferenceDesign[];
+  /**
+   * The family-level catalogue view the read-only displays read (ship-part-model ticket
+   * 17b-1). It is built from the compiled parts when the pack carries a `partModel`, and
+   * projected from the legacy `components` otherwise, so a parts-less pack still renders.
+   * The edit/compile paths keep reading `components` for now (tickets 17b-2/17c).
+   */
+  readonly catalogue: readonly PartCatalogueEntry[];
+}
+
+/**
+ * The family-level catalogue view for read-only displays: the compiled parts when the pack
+ * carries them, else the legacy `components` projection (ship-part-model ticket 17b-1).
+ */
+export function catalogueView(
+  components: readonly ComponentDef[],
+  partModel: ShipBuildingData["partModel"],
+): readonly PartCatalogueEntry[] {
+  return partModel === undefined
+    ? legacyCatalogueView(components)
+    : buildPartCatalogueView(partModel);
 }
 
 let injected: DrawingBoardContentDto | null = null;
@@ -38,6 +63,7 @@ function buildDrawingBoardContent(dto: DrawingBoardContentDto): DrawingBoardCont
   return {
     ...buildShipBuildingContent(dto.catalogue),
     references: dto.catalogue.referenceDesigns ?? [],
+    catalogue: catalogueView(dto.catalogue.components, dto.catalogue.partModel),
   };
 }
 

@@ -117,3 +117,34 @@ section (`shipBuildingContent.ts`). A parts-less pack therefore has no `draftCom
 carries no parts to compile a design from" where the legacy compile had a compatibility path. There
 is exactly one shipped production pack (`content/production/1880`) and it carries `armament`, so no
 shipped scenario regresses; the compatibility path is retired formally in 17c.
+
+### 17b-1: the designer's read-only displays read a parts-derived catalogue view (landed)
+
+First vertical slice of 17b. A new pure, runtime-free builder
+`packages/ship-design/src/partCatalogueView.ts` (`buildPartCatalogueView(model)` →
+`readonly PartCatalogueEntry[]`, plus `legacyCatalogueView(components)` as the parts-less
+fallback) projects the family-level subset of the compiled parts: every gun family's
+`standard_<family>` model, every `fitting`, the `sensor`, and the non-variant
+`torpedo_launcher` bases — 45 entries for the 1880 artifact, equal to the legacy
+`data.components` projection for every id and field the view carries (golden test
+`packages/ship-design/test/partCatalogueView.test.ts`). National gun models, prototypes,
+mounts and launcher variants are excluded, so the menu does not grow.
+
+`DrawingBoardContent` now exposes `catalogue` (built from `partModel`, or the legacy
+projection when absent — `content.ts` `catalogueView`). These read-only consumers read it:
+`componentFacts.ts` (hover card), `planModel.ts` (`available`, `entryOf` for placed names),
+`HistoryPanel.tsx`, `selection/facts.ts`, `armament.ts` (name, `fcClass`), and
+`systems-view.ts` (availability, name, grouping). The edit/compile paths and
+`systems-view.ts` `addSystemEdit`'s `allowedZones` stay on `content.components`;
+`planModel.defOf` is kept for the out-of-scope edit path (`useHullPlanEditing`).
+
+**17b-2 remains:** switch `planModel.defOf`/`allowedZones` and the remaining edit/AI suggestion
+paths (`placement-edits`, `PlacementsPanel` add/params, `auto-place`, `useHullPlanEditing`,
+`useDrawingBoard`, `optionDelta`/`buildWorkshopView`) once `allowedZones` has a home; then
+`content.components` can be retired from the designer.
+
+**Known, unresolved (not introduced by 17b-1):** `pnpm check:golden-repin` is red on `dev` — the
+committed 17a commit `a9eae221` changed authoritative ship-design source without a same-commit
+golden re-pin or a `Golden-Repin: not-needed` trailer. The orchestrator owns that commit and
+its trailer. `pnpm check:golden` (11/11) and `pnpm check:equivalence` are green, so 17b-1 moved
+no golden or content hash.

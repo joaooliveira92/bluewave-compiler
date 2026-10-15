@@ -292,7 +292,7 @@ export function DrawingBoard({
               onTool={setPlanTool}
               draft={draft}
               available={planModelData.available}
-              defOf={planModelData.defOf}
+              entryOf={planModelData.entryOf}
               onAutoPlace={planEditing.onAutoPlace}
             />
             <PlanDisplayMenu

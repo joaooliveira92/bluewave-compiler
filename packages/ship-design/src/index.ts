@@ -84,3 +84,4 @@ export * from "./approvedDiffs.js";
 export * from "./partCatalogue.js";
 export * from "./partCatalogueFormulas.js";
 export * from "./partCatalogueReaders.js";
+export * from "./partCatalogueView.js";

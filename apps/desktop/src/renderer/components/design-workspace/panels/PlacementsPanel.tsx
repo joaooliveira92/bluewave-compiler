@@ -6,6 +6,7 @@ import {
   type ComponentDef,
   type DesignDraft,
   type MountSide,
+  type PartCatalogueEntry,
   type PlacementSpec,
   type WorkshopView,
   type ZoneId,
@@ -54,22 +55,22 @@ function midStation(content: DrawingBoardContent, draft: DesignDraft, zone: Zone
 }
 
 function ComponentHover({
-  def,
+  entry,
   placement,
   view,
   onSelect,
   selected,
 }: {
-  readonly def: ComponentDef | undefined;
+  readonly entry: PartCatalogueEntry | undefined;
   readonly placement: PlacementSpec;
   readonly view: WorkshopView;
   /** When given, the name is a control that pins this fitting in the drawing's selection. */
   readonly onSelect?: () => void;
   readonly selected?: boolean;
 }) {
-  if (!def) return <span>{placement.componentId}</span>;
+  if (!entry) return <span>{placement.componentId}</span>;
   const facts = componentFacts(
-    def,
+    entry,
     view.compiled.components.find((c) => c.instanceId === placement.instanceId),
   );
   return (
@@ -157,6 +158,7 @@ export function PlacementsPanel({
   readonly selectedInstanceId?: string | null;
 }) {
   const defs = new Map(content.components.map((c) => [c.id, c]));
+  const catalogueById = new Map(content.catalogue.map((e) => [e.id, e]));
   const shown = (def: ComponentDef | undefined) =>
     categories === undefined || (def !== undefined && categories.has(def.category));
   const placements = draft.placements.filter((p) => shown(defs.get(p.componentId)));
@@ -219,7 +221,7 @@ export function PlacementsPanel({
                   >
                     <th scope="row" className="p-1 text-left font-normal">
                       <ComponentHover
-                        def={d}
+                        entry={catalogueById.get(p.componentId)}
                         placement={p}
                         view={view}
                         onSelect={onSelect === undefined ? undefined : () => onSelect(p.instanceId)}

@@ -532,7 +532,7 @@ export function ShipbuildingWorkspace({ sessionId }: { readonly sessionId?: stri
                   onTool={setPlanTool}
                   draft={draft}
                   available={model.available}
-                  defOf={model.defOf}
+                  entryOf={model.entryOf}
                   onAutoPlace={editing.onAutoPlace}
                 />
               </>

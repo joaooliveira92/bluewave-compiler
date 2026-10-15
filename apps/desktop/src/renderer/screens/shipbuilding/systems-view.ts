@@ -1,8 +1,8 @@
 import type {
   ComponentCategory,
-  ComponentDef,
   DesignDraft,
   DraftEdit,
+  PartCatalogueEntry,
   ZoneId,
 } from "@bluewave/ship-design";
 import type { DrawingBoardContent } from "../../components/design-workspace/content.js";
@@ -33,12 +33,13 @@ const words = (s: string) => s.replaceAll("_", " ").toLowerCase();
 
 /** Whether a component may be fitted at `month` with `unlockedTechs`; null when available, else the reason. */
 export function unavailableReason(
-  def: ComponentDef,
+  entry: PartCatalogueEntry,
   month: string,
   unlockedTechs: ReadonlySet<string>,
 ): string | null {
-  if (def.introduction.fromMonth > month) return `Unavailable until ${def.introduction.fromMonth}`;
-  const missing = def.requires.filter((t) => !unlockedTechs.has(t));
+  if (entry.introduction.fromMonth > month)
+    return `Unavailable until ${entry.introduction.fromMonth}`;
+  const missing = entry.requires.filter((t) => !unlockedTechs.has(t));
   if (missing.length > 0) return `Requires ${missing.map(words).join(", ")}`;
   return null;
 }
@@ -59,18 +60,18 @@ export function systemsModel(
   for (const p of draft.placements)
     fittedCount.set(p.componentId, (fittedCount.get(p.componentId) ?? 0) + 1);
   const groups = new Map<ComponentCategory, SystemItem[]>();
-  for (const def of content.components) {
-    if (!categories.has(def.category)) continue;
-    const reason = unavailableReason(def, month, unlockedTechs);
+  for (const entry of content.catalogue) {
+    if (!categories.has(entry.category)) continue;
+    const reason = unavailableReason(entry, month, unlockedTechs);
     if (reason !== null && !showUnavailable) continue;
-    groups.set(def.category, [
-      ...(groups.get(def.category) ?? []),
+    groups.set(entry.category, [
+      ...(groups.get(entry.category) ?? []),
       {
-        componentId: def.id,
-        name: def.displayName,
+        componentId: entry.id,
+        name: entry.displayName,
         available: reason === null,
         reason,
-        fitted: fittedCount.get(def.id) ?? 0,
+        fitted: fittedCount.get(entry.id) ?? 0,
       },
     ]);
   }

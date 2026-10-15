@@ -54,18 +54,18 @@ const words = (s: string) => s.replaceAll("_", " ").toLowerCase();
 export function fittingFacts(instanceId: string, ctx: EntityContext): FittingFacts | null {
   const p = ctx.draft.placements.find((x) => x.instanceId === instanceId);
   if (!p) return null;
-  const defs = new Map(ctx.content.components.map((c) => [c.id, c]));
-  const def = defs.get(p.componentId);
+  const entries = new Map(ctx.content.catalogue.map((e) => [e.id, e]));
+  const entry = entries.get(p.componentId);
   const card = ctx.batteries.find((b) => b.mounts.some((m) => m.instanceId === instanceId));
   const mag =
     p.magazineRef === undefined
       ? undefined
       : ctx.draft.placements.find((x) => x.instanceId === p.magazineRef);
-  const kind = def ? fittingKind(def.category, def.tags) : "other";
+  const kind = entry ? fittingKind(entry.category, entry.tags) : "other";
   return {
     instanceId,
-    name: def?.displayName ?? p.componentId,
-    category: def ? words(def.category) : "unknown component",
+    name: entry?.displayName ?? p.componentId,
+    category: entry ? words(entry.category) : "unknown component",
     kind,
     section: sectionOfZone(p.zoneId),
     stationPermille: p.stationPermille,
@@ -78,7 +78,7 @@ export function fittingFacts(instanceId: string, ctx: EntityContext): FittingFac
     weightKg: ctx.view.compiled.components.find((c) => c.instanceId === instanceId)?.weightKg,
     magazine: mag && {
       instanceId: mag.instanceId,
-      name: defs.get(mag.componentId)?.displayName ?? mag.componentId,
+      name: entries.get(mag.componentId)?.displayName ?? mag.componentId,
     },
     arcDeg: ctx.view.compiled.weapons?.mounts.find((m) => m.instanceId === instanceId)
       ?.effectiveBeamArcDeg,

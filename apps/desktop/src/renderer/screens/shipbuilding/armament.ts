@@ -94,8 +94,8 @@ function enrich(
 ): ArmamentMount {
   const placed = draft.placements.find((p) => p.instanceId === mount.instanceId);
   const summary = view.compiled.components.find((c) => c.instanceId === mount.instanceId);
-  const def =
-    placed === undefined ? undefined : content.components.find((c) => c.id === placed.componentId);
+  const entry =
+    placed === undefined ? undefined : content.catalogue.find((e) => e.id === placed.componentId);
   const barrels = summary?.params.barrels ?? summary?.params.tubes ?? 1;
   const caliberUm = summary?.attr.caliberUm ?? 0;
   const position = positionOf(mount.side, mount.stationPermille);
@@ -110,9 +110,9 @@ function enrich(
     barrels,
     rounds: caliberUm === 0 ? null : (summary?.params.rounds ?? null),
     caliberUm,
-    displayName: def?.displayName ?? placed?.componentId ?? mount.instanceId,
+    displayName: entry?.displayName ?? placed?.componentId ?? mount.instanceId,
     mountType: summary?.armament?.mountType ?? null,
-    fcClass: def?.fcClass ?? null,
+    fcClass: entry?.fcClass ?? null,
     weightKg: summary?.weightKg ?? 0,
     costMicro: summary?.costMicro ?? 0,
     arcDeg:
