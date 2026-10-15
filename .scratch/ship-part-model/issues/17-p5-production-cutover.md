@@ -206,3 +206,31 @@ re-pin or a `Golden-Repin: not-needed` trailer. Commit `6348b128`
 `scripts/golden-repin.baseline`; `pnpm check:golden-repin` is green at `85f896cc`
 (verified: `ok (8 commit(s) in "a9eae221…85f896cc")`). `pnpm check:golden` (11/11) and
 `pnpm check:equivalence` are green, so 17b-1/17b-2 moved no golden or content hash.
+
+### Stage 0: the derive-input decision (landed)
+
+The Stage 0 gate is recorded as [ADR-0163](../../../docs/adr/ADR-0163-derive-inputs-on-canonical-parts.md)
+(`Accepted 2026-10-15`). It decides that the derive **reads the canonical part
+representation** — the affine `quantities` scaled by their SPM-R5 basis, plus the typed
+`engineering`, `capabilities`, `spec`, lifecycle, tags, `entryUnits` and parameter ranges —
+and that a part carries **evaluated derive inputs, never formulas or `constants`**.
+
+The rejected alternative (carrying the legacy formulas/`constants` on parts so the compiler
+keeps evaluating) and the `ComponentDef` reconstruction are both rejected, per ADR-0154 §15
+and ADR-0161 §2. SPM-R5 is unchanged and becomes the derive's sole mass-application
+mechanism.
+
+The inventory against the tree at `1f34161b` found exactly **six derive inputs with no part
+home**, which Stage 1 (17a-2) must give typed homes before the derive can read parts:
+
+- `allowedZones`, `forbidsCoLocation`, `buildWorkMicro`, `productionLine` — declared
+  `(none)` and rejected as `PARTCAT_UNMAPPED_FIELD` (`partCatalogue.ts`);
+- `attributes.flammableBp` — read at `compileStages.ts`, un-authored today (always `0`);
+- the legacy `ComponentCategory` token — parts carry `family` + `spec.weaponCategory` only,
+  so a code-owned family→category adapter is needed (`ComponentSummary.category` stays).
+
+Everything else the derive reads already has a typed destination (height, centre of gravity,
+electrical/cooling load and the capability attributes included). **17a-2 (Stage 1) is
+unblocked and is the next slice**; it is a schema change as well as a compiler change, and
+moves the content lock/`contentArtifactHash`/`contentBundleHash` when the codemod emits the
+new homes (re-pinned through the approved process). D-11/D-12 are updated to match.
