@@ -6,8 +6,9 @@ generate repository artefacts.
 ## How they run
 
 - **Git hooks** (`.githooks/`, from `prepare` → `core.hooksPath`): `pre-commit`
-  formats staged files then `preflight`, `pre-push` adds `pnpm lint:effect`
-  (ADR-0139), `commit-msg` checks the subject; reinstall with `pnpm hooks:install`.
+  blocks `dev`/`main` commits (`check-branch-discipline.mjs`, ADR-0165), formats
+  staged, `preflight`; `pre-push` adds `pnpm lint:effect` (ADR-0139);
+  `commit-msg` subject; reinstall: `pnpm hooks:install`.
 - **`pnpm preflight`** runs `vp run gates:preflight`, the `vite.config.ts` gate
   DAG (ADR-0164); also `pnpm dev` and CI.
 - **`pnpm check`** adds format, lint, `lint:effect`, `test:scripts`, licences,

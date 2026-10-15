@@ -80,7 +80,7 @@ const AREAS = [
   {
     name: "Process & documentation",
     blurb: "Repo process, docs/ADR authority, and release gates.",
-    nums: [45, 95, 96, 99, 106, 107, 134, 136, 139, 140, 150, 151, 152, 164],
+    nums: [45, 95, 96, 99, 106, 107, 134, 136, 139, 140, 150, 151, 152, 164, 165],
   },
 ];
 
