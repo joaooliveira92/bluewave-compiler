@@ -175,7 +175,7 @@ describe("derive-input homes map through the whole-catalogue builder (17a-2)", (
       buildWorkMicro: "1200",
       productionLine: "machinery",
       attributes: {
-        ...(components.find((c) => c.id === "quarters_crew")?.attributes ?? {}),
+        ...components.find((c) => c.id === "quarters_crew")?.attributes,
         flammableBp: "250",
       },
     });
