@@ -31,10 +31,10 @@ jobs:
       - run: pnpm typecheck
       # The runners have few cores; the task runner's default concurrency
       # oversubscribes them and tips heavy-but-legitimate suites past their
-      # timeouts. Invoke `vp run` directly (not `pnpm test -- ...`, which
-      # forwards the flag to the per-package test scripts, where vitest rejects
-      # it).
-      - run: pnpm exec vp run -r test --concurrency-limit=2
+      # timeouts. The `--concurrency-limit` flag must precede the task specifier
+      # so `vp run` consumes it; placed after `test` it is forwarded to each
+      # package's test script, where vitest rejects it (`--concurrencyLimit`).
+      - run: pnpm exec vp run -r --concurrency-limit=2 test
       - name: Cross-process determinism
         run: node packages/cross-process-test/dist/run-child.js
       - name: Upload hash artifact
