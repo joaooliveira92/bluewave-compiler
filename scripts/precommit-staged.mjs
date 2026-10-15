@@ -11,8 +11,20 @@
 // `pnpm format` over the whole tree regardless.
 
 import { execFileSync } from "node:child_process";
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 
 const root = execFileSync("git", ["rev-parse", "--show-toplevel"], { encoding: "utf8" }).trim();
+
+// Resolve the formatter without depending on the package manager being on PATH:
+// git can run the hook from a GUI or non-login shell whose PATH lacks `pnpm`
+// even while it has `node`. Prefer the workspace-installed vite-plus entry point
+// and run it under the running node; only fall back to `vp` on PATH.
+function formatter() {
+  const entry = join(root, "node_modules", "vite-plus", "bin", "vp");
+  if (existsSync(entry)) return { command: process.execPath, args: [entry] };
+  return { command: "vp", args: [] };
+}
 
 function stagedFiles() {
   const out = execFileSync(
@@ -43,16 +55,23 @@ if (files.length === 0) {
   process.exit(0);
 }
 
+const { command, args } = formatter();
 try {
-  execFileSync(
-    "pnpm",
-    ["exec", "vp", "fmt", "--check", "--no-error-on-unmatched-pattern", ...files],
-    {
-      cwd: root,
-      stdio: "inherit",
-    },
-  );
-} catch {
+  execFileSync(command, [...args, "fmt", "--check", "--no-error-on-unmatched-pattern", ...files], {
+    cwd: root,
+    stdio: "inherit",
+  });
+} catch (error) {
+  // A formatter that could not be spawned (missing binary, permissions) is a
+  // setup problem, not unformatted code: never reject a valid commit with the
+  // misleading "not formatted" message. `status === null` marks a spawn failure;
+  // a run that exited non-zero means the check actually found unformatted files.
+  if (error && error.status === null) {
+    console.error(
+      `precommit format: could not run the formatter (\`${command} ${args.join(" ")}\`); is the workspace installed? Run \`pnpm install\`.`,
+    );
+    process.exit(1);
+  }
   console.error(
     "precommit format: staged files are not formatted. Run `pnpm format:fix` (or `git commit --no-verify` if intentional).",
   );
