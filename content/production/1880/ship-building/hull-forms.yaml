@@ -2,7 +2,9 @@
 # Zone shares are a gameplay abstraction (spec section 8), identical for all forms: not historical data.
 hullForms:
   - id: torpedo_boat_form
-    lengthMinMm: 30000
+    # Lowered from 30000 to admit the 1877-79 first-class torpedo boats (HMS Lightning 24.7 m pp,
+    # TB2-TB9 26.3 m pp; docs/research/ship-building-1880-ships-by-nation.md section 1).
+    lengthMinMm: 24000
     lengthMaxMm: 70000
     lbMinX100: 800
     lbMaxX100: 1200

@@ -1,7 +1,7 @@
 # 37: Lightweight propulsion model for 1880 torpedo craft
 
 **Type:** decision + implementation
-**Status:** open
+**Status:** resolved
 **Blocked by:** none
 **Frontier:** yes
 
@@ -28,3 +28,28 @@ reference set. This is a modelling gap, not a missing content entry.
 ## Comments
 
 - 2026-10-10 created from the January-1880 reference-design review.
+- 2026-10-15 resolved. New plant `compound_locomotive_tb` (coal, 2-cyl compound + single locomotive boiler):
+  `weightMilliKgPerKw 46000` (46 kg/kW ESTIMATE — the complete-machinery figure, inside White 1894 p.562's
+  sourced 43–49 kg/kW band applied to 1880; `auxWeightBp` is 0), `volumeLitrePerKw 60`, coal SFC adapted from
+  the 1890 loco plant (ESTIMATE), `reliabilityBp 8000`, `minKw 150`/`maxKw 600` (a battleship's power falls
+  outside the range → BLOCKING `PLANT_SIZE_RANGE`), `fromMonth 1880-01`, `requires [mac_compound_engine]`.
+  `torpedo_boat_form.lengthMinMm` 30000→24000 to admit the 1877–79 first-class boats. New reference design
+  `tb2_1879` (HMS TB2 class, 1878–79): 26.3 m × 3.1 m × 1.60 m, 28 t, 343 kW (460 ihp), 20 kn, 1×14-in tube
+  (stand-in for the 16-in), compiles clean — zero findings, DD, ledger 28,771 kg vs 28,000 target. Added to UK
+  and France `domesticPlants`.
+  Validation (worktree `sprint/ship-building-30`): uncached build 0/24 cache hit; `pnpm format`/`lint`
+  (0 errors)/`typecheck` green; `pnpm test:run` 293 files / 2049 passed; `pnpm test:heavy` 12 passed;
+  `pnpm test:e2e` 30 passed; `pnpm check:golden` all 11 hashes match; `pnpm check:determinism` byte-identical;
+  `pnpm check:equivalence` byte-identical; `pnpm check:balance-reports` ok; `pnpm content:verify` hash
+  `ffee6cd4…`; `pnpm preflight` green.
+  Reviewer pass: NEEDS_REWORK → repaired (reworded the unsourced "no electrical plant" claim to an explicit
+  approximation; strengthened the margin assertion; added the plant to UK/France `domesticPlants`; added a
+  UK-nation-context compile test). The `packages/ship-design/src/equivalenceReport.ts` `PINNED_COVERAGE`
+  bump (constant only, reference-run-inert) is committed with `Golden-Repin: not-needed`.
+
+## Deferred
+
+- Small-craft funnel + light dynamo: the model has no correctly-sized small-craft funnel or light dynamo, so
+  `tb2_1879` omits both (an unsourced approximation). Follow-up needed to author small-craft versions and fit
+  them to the torpedo-boat reference designs.
+

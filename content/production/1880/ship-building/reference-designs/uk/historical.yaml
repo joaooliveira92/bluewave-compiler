@@ -478,3 +478,77 @@ designs:
             zoneId: SUPERSTRUCTURE,
             stationPermille: 600,
           }
+
+  # HMS TB2 class first-class torpedo boat (TB2-TB9, 1878-79; in service Jan 1880): 28 t normal,
+  # 26.3 m pp / 3.1 m / 1.60 m, 1 x 2-cyl VCE + 1 locomotive boiler, 460 ihp = 343 kW, 20 kn, 1 x 406 mm
+  # (16-in) tube, crew 15 (navypedia uk/brit_dd_tb2.htm; docs/research/ship-building-1880-ships-by-nation.md
+  # section 1, SINGLE-SOURCE). This is the design that the new light plant (compound_locomotive_tb,
+  # 46 kg/kW) makes possible: at the only-1880 plant (compound_cylindrical, 195 kg/kW, 300 kW minimum)
+  # the machinery alone would weigh 58 t, more than the whole boat.
+  # Documented approximations: (1) the model has no 16-in tube, so the 14-in Whitehead above-water tube
+  # stands in (2300 kg with reloads); (2) torpedoWarheadKg 12 is the 1877 charge, the 1880-01 revision of
+  # the neutral torpedo. Two model fittings are deliberately NOT carried, and this is an UNSOURCED approximation:
+  # (a) the dynamo/ventilation plant — no correctly-sized light dynamo exists in content, so a small-craft
+  # electrical plant and its ventilation are a known content gap (the research note records dimensions/machinery/
+  # torpedo/coal/crew only, not the electrical fit); (b) the funnel — funnel_single is a 5 t, 6 m capital-ship part
+  # with no source and cannot be fitted to a 28 t boat, so the small-boat funnel is likewise a known content gap,
+  # as the 16-in tube is. The ledger balances at 28,771 kg against a 28,000 kg target (margin 838 kg) after those
+  # omissions.
+  - id: tb2_1879
+    name: TB2 (1879, first-class torpedo boat)
+    month: 1880-01
+    draft:
+      nationId: uk
+      requirement:
+        category: DD
+        requiredSpeedMilliKnots: 20000
+        cruiseSpeedMilliKnots: 10000
+        requiredRangeNm: 300
+        designThreatId: qf_12pdr
+        modernizationExpectation: NONE
+        crewQualityBp: 10000
+        accommodationStandard: SPARTAN
+        protectionGoal: NONE
+      hull:
+        hullFormId: torpedo_boat_form
+        lengthWl: 26300
+        beam: 3100
+        draught: 1600
+        depthToMainDeck: 2150
+        blockCoeffBp: 2150
+        materialId: mild_steel
+        structuralSchemeId: mixed
+        subdivisionGrade: 2
+        targetDisplacementKg: 28000
+        limitDisplacementKg: null
+        designMarginBp: 300
+        growthReserveBp: 0
+      machinery:
+        plantId: compound_locomotive_tb
+        installedKw: 343
+        zoneId: CENTRAL_MACHINERY
+        stationPermille: 450
+        fuelCapacityKg: 2000
+        fuelZoneId: SUPERSTRUCTURE
+        fuelStationPermille: 600
+        foulingBp: 0
+      armour:
+        regions: []
+        citadelLengthMm: 0
+        torpedoWarheadKg: 12
+        bunkerProtectionBp: 0
+      placements:
+        - {
+            instanceId: tubes,
+            componentId: tube_14in_above_water,
+            zoneId: SUPERSTRUCTURE,
+            stationPermille: 580,
+            params: { tubes: 1 },
+          }
+        - {
+            instanceId: quarters,
+            componentId: quarters_crew,
+            zoneId: FWD_MAGAZINE,
+            stationPermille: 130,
+            params: { blocks: 1 },
+          }

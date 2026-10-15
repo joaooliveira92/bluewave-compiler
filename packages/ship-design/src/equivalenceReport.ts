@@ -84,11 +84,11 @@ export interface Coverage {
 }
 
 export const PINNED_COVERAGE: Coverage = {
-  designs: 91,
-  placements: 823,
+  designs: 92,
+  placements: 825,
   gunPlacements: 230,
-  tubePlacements: 28,
-  fittingPlacements: 565,
+  tubePlacements: 29,
+  fittingPlacements: 566,
 };
 
 /** Pinned data-quality inventory of the reference content (ticket 09). */

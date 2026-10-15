@@ -28,6 +28,7 @@ navalProfiles:
           compound_cylindrical,
           triple_expansion_cylindrical,
           triple_expansion_watertube,
+          compound_locomotive_tb,
           locomotive_boiler_tb,
         ]
       restrictedShipTypes: []
