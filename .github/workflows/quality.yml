@@ -41,6 +41,16 @@ jobs:
           key: ${{ runner.os }}-node24-vitest-${{ hashFiles('pnpm-lock.yaml') }}
           restore-keys: |
             ${{ runner.os }}-node24-vitest-
+      # Reuse Vite Task's content-addressed build/test cache across runs, so an
+      # unchanged package's build or suite replays instead of re-running. A
+      # restored entry is always safe (automatic data tracking invalidates on any
+      # input change).
+      - uses: actions/cache@v4
+        with:
+          path: node_modules/.vite/task-cache
+          key: ${{ runner.os }}-node24-vp-task-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-node24-vp-task-
       - run: pnpm audit --prod --audit-level=high
       - run: pnpm check:licenses
       - run: pnpm preflight
