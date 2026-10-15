@@ -70,7 +70,7 @@ and the `@bluewave/ship-visual` catalog keys.
 | D13 | Torpedo translation: `tubes: n` → `mountCount: n` of a single-tube launcher; an absent count → 1; no `tubesPerLauncher`; launcher quantities `PER_PART_UNIT`; no fixed installation. Safeguards T1–T6. Covers all **28** tube placements. | **Approved** (review 2) |
 | D14 | DQ-TORPEDO-001: preserve inconsistent launcher-to-torpedo relationships through enumerated, record-scoped waivers, reported as inherited data-quality findings. The constraint is never weakened. | **Approved** (review 2); **scope fixed by D19** |
 | D15 | `interfaces/1` (14 identifiers, §8.1) and its governance. | **Approved** (review 2) |
-| D16 | `visual-traits/1`: seven traits with closed values, ownership (authored / compiler-derived / derived with override), source fields, defaults, contradiction rules V1–V12, the ADR-0148 translation map, and the casemate-family mapping for batteries. The rev 4 definitions are revised to meet the review gate (§8.2). | **Architecture approved** (review 3); **exact definitions awaiting review** (INC-4 gate only) |
+| D16 | `visual-traits/1`: seven traits with closed values, ownership (authored / compiler-derived / derived with override), source fields, defaults, contradiction rules V1–V12, the ADR-0148 translation map, and the casemate-family mapping for batteries. The rev 4 definitions are revised to meet the review gate (§8.2). | **Approved 2026-10-15** (review 3 + exact definitions); implemented by ticket 16 (ADR-0162) |
 | D17 | **Central-battery translation:** each of the nine placements becomes **one** battery-assembly entry: `mountCount: 1`, `gunsPerMount: <legacy barrels>`, a `gun_mount` part representing a grouped central-battery installation, the placement boundary kept, and the legacy fixed installation as `PER_LOADOUT_ENTRY`. The legacy TURRET/BARBETTE resolution survives only as migration provenance (`legacyResolvedMountType`, `translationDisposition: RECLASSIFIED_AS_CENTRAL_BATTERY`). DQ-ARMAMENT-001 is narrowed (§9.2). The even/odd twin/single heuristic is **rejected**. | **Approved** (review 3) |
 | D18 | **Reclassification visibility.** The battery assembly's canonical mount type is `BROADSIDE_BATTERY`, so for the nine D17 entries the identity strings `mountType` and `mountId` change in the compiled weapon contract and in the engine design version, while every numeric result stays equal. The report gives these paths the status `reclassified`, allowed only for the nine enumerated entries and those identity paths, never for a numeric metric. | **Approved** (review 4), with constraints R1–R7 (§9.2) |
 | D19 | **Diameter rule (35 cm, 350 mm, 356 mm).** Engineering dimensions come only from structured fields, never from display names. A launcher's canonical bore = its nation's structured `hardCapabilities.domesticTorpedoDiameterUm` (the only structured diameter that legacy launchers have). If it equals the loaded torpedo's diameter, a label difference is display-only and needs no waiver. If it differs, DQ-TORPEDO-001 applies. There is no tolerance. | **Approved rule** (review 3); **derived scope confirmed** (review 4): 5 waivered records, 9 entries, including France's "350 mm submerged" tube (its structured value is 380 mm) |
@@ -646,7 +646,7 @@ The other catalogues map as follows: 4 plants → `propulsion_plant`; 8 armour m
 `armour_material`; 6 ammunition patterns → `ammunition`; 36 gun mounts → `gun_mount`;
 combat torpedo models → `torpedo`.
 
-### 8.2 `visual-traits/1` (D16: architecture approved; exact definitions awaiting review)
+### 8.2 `visual-traits/1` (D16: approved 2026-10-15, implemented by ticket 16 / ADR-0162)
 
 **Ownership.** Every trait has exactly one ownership class:
 
@@ -1083,7 +1083,7 @@ with owner sign-off. Unmatched changes fail.
 | D17 battery-assembly translation; DQ-ARMAMENT-001 narrowed | Approved (review 3) | — |
 | D19 diameter rule; DQ-TORPEDO-001 scope (5 waivered records, 9 affected entries) | Approved; scope confirmed (review 4) | — |
 | D18 `reclassified` status for the nine D17 identity paths, with R1–R7 | Approved (review 4) | — |
-| **D16 exact definitions (§8.2)** | **Architecture approved; definitions awaiting review** | **INC-4 and P6 only** |
+| **D16 exact definitions (§8.2)** | **Approved 2026-10-15** (implemented by ticket 16 / ADR-0162) | **INC-4 and P6 only** |
 | Constraint-key and legacy-exception vocabularies (§3.9) | Proposed | P1 schemas (closed; extendable by rule) |
 | Engine behaviour classes and classification predicates | Proposed | P3 |
 | `CompiledTorpedo` fields | Proposed | P4 |
@@ -1115,7 +1115,7 @@ national launcher variants and the 5 enumerated waivers. **No design decision bl
 
 ## 12. Recommended implementation order (no production code in this step)
 
-1. **Owner:** review the exact D16 definitions (INC-4 gate only). D18 and the D19 scope are approved.
+1. **Owner:** D16 exact definitions reviewed and **approved 2026-10-15** (INC-4 gate cleared); D18 and the D19 scope are approved.
 2. **`/to-spec`** on this revision, in the environment where the skill is available, to
    produce the implementation spec and tickets.
 3. **P1** (authorised): schemas, flatten, `PartIndex`, queries, the adapter over current

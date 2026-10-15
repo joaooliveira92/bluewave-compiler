@@ -1,5 +1,6 @@
 import {
   FlattenedPartSchema,
+  partVisualTraitViolations,
   validateAgainstSchema,
   type CompiledPartModel,
   type FlattenedPart,
@@ -157,6 +158,22 @@ export function compilePartModel(
     if (decoded !== undefined) flattened.push(decoded);
   }
   if (collector.hasErrors) return undefined;
+
+  // The visual compile stage (I-26, D16): V1–V9 must hold on the effective traits of every
+  // flattened part, so a contradiction cannot ship. V10–V12 are enforced at decode.
+  for (const part of flattened) {
+    for (const violation of partVisualTraitViolations(part)) {
+      report(
+        "VISUAL_TRAIT",
+        "Part",
+        part.id,
+        "visual.traits",
+        `${violation.rule}: ${violation.message}`,
+        "Adjust the authored visual overrides or the part's mount type",
+      );
+    }
+  }
+  if (report.failed()) return undefined;
 
   const partIndex: PartIndex = {
     ...buildIndex(flattened, parts),

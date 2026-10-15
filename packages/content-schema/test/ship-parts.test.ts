@@ -341,8 +341,12 @@ describe("unknown fields are rejected, never discarded", () => {
     expectRejected(PartSchema, { ...PARTS.gun, visual: { override: "asset", style: "x" } });
   });
 
-  it("a visual trait fails until visual-traits/1 is approved", () => {
+  it("a visual-trait override is a value plus a reason (D16)", () => {
     expectAccepted(PartSchema, { ...PARTS.gun, visual: { override: "gun_asset", traits: {} } });
+    expectAccepted(PartSchema, {
+      ...PARTS.gun,
+      visual: { traits: { presentation_form: { value: "barbette", reason: "hooded variant" } } },
+    });
     expectRejected(PartSchema, { ...PARTS.gun, visual: { traits: { enclosure: "open" } } });
     expectRejected(PartSchema, { ...PARTS.gun, visual: { traits: { presentation_form: "x" } } });
   });

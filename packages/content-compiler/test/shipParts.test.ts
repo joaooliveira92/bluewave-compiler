@@ -236,6 +236,24 @@ describe("ship part collections at the content compile seam", () => {
     }
   });
 
+  it("a visual-trait contradiction fails the visual compile stage (V1–V9)", () => {
+    const fixture = createFixture();
+    try {
+      const yaml = GUN_PARTS.replace(
+        "spec: { mountType: BARBETTE, gunsPerMount: 2 }",
+        'spec: { mountType: BARBETTE, gunsPerMount: 2 }\n    visual: { traits: { presentation_form: { value: casemate, reason: "as built" } } }',
+      );
+      const file = fixture.write("ship-building/parts/guns.yaml", yaml);
+      const { output, collector } = compile(baseInput(fixture, { partFiles: [file] }));
+      expect(output).toBeUndefined();
+      const violation = collector.errors.find((error) => error.code === "VISUAL_TRAIT");
+      expect(violation?.entityId).toBe("bl_12in_barbette_twin");
+      expect(violation?.message).toMatch(/V3/);
+    } finally {
+      fixture.cleanup();
+    }
+  });
+
   it("an unknown slot-constraint key fails with the slot-template file and path", () => {
     const fixture = createFixture();
     try {

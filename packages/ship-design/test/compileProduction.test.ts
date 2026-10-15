@@ -214,6 +214,40 @@ describe("production compile from a parts loadout (ticket 11d)", () => {
     expect(result.issues.length).toBeGreaterThan(0);
   });
 
+  it("a visual-only change leaves every derived metric and the compiled design identical (I-14)", () => {
+    const d = present(all[0], "a design");
+    const baseline = compile(d);
+    expect(baseline.status).toBe("ACCEPTED");
+    if (baseline.status !== "ACCEPTED") return;
+    const target = d.parts[0]!.id;
+    const withVisual = d.parts.map((p) =>
+      p.id === target
+        ? {
+            ...p,
+            visual: { traits: { enclosure: { value: "enclosed" as const, reason: "I-14" } } },
+          }
+        : p,
+    );
+    const model = buildProductionPartModel({
+      parts: uniqueParts(withVisual),
+      slotTemplates: compatibility.slotTemplates,
+      platforms: compatibility.platforms,
+    });
+    const result = compileDesignFromLoadout({
+      designId: d.design.id,
+      header: d.header,
+      loadout: d.loadout,
+      model,
+      month: d.design.month,
+      nation: { nationId: d.design.draft.nationId },
+      mountCountRanges: d.ranges,
+      ctx: nationalContext(d.design.month, d.design.draft.nationId),
+    });
+    expect(result.status).toBe("ACCEPTED");
+    if (result.status !== "ACCEPTED") return;
+    expect(canonicalSerialize(result.compiled)).toBe(canonicalSerialize(baseline.compiled));
+  });
+
   it("reaches derivation only through the barrier: REJECTED never carries compiled metrics", () => {
     const d = present(all[0], "a design");
     const broken = compile(d, {

@@ -1,7 +1,7 @@
 # Architecture decision records
 
 One ADR per durable decision: `ADR-NNNN-<slug>.md`. New decisions take the
-highest existing number + 1 (the next number is ADR-0162).
+highest existing number + 1 (the next number is ADR-0163).
 Refresh this table from each file's H1 when one is added or re-titled.
 (ADR-0043 was never written; the sequence intentionally continues at 0044.)
 See [DESIGN amendments](AMENDMENTS.md) for which ADRs amend which DESIGN doc.
@@ -135,6 +135,7 @@ Electron boundary, renderer screens, UX, and presentation.
 | 0148 | [ADR-0148-ship-visual-part-catalog.md](ADR-0148-ship-visual-part-catalog.md) | Era- and nation-aware ship visual parts from an authored catalog | accepted | — |
 | 0149 | [ADR-0149-presentation-content-from-artifact.md](ADR-0149-presentation-content-from-artifact.md) | Presentation content sourced from the compiled artifact | accepted | — |
 | 0153 | [ADR-0153-shipbuilding-workspace-only-designer.md](ADR-0153-shipbuilding-workspace-only-designer.md) | The Shipbuilding workspace is the app's only designer — the Drawing Board tab is removed | accepted | — |
+| 0162 | [ADR-0162-visual-traits-render-adapter.md](ADR-0162-visual-traits-render-adapter.md) | Visual traits drive drawing selection — the `visual-traits/1` render adapter | accepted | — |
 
 ## Process & documentation
 
@@ -152,7 +153,7 @@ Repo process, docs/ADR authority, and release gates.
 | 0150 | [ADR-0150-authoritative-determinism-gate.md](ADR-0150-authoritative-determinism-gate.md) | The authoritative-determinism ratchet gate | accepted | — |
 | 0151 | [ADR-0151-rules-compliance-ratchet-gates.md](ADR-0151-rules-compliance-ratchet-gates.md) | The RULES.md compliance ratchet gates | accepted | — |
 | 0152 | [ADR-0152-errors-by-reachability.md](ADR-0152-errors-by-reachability.md) | Errors are tagged by reachability — `Data.TaggedError` inside, `readonly _tag` at the renderer boundary | accepted | — |
-| 0161 | [ADR-0161-consolidate-on-the-vite-plus-task-runner.md](ADR-0161-consolidate-on-the-vite-plus-task-runner.md) | Consolidate task orchestration on the Vite+ task runner | accepted | — |
+| 0161 | [ADR-0161-derive-first-ship-part-cutover.md](ADR-0161-derive-first-ship-part-cutover.md) | The ship-part cutover is derive-first — the legacy catalogue retires only after a parts-native derive pipeline exists | accepted | — |
 
 ## Archive
 

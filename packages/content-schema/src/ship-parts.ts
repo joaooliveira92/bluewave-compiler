@@ -9,6 +9,7 @@ import {
   MOUNT_SIDES,
 } from "./reference-design.js";
 import { SHIP_ZONE_IDS } from "./ship-component.js";
+import { PartVisualOverridesSchema } from "./visual-traits.js";
 
 /**
  * The ship part model (ship-part-model spec SPM-R1–R7; proposal rev 4.1 §3, §8.1).
@@ -475,14 +476,14 @@ export const LegacyExceptionSchema = Schema.Struct({
 });
 
 /**
- * Rendering-only metadata (I-14). `visual-traits/1` (D16) is not approved, so `traits`
- * admits no key yet: any trait field fails decoding rather than being dropped. The
- * approved trait set is added here by ship-part-model ticket 16.
+ * Rendering-only metadata (I-14). `traits` carries authored `visual-traits/1` overrides
+ * (D16, ship-part-model ticket 16), one entry per overridable trait, each with its own
+ * `reason`. Authoring a compiler-derived trait is an excess key (V10); an unknown trait or
+ * value fails (V12); an override without a reason fails (V11). `override` names a
+ * part-specific catalog drawing and is the first step of the drawing resolution order.
  */
 export const PartVisualSchema = Schema.Struct({
-  // An empty `Struct({})` would accept and keep any key even under strict decode, so
-  // the empty vocabulary is a record whose every value fails, reported at its path.
-  traits: Schema.optional(Schema.Record(Schema.String, Schema.Never)),
+  traits: Schema.optional(PartVisualOverridesSchema),
   override: Schema.optional(stableId),
 });
 
