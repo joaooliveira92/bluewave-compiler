@@ -54,7 +54,9 @@ const key = (e: PartCatalogueEntry) =>
     requires: e.requires,
     tags: e.tags,
     fcClass: e.fcClass,
-    parameters: Object.fromEntries(Object.entries(e.parameters).sort()),
+    parameters: Object.fromEntries(
+      Object.entries(e.parameters).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)),
+    ),
     allowedZones: e.allowedZones ?? null,
     entryUnits: e.entryUnits,
     rounds: e.rounds,
