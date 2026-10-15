@@ -249,9 +249,7 @@ function runCli(args: string[]): number {
  */
 function main(): void {
   const runtime = ManagedRuntime.make(Layer.empty);
-  const program = Effect.gen(function* () {
-    return runCli(process.argv.slice(2));
-  });
+  const program = Effect.sync(() => runCli(process.argv.slice(2)));
   const finish = (code: number): void => {
     void runtime.dispose().then(
       () => process.exit(code),
