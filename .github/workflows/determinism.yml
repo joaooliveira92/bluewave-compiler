@@ -29,11 +29,12 @@ jobs:
       # avoids the turbo cache-replay that bites when typecheck runs first.
       - run: pnpm build
       - run: pnpm typecheck
-      # The runners have few cores; turbo's default concurrency oversubscribes
-      # them and tips heavy-but-legitimate suites past their timeouts. Invoke
-      # turbo directly (not `pnpm test -- ...`, which forwards the flag to the
-      # per-package test scripts, where vitest rejects it).
-      - run: pnpm exec turbo run test --concurrency=2
+      # The runners have few cores; the task runner's default concurrency
+      # oversubscribes them and tips heavy-but-legitimate suites past their
+      # timeouts. Invoke `vp run` directly (not `pnpm test -- ...`, which
+      # forwards the flag to the per-package test scripts, where vitest rejects
+      # it).
+      - run: pnpm exec vp run -r test --concurrency-limit=2
       - name: Cross-process determinism
         run: node packages/cross-process-test/dist/run-child.js
       - name: Upload hash artifact

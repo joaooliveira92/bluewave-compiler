@@ -57,10 +57,11 @@ jobs:
       # `scripts/golden-repin.baseline`, so pre-guard history is grandfathered.
       - run: pnpm check:golden-repin
       - run: pnpm typecheck
-      # --force: typecheck's `^build` populates the turbo cache first, and a
-      # replayed desktop build then reads a stale phase-engine `dist`. Build
-      # from source here so the gate is not at the mercy of cache replay.
-      - run: pnpm exec turbo run build --force
+      # --no-cache: the typecheck step's build populates the Vite Task cache
+      # first, and a replayed desktop build then reads a stale phase-engine
+      # `dist`. Build from source here so the gate is not at the mercy of cache
+      # replay.
+      - run: pnpm exec vp run -r build --no-cache
       # The app hard-depends on the compiled content artifact; build it
       # explicitly so a green run cannot mean the tests executed against a
       # stale or missing artifact (it is otherwise only produced as a side

@@ -10,7 +10,7 @@ Mandatory. This contract applies to every code, content, build, persistence, and
 
 ## Technology and repository
 
-- Use strict TypeScript, pnpm workspaces, Turborepo, Vite, React, and Electron.
+- Use strict TypeScript, pnpm workspaces, Vite+ (`vp`), Vite, React, and Electron.
 - Pin the Node.js policy and exact pnpm version. Use a frozen lockfile in CI.
 - Keep authoritative compiler and simulation execution in Node.js.
 - Keep domain packages independent of Node, filesystem, database, Electron, React, IPC, localization, and renderer state.
@@ -141,7 +141,7 @@ Create an ADR for decisions that materially constrain architecture, determinism,
 
 A change is done only when, on the exact commit:
 
-- `pnpm preflight` is green — git state, single-copy `effect`, dependency policy, docs links/anchors/ADR index/deferrals/amendments, doc budgets, and no new `as unknown` casts (scheduled by `scripts/run-gates.mjs`);
+- `pnpm preflight` is green — git state, single-copy `effect`, dependency policy, docs links/anchors/ADR index/deferrals/amendments, doc budgets, and no new `as unknown` casts (the gate DAG in `vite.config.ts` `run.tasks`, ADR-0161);
 - `pnpm test:scripts` is green (the gate fixtures);
 - `pnpm check` is green end-to-end (format, lint, `lint:effect`, licences, typecheck, build, tests, balance reports, desktop E2E);
 - subjects are Conventional Commits, the working tree is clean, and the ticket's acceptance criteria are met.

@@ -12,4 +12,4 @@ fi
 # unformatted code cannot enter history, then run the preflight gate set. Bypass
 # with `git commit --no-verify` only when justified; CI re-runs everything.
 node scripts/precommit-staged.mjs || exit 1
-exec node scripts/run-gates.mjs preflight
+exec pnpm preflight

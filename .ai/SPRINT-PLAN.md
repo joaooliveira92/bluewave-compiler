@@ -100,7 +100,7 @@ Rules for every content sprint:
 
 Last refreshed at the M2 acceptance gate (B-6, 2026-08-15); the M1 gate (A-5,
 2026-08-12) supplied the milestone evidence. State below is from orchestrator
-validation runs (`pnpm -w turbo run build --force`, `tsc -b`, per-package
+validation runs (`vp run -r build --no-cache`, `tsc -b`, per-package
 vitest, golden verify, two-process determinism), not from reading docs:
 
 | Area                | Actual state                                                                                                                                                                                                                                                                                                      |
